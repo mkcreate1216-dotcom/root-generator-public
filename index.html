@@ -279,7 +279,6 @@
           state.autoArrival = true;
         } else if (state.addLocationType === "accommodation") {
           const nextDay = state.days[state.activeDayIndex + 1];
-          const nextAccommodation = nextDay ? nextDay.accommodation : "";
           day.accommodation = value;
           day.autoAccommodation = false;
           if (state.addAccommodationScope === "all") {
@@ -287,7 +286,7 @@
               state.days[i].autoAccommodation = true;
             }
           } else if (nextDay) {
-            nextDay.accommodation = nextAccommodation;
+            nextDay.accommodation = value;
             nextDay.autoAccommodation = false;
           }
           syncAutoStarts();
@@ -307,16 +306,11 @@
       }
 
       function renderAddSpotOptions() {
-        const isLastDay = state.activeDayIndex === state.days.length - 1;
         addTargetDayEl.textContent = `+ ${state.days[state.activeDayIndex].name}`;
         addTargetDayEl.title = `${state.days[state.activeDayIndex].name} に追加`;
-        if (isLastDay && state.addLocationType === "accommodation") {
-          state.addLocationType = "spot";
-        }
         setTagStyle(addTypeSpotEl, state.addLocationType === "spot");
         setTagStyle(addTypeDepartureEl, state.addLocationType === "departure");
         setTagStyle(addTypeAccommodationEl, state.addLocationType === "accommodation");
-        addTypeAccommodationEl.disabled = isLastDay;
         addAccommodationScopeEl.classList.toggle("hidden", state.addLocationType !== "accommodation");
         const note =
           state.addLocationType === "departure"
@@ -656,7 +650,7 @@
         const isLastDay = dayIndex === state.days.length - 1;
         const departure = isFirstDay ? state.departure.trim() : "";
         const arrival = isLastDay ? state.arrival.trim() : "";
-        const accommodation = isLastDay ? "" : day.accommodation.trim();
+        const accommodation = day.accommodation.trim();
         const items = [];
 
         if (departure) {
