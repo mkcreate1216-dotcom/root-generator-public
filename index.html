@@ -126,7 +126,18 @@
           if (day.autoStart) {
             if (previousAccommodation) {
               if (day.autoStartSlot) {
-                day.spots[0] = previousAccommodation;
+                if (day.spots.length === 0) {
+                  day.spots.unshift(previousAccommodation);
+                  day.autoStartSlot = true;
+                } else {
+                  const currentFirst = (day.spots[0] || "").trim();
+                  if (currentFirst && currentFirst !== previousAccommodation) {
+                    day.autoStart = false;
+                    day.autoStartSlot = false;
+                  } else {
+                    day.spots[0] = previousAccommodation;
+                  }
+                }
               } else if (day.spots.length === 0) {
                 day.spots.unshift(previousAccommodation);
                 day.autoStartSlot = true;
@@ -148,7 +159,10 @@
           mapType === "apple"
             ? `https://maps.apple.com/?saddr=${from}&daddr=${to}`
             : `https://www.google.com/maps/dir/?api=1&origin=${from}&destination=${to}`;
-        window.open(url, "_blank", "noopener,noreferrer");
+        const openedWindow = window.open(url, "_blank", "noopener,noreferrer");
+        if (!openedWindow) {
+          alert("新しいタブを開けませんでした。ポップアップブロック設定を確認してください。");
+        }
       }
 
       function addSpot() {
@@ -244,6 +258,7 @@
           day.spots.splice(index, 1);
           if (index === 0 && state.activeDayIndex > 0) {
             day.autoStart = false;
+            day.autoStartSlot = false;
           }
           state.openRouteMenuIndex = null;
           saveState();
