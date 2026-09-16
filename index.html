@@ -246,7 +246,7 @@
         input.addEventListener("input", (e) => {
           const day = state.days[state.activeDayIndex];
           day.spots[index] = e.target.value;
-          if (state.activeDayIndex > 0 && index === 0) {
+          if (state.activeDayIndex > 0 && index === 0 && day.autoStartSlot) {
             const previousAccommodation = (state.days[state.activeDayIndex - 1].accommodation || "").trim();
             const currentValue = e.target.value.trim();
             const shouldKeepAuto = currentValue === previousAccommodation;
@@ -410,11 +410,14 @@
         }
       }
 
-      function scheduleAccommodationSync() {
+      function scheduleAccommodationSync(dayIndex, accommodationValue) {
         if (accommodationDebounceId) {
           clearTimeout(accommodationDebounceId);
         }
         accommodationDebounceId = setTimeout(() => {
+          if (state.days[dayIndex]) {
+            state.days[dayIndex].accommodation = accommodationValue;
+          }
           accommodationDebounceId = null;
           syncAutoStarts();
           saveState();
@@ -425,7 +428,7 @@
       accommodationInputEl.addEventListener("input", (e) => {
         const day = state.days[state.activeDayIndex];
         day.accommodation = e.target.value;
-        scheduleAccommodationSync();
+        scheduleAccommodationSync(state.activeDayIndex, e.target.value);
       });
 
       accommodationInputEl.addEventListener("blur", () => {
