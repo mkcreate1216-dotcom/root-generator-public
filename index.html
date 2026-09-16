@@ -63,6 +63,7 @@
       const newSpotInputEl = document.getElementById("new-spot-input");
       const addSpotBtnEl = document.getElementById("add-spot-btn");
       const accommodationInputEl = document.getElementById("accommodation-input");
+      let accommodationDebounceId = null;
 
       function createDay(dayNumber, prevAccommodation = "") {
         return {
@@ -126,7 +127,7 @@
             if (previousAccommodation) {
               if (day.autoStartSlot) {
                 day.spots[0] = previousAccommodation;
-              } else {
+              } else if (day.spots.length === 0) {
                 day.spots.unshift(previousAccommodation);
                 day.autoStartSlot = true;
               }
@@ -219,8 +220,11 @@
           const day = state.days[state.activeDayIndex];
           day.spots[index] = e.target.value;
           if (state.activeDayIndex > 0 && index === 0) {
-            day.autoStart = false;
-            day.autoStartSlot = false;
+            const previousAccommodation = (state.days[state.activeDayIndex - 1].accommodation || "").trim();
+            const currentValue = e.target.value.trim();
+            const shouldKeepAuto = currentValue === previousAccommodation;
+            day.autoStart = shouldKeepAuto;
+            day.autoStartSlot = shouldKeepAuto && !!previousAccommodation;
           }
           saveState();
         });
@@ -340,9 +344,27 @@
         }
       });
 
+      function scheduleAccommodationSync() {
+        if (accommodationDebounceId) {
+          clearTimeout(accommodationDebounceId);
+        }
+        accommodationDebounceId = setTimeout(() => {
+          saveState();
+          render();
+        }, 180);
+      }
+
       accommodationInputEl.addEventListener("input", (e) => {
         const day = state.days[state.activeDayIndex];
         day.accommodation = e.target.value;
+        scheduleAccommodationSync();
+      });
+
+      accommodationInputEl.addEventListener("blur", () => {
+        if (accommodationDebounceId) {
+          clearTimeout(accommodationDebounceId);
+          accommodationDebounceId = null;
+        }
         saveState();
         render();
       });
