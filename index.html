@@ -205,6 +205,7 @@
           }`;
           button.textContent = day.name;
           button.addEventListener("click", () => {
+            flushAccommodationSync(false);
             state.activeDayIndex = index;
             state.openRouteMenuIndex = null;
             saveState();
@@ -308,6 +309,8 @@
         const menu = document.createElement("div");
         menu.id = menuId;
         menu.className = `mt-2 flex gap-2 ${state.openRouteMenuIndex === routeIndex ? "" : "hidden"}`;
+        menu.setAttribute("role", "menu");
+        menu.setAttribute("aria-label", "地図アプリ選択");
 
         const feedback = document.createElement("p");
         feedback.className = "mt-2 text-xs text-rose-600";
@@ -320,6 +323,7 @@
         const googleBtn = document.createElement("button");
         googleBtn.className = "rounded-md bg-white px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50";
         googleBtn.textContent = "Google マップ";
+        googleBtn.setAttribute("role", "menuitem");
         googleBtn.addEventListener("click", () => {
           if (!from.trim() || !to.trim()) {
             showRouteValidation();
@@ -332,6 +336,7 @@
         const appleBtn = document.createElement("button");
         appleBtn.className = "rounded-md bg-white px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50";
         appleBtn.textContent = "Apple マップ";
+        appleBtn.setAttribute("role", "menuitem");
         appleBtn.addEventListener("click", () => {
           if (!from.trim() || !to.trim()) {
             showRouteValidation();
@@ -387,6 +392,17 @@
         }
       });
 
+      function flushAccommodationSync(shouldRender = true) {
+        if (accommodationDebounceId) {
+          clearTimeout(accommodationDebounceId);
+          accommodationDebounceId = null;
+        }
+        saveState();
+        if (shouldRender) {
+          render();
+        }
+      }
+
       function scheduleAccommodationSync() {
         if (accommodationDebounceId) {
           clearTimeout(accommodationDebounceId);
@@ -405,12 +421,7 @@
       });
 
       accommodationInputEl.addEventListener("blur", () => {
-        if (accommodationDebounceId) {
-          clearTimeout(accommodationDebounceId);
-          accommodationDebounceId = null;
-        }
-        saveState();
-        render();
+        flushAccommodationSync();
       });
 
       loadState();
