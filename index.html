@@ -397,6 +397,9 @@
           clearTimeout(accommodationDebounceId);
           accommodationDebounceId = null;
         }
+        if (state.days[state.activeDayIndex]) {
+          state.days[state.activeDayIndex].accommodation = accommodationInputEl.value;
+        }
         syncAutoStarts();
         saveState();
         if (shouldRender) {
@@ -411,8 +414,8 @@
         accommodationDebounceId = setTimeout(() => {
           syncAutoStarts();
           saveState();
-          render();
           accommodationDebounceId = null;
+          render();
         }, 180);
       }
 
