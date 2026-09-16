@@ -433,11 +433,14 @@
         addSpot();
       });
 
-      function flushAccommodationSync(shouldRender = true, sourceDayIndex = state.activeDayIndex, sourceValue = accommodationInputEl.value) {
-        if (pendingAccommodationSync) {
+      function flushAccommodationSync(shouldRender = true, sourceDayIndex, sourceValue) {
+        const hasExplicitSource = sourceDayIndex !== undefined && sourceValue !== undefined;
+        if (!hasExplicitSource && pendingAccommodationSync) {
           sourceDayIndex = pendingAccommodationSync.dayIndex;
           sourceValue = pendingAccommodationSync.value;
         }
+        if (sourceDayIndex === undefined) sourceDayIndex = state.activeDayIndex;
+        if (sourceValue === undefined) sourceValue = accommodationInputEl.value;
         if (accommodationDebounceId) {
           clearTimeout(accommodationDebounceId);
           accommodationDebounceId = null;
@@ -475,6 +478,8 @@
       accommodationInputEl.addEventListener("input", (e) => {
         const day = state.days[state.activeDayIndex];
         day.accommodation = e.target.value;
+        syncAutoStarts();
+        saveState();
         scheduleAccommodationSync(state.activeDayIndex, e.target.value);
       });
 
