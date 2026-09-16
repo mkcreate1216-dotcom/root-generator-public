@@ -71,7 +71,8 @@
           spots: dayNumber === 1 ? [] : prevAccommodation ? [prevAccommodation] : [],
           accommodation: "",
           autoStart: dayNumber !== 1,
-          autoStartSlot: dayNumber !== 1 && !!prevAccommodation
+          autoStartSlot: dayNumber !== 1 && !!prevAccommodation,
+          autoStartValue: dayNumber !== 1 && !!prevAccommodation ? prevAccommodation : ""
         };
       }
 
@@ -101,6 +102,7 @@
             day.accommodation = typeof day.accommodation === "string" ? day.accommodation : "";
             day.autoStart = typeof day.autoStart === "boolean" ? day.autoStart : i !== 0;
             day.autoStartSlot = typeof day.autoStartSlot === "boolean" ? day.autoStartSlot : day.autoStart && day.spots.length > 0;
+            day.autoStartValue = typeof day.autoStartValue === "string" ? day.autoStartValue : day.autoStartSlot ? day.spots[0] || "" : "";
             state.days[i] = day;
           }
         } catch {
@@ -129,24 +131,31 @@
                 if (day.spots.length === 0) {
                   day.spots.unshift(previousAccommodation);
                   day.autoStartSlot = true;
+                  day.autoStartValue = previousAccommodation;
                 } else {
                   const currentFirst = (day.spots[0] || "").trim();
-                  if (currentFirst && currentFirst !== previousAccommodation) {
+                  const managedValue = (day.autoStartValue || "").trim();
+                  if (managedValue && currentFirst !== managedValue) {
                     day.autoStart = false;
                     day.autoStartSlot = false;
+                    day.autoStartValue = "";
                   } else {
                     day.spots[0] = previousAccommodation;
+                    day.autoStartValue = previousAccommodation;
                   }
                 }
               } else if (day.spots.length === 0) {
                 day.spots.unshift(previousAccommodation);
                 day.autoStartSlot = true;
+                day.autoStartValue = previousAccommodation;
               }
             } else {
-              if (day.autoStartSlot && day.spots.length > 0) {
+              const managedValue = (day.autoStartValue || "").trim();
+              if (day.autoStartSlot && day.spots.length > 0 && ((day.spots[0] || "").trim() === managedValue || !managedValue)) {
                 day.spots.shift();
               }
               day.autoStartSlot = false;
+              day.autoStartValue = "";
             }
           }
         }
@@ -159,10 +168,13 @@
           mapType === "apple"
             ? `https://maps.apple.com/?saddr=${from}&daddr=${to}`
             : `https://www.google.com/maps/dir/?api=1&origin=${from}&destination=${to}`;
-        const openedWindow = window.open(url, "_blank", "noopener,noreferrer");
-        if (!openedWindow) {
-          alert("新しいタブを開けませんでした。ポップアップブロック設定を確認してください。");
-        }
+        const link = document.createElement("a");
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
       }
 
       function addSpot() {
@@ -239,6 +251,7 @@
             const shouldKeepAuto = currentValue === previousAccommodation;
             day.autoStart = shouldKeepAuto;
             day.autoStartSlot = shouldKeepAuto && !!previousAccommodation;
+            day.autoStartValue = shouldKeepAuto ? previousAccommodation : "";
           }
           saveState();
         });
@@ -259,6 +272,7 @@
           if (index === 0 && state.activeDayIndex > 0) {
             day.autoStart = false;
             day.autoStartSlot = false;
+            day.autoStartValue = "";
           }
           state.openRouteMenuIndex = null;
           saveState();
@@ -280,15 +294,19 @@
         line.className = "h-5 w-px bg-slate-300";
 
         const btn = document.createElement("button");
+        const menuId = `route-menu-${state.activeDayIndex}-${routeIndex}`;
         btn.className =
           "rounded-full border border-sky-300 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 transition hover:bg-sky-100";
         btn.textContent = "ルート検索";
+        btn.setAttribute("aria-controls", menuId);
+        btn.setAttribute("aria-expanded", String(state.openRouteMenuIndex === routeIndex));
         btn.addEventListener("click", () => {
           state.openRouteMenuIndex = state.openRouteMenuIndex === routeIndex ? null : routeIndex;
           render();
         });
 
         const menu = document.createElement("div");
+        menu.id = menuId;
         menu.className = `mt-2 flex gap-2 ${state.openRouteMenuIndex === routeIndex ? "" : "hidden"}`;
 
         const googleBtn = document.createElement("button");
