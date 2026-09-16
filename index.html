@@ -39,6 +39,14 @@
 
         <div class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
           <label class="mb-2 block text-sm font-medium text-slate-700" for="accommodation-input">宿泊地</label>
+          <div class="mb-3 flex gap-2" role="group" aria-label="宿泊地の変更範囲">
+            <button id="accommodation-scope-all" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">
+              以降すべて
+            </button>
+            <button id="accommodation-scope-next-day" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">
+              当日・翌日だけ
+            </button>
+          </div>
           <input
             id="accommodation-input"
             type="text"
@@ -56,7 +64,8 @@
       const state = {
         days: [],
         activeDayIndex: 0,
-        openRouteMenuIndex: null
+        openRouteMenuIndex: null,
+        accommodationUpdateScope: "all"
       };
 
       const dayTabsEl = document.getElementById("day-tabs");
@@ -64,6 +73,8 @@
       const newSpotInputEl = document.getElementById("new-spot-input");
       const addSpotFormEl = document.getElementById("add-spot-form");
       const accommodationInputEl = document.getElementById("accommodation-input");
+      const accommodationScopeAllEl = document.getElementById("accommodation-scope-all");
+      const accommodationScopeNextDayEl = document.getElementById("accommodation-scope-next-day");
       let accommodationDebounceId = null;
       let pendingAccommodationSync = null;
 
@@ -71,7 +82,8 @@
         return {
           name: `Day ${dayNumber}`,
           spots: dayNumber === 1 ? [] : prevAccommodation ? [prevAccommodation] : [],
-          accommodation: "",
+          accommodation: dayNumber === 1 ? "" : prevAccommodation,
+          autoAccommodation: dayNumber !== 1,
           autoStart: dayNumber !== 1,
           autoStartSlot: dayNumber !== 1 && !!prevAccommodation,
           autoStartValue: dayNumber !== 1 && !!prevAccommodation ? prevAccommodation : ""
@@ -102,6 +114,7 @@
             day.name = day.name || `Day ${i + 1}`;
             day.spots = Array.isArray(day.spots) ? day.spots : [];
             day.accommodation = typeof day.accommodation === "string" ? day.accommodation : "";
+            day.autoAccommodation = typeof day.autoAccommodation === "boolean" ? day.autoAccommodation : i !== 0;
             day.autoStart = typeof day.autoStart === "boolean" ? day.autoStart : i !== 0;
             day.autoStartSlot = typeof day.autoStartSlot === "boolean" ? day.autoStartSlot : day.autoStart && day.spots.length > 0;
             day.autoStartValue = typeof day.autoStartValue === "string" ? day.autoStartValue : day.autoStartSlot ? day.spots[0] || "" : "";
@@ -127,6 +140,9 @@
         for (let i = 1; i < state.days.length; i++) {
           const previousAccommodation = (state.days[i - 1].accommodation || "").trim();
           const day = state.days[i];
+          if (day.autoAccommodation) {
+            day.accommodation = previousAccommodation;
+          }
           if (day.autoStart) {
             if (previousAccommodation) {
               if (day.autoStartSlot) {
@@ -174,13 +190,10 @@
           mapType === "apple"
             ? `https://maps.apple.com/?saddr=${from}&daddr=${to}`
             : `https://www.google.com/maps/dir/?api=1&origin=${from}&destination=${to}`;
-        const link = document.createElement("a");
-        link.href = url;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
+        const mapWindow = window.open(url, "_blank", "noopener,noreferrer");
+        if (!mapWindow) {
+          window.location.assign(url);
+        }
       }
 
       function addSpot() {
@@ -202,13 +215,28 @@
         render();
       }
 
-      function focusRouteMenuFirstItem(menuId) {
-        requestAnimationFrame(() => {
-          const menu = document.getElementById(menuId);
-          if (!menu) return;
-          const firstItem = menu.querySelector("button");
-          if (firstItem) firstItem.focus();
+      function deleteActiveDay() {
+        if (state.days.length <= 1) return;
+
+        flushAccommodationSync(false, state.activeDayIndex, accommodationInputEl.value);
+        state.days.splice(state.activeDayIndex, 1);
+        state.days.forEach((day, index) => {
+          day.name = `Day ${index + 1}`;
+          if (index === 0 && day.autoStartSlot && (day.spots[0] || "").trim() === (day.autoStartValue || "").trim()) {
+            day.spots.shift();
+            day.autoStart = false;
+            day.autoStartSlot = false;
+            day.autoStartValue = "";
+          }
+          if (index === 0) {
+            day.autoAccommodation = false;
+          }
         });
+        state.activeDayIndex = Math.min(state.activeDayIndex, state.days.length - 1);
+        state.openRouteMenuIndex = null;
+        syncAutoStarts();
+        saveState();
+        render();
       }
 
       function renderTabs() {
@@ -217,8 +245,13 @@
           const button = document.createElement("button");
           const active = index === state.activeDayIndex;
           button.className = `rounded-full border px-4 py-2 text-sm font-medium transition ${
-            active ? "border-sky-600 bg-sky-600 text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
+            active ? "text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
           }`;
+          if (active) {
+            button.style.backgroundColor = "#0284c7";
+            button.style.borderColor = "#0284c7";
+            button.style.color = "#ffffff";
+          }
           button.textContent = day.name;
           button.addEventListener("click", () => {
             flushAccommodationSync(false, state.activeDayIndex, accommodationInputEl.value);
@@ -237,6 +270,15 @@
         addButton.textContent = "+ 日数追加";
         addButton.addEventListener("click", addDay);
         dayTabsEl.appendChild(addButton);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.className =
+          "rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50";
+        deleteButton.textContent = "日程を削除";
+        deleteButton.disabled = state.days.length <= 1;
+        deleteButton.addEventListener("click", deleteActiveDay);
+        dayTabsEl.appendChild(deleteButton);
       }
 
       function createSpotCard(spotValue, index) {
@@ -305,6 +347,34 @@
         return card;
       }
 
+      function createAccommodationCard(accommodation, index) {
+        const card = document.createElement("div");
+        card.className = "rounded-xl border border-green-200 bg-green-50 p-3 shadow-sm sm:p-4";
+
+        const row = document.createElement("div");
+        row.className = "flex items-start gap-3";
+
+        const marker = document.createElement("div");
+        marker.className = "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-600 text-xs font-bold text-white";
+        marker.textContent = String(index + 1);
+
+        const content = document.createElement("div");
+        content.className = "w-full";
+
+        const label = document.createElement("p");
+        label.className = "text-xs font-medium text-green-700";
+        label.textContent = "宿泊地";
+
+        const name = document.createElement("p");
+        name.className = "mt-1 text-sm font-medium text-slate-900";
+        name.textContent = accommodation;
+
+        content.append(label, name);
+        row.append(marker, content);
+        card.appendChild(row);
+        return card;
+      }
+
       function createRouteConnector(from, to, routeIndex) {
         const wrap = document.createElement("div");
         wrap.className = "flex flex-col items-center py-2";
@@ -321,12 +391,8 @@
         btn.setAttribute("aria-controls", menuId);
         btn.setAttribute("aria-expanded", String(state.openRouteMenuIndex === routeIndex));
         btn.addEventListener("click", () => {
-          const willOpen = state.openRouteMenuIndex !== routeIndex;
-          state.openRouteMenuIndex = willOpen ? routeIndex : null;
+          state.openRouteMenuIndex = state.openRouteMenuIndex === routeIndex ? null : routeIndex;
           render();
-          if (willOpen) {
-            focusRouteMenuFirstItem(menuId);
-          }
         });
 
         const menu = document.createElement("div");
@@ -334,14 +400,6 @@
         menu.className = `mt-2 flex gap-2 ${state.openRouteMenuIndex === routeIndex ? "" : "hidden"}`;
         menu.setAttribute("role", "menu");
         menu.setAttribute("aria-label", "地図アプリ選択");
-        wrap.addEventListener("focusout", () => {
-          setTimeout(() => {
-            if (state.openRouteMenuIndex === routeIndex && !wrap.contains(document.activeElement)) {
-              state.openRouteMenuIndex = null;
-              render();
-            }
-          }, 0);
-        });
         menu.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
             event.preventDefault();
@@ -397,9 +455,10 @@
 
       function renderTimeline() {
         const day = state.days[state.activeDayIndex];
+        const accommodation = day.accommodation.trim();
         timelineEl.innerHTML = "";
 
-        if (day.spots.length === 0) {
+        if (day.spots.length === 0 && !accommodation) {
           const empty = document.createElement("p");
           empty.className = "rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500";
           empty.textContent = "まだスポットがありません。上の入力から追加してください。";
@@ -413,11 +472,27 @@
             timelineEl.appendChild(createRouteConnector(day.spots[index], day.spots[index + 1], index));
           }
         });
+
+        if (accommodation) {
+          if (day.spots.length > 0) {
+            timelineEl.appendChild(createRouteConnector(day.spots[day.spots.length - 1], accommodation, day.spots.length - 1));
+          }
+          timelineEl.appendChild(createAccommodationCard(accommodation, day.spots.length));
+        }
       }
 
       function renderAccommodation() {
         const day = state.days[state.activeDayIndex];
         accommodationInputEl.value = day.accommodation;
+        const allDays = state.accommodationUpdateScope === "all";
+        accommodationScopeAllEl.setAttribute("aria-pressed", String(allDays));
+        accommodationScopeNextDayEl.setAttribute("aria-pressed", String(!allDays));
+        accommodationScopeAllEl.style.backgroundColor = allDays ? "#0f766e" : "#ffffff";
+        accommodationScopeAllEl.style.borderColor = allDays ? "#0f766e" : "#cbd5e1";
+        accommodationScopeAllEl.style.color = allDays ? "#ffffff" : "#334155";
+        accommodationScopeNextDayEl.style.backgroundColor = allDays ? "#ffffff" : "#0f766e";
+        accommodationScopeNextDayEl.style.borderColor = allDays ? "#cbd5e1" : "#0f766e";
+        accommodationScopeNextDayEl.style.color = allDays ? "#334155" : "#ffffff";
       }
 
       function render() {
@@ -476,11 +551,40 @@
       }
 
       accommodationInputEl.addEventListener("input", (e) => {
-        const day = state.days[state.activeDayIndex];
+        const dayIndex = state.activeDayIndex;
+        const day = state.days[dayIndex];
+        const nextNextDay = state.days[dayIndex + 2];
+        const nextNextAccommodation = nextNextDay ? nextNextDay.accommodation : "";
         day.accommodation = e.target.value;
+        day.autoAccommodation = false;
+
+        if (state.accommodationUpdateScope === "all") {
+          for (let i = dayIndex + 1; i < state.days.length; i++) {
+            state.days[i].autoAccommodation = true;
+          }
+        } else {
+          const nextDay = state.days[dayIndex + 1];
+          if (nextDay) {
+            nextDay.autoAccommodation = true;
+          }
+          if (nextNextDay) {
+            nextNextDay.accommodation = nextNextAccommodation;
+            nextNextDay.autoAccommodation = false;
+          }
+        }
         syncAutoStarts();
         saveState();
         scheduleAccommodationSync(state.activeDayIndex, e.target.value);
+      });
+
+      accommodationScopeAllEl.addEventListener("click", () => {
+        state.accommodationUpdateScope = "all";
+        renderAccommodation();
+      });
+
+      accommodationScopeNextDayEl.addEventListener("click", () => {
+        state.accommodationUpdateScope = "next-day";
+        renderAccommodation();
       });
 
       accommodationInputEl.addEventListener("blur", () => {
