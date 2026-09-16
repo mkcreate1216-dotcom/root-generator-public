@@ -397,6 +397,7 @@
           clearTimeout(accommodationDebounceId);
           accommodationDebounceId = null;
         }
+        syncAutoStarts();
         saveState();
         if (shouldRender) {
           render();
@@ -408,6 +409,7 @@
           clearTimeout(accommodationDebounceId);
         }
         accommodationDebounceId = setTimeout(() => {
+          syncAutoStarts();
           saveState();
           render();
           accommodationDebounceId = null;
