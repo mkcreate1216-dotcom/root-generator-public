@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>旅程作成MVP</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
   </head>
   <body class="min-h-screen bg-slate-100 text-slate-900">
     <div class="mx-auto w-full max-w-5xl p-4 sm:p-6">
@@ -16,7 +16,7 @@
       <section class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
         <div class="mb-4 flex flex-wrap items-center gap-2" id="day-tabs"></div>
 
-        <div class="mb-4 rounded-xl bg-slate-50 p-3 sm:p-4">
+        <form id="add-spot-form" class="mb-4 rounded-xl bg-slate-50 p-3 sm:p-4">
           <label class="mb-2 block text-sm font-medium text-slate-700" for="new-spot-input">スポットを追加</label>
           <div class="flex gap-2">
             <input
@@ -27,12 +27,13 @@
             />
             <button
               id="add-spot-btn"
+              type="submit"
               class="shrink-0 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700"
             >
               追加
             </button>
           </div>
-        </div>
+        </form>
 
         <div id="timeline" class="space-y-0"></div>
 
@@ -61,7 +62,7 @@
       const dayTabsEl = document.getElementById("day-tabs");
       const timelineEl = document.getElementById("timeline");
       const newSpotInputEl = document.getElementById("new-spot-input");
-      const addSpotBtnEl = document.getElementById("add-spot-btn");
+      const addSpotFormEl = document.getElementById("add-spot-form");
       const accommodationInputEl = document.getElementById("accommodation-input");
       let accommodationDebounceId = null;
 
@@ -195,6 +196,15 @@
         render();
       }
 
+      function focusRouteMenuFirstItem(menuId) {
+        requestAnimationFrame(() => {
+          const menu = document.getElementById(menuId);
+          if (!menu) return;
+          const firstItem = menu.querySelector("button");
+          if (firstItem) firstItem.focus();
+        });
+      }
+
       function renderTabs() {
         dayTabsEl.innerHTML = "";
         state.days.forEach((day, index) => {
@@ -302,8 +312,12 @@
         btn.setAttribute("aria-controls", menuId);
         btn.setAttribute("aria-expanded", String(state.openRouteMenuIndex === routeIndex));
         btn.addEventListener("click", () => {
-          state.openRouteMenuIndex = state.openRouteMenuIndex === routeIndex ? null : routeIndex;
+          const willOpen = state.openRouteMenuIndex !== routeIndex;
+          state.openRouteMenuIndex = willOpen ? routeIndex : null;
           render();
+          if (willOpen) {
+            focusRouteMenuFirstItem(menuId);
+          }
         });
 
         const menu = document.createElement("div");
@@ -311,6 +325,17 @@
         menu.className = `mt-2 flex gap-2 ${state.openRouteMenuIndex === routeIndex ? "" : "hidden"}`;
         menu.setAttribute("role", "menu");
         menu.setAttribute("aria-label", "地図アプリ選択");
+        menu.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            state.openRouteMenuIndex = null;
+            render();
+            btn.focus();
+          } else if (event.key === "Tab") {
+            state.openRouteMenuIndex = null;
+            render();
+          }
+        });
 
         const feedback = document.createElement("p");
         feedback.id = `${menuId}-feedback`;
@@ -387,12 +412,9 @@
         renderAccommodation();
       }
 
-      addSpotBtnEl.addEventListener("click", addSpot);
-      newSpotInputEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          addSpot();
-        }
+      addSpotFormEl.addEventListener("submit", (e) => {
+        e.preventDefault();
+        addSpot();
       });
 
       function flushAccommodationSync(shouldRender = true) {
