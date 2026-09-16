@@ -309,14 +309,23 @@
         menu.id = menuId;
         menu.className = `mt-2 flex gap-2 ${state.openRouteMenuIndex === routeIndex ? "" : "hidden"}`;
 
+        const feedback = document.createElement("p");
+        feedback.className = "mt-2 text-xs text-rose-600";
+        feedback.setAttribute("aria-live", "polite");
+
+        function showRouteValidation() {
+          feedback.textContent = "前後の地点名を入力してください。";
+        }
+
         const googleBtn = document.createElement("button");
         googleBtn.className = "rounded-md bg-white px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50";
         googleBtn.textContent = "Google マップ";
         googleBtn.addEventListener("click", () => {
           if (!from.trim() || !to.trim()) {
-            alert("前後の地点名を入力してください。");
+            showRouteValidation();
             return;
           }
+          feedback.textContent = "";
           openRoute(from, to, "google");
         });
 
@@ -325,14 +334,15 @@
         appleBtn.textContent = "Apple マップ";
         appleBtn.addEventListener("click", () => {
           if (!from.trim() || !to.trim()) {
-            alert("前後の地点名を入力してください。");
+            showRouteValidation();
             return;
           }
+          feedback.textContent = "";
           openRoute(from, to, "apple");
         });
 
         menu.append(googleBtn, appleBtn);
-        wrap.append(line, btn, menu);
+        wrap.append(line, btn, menu, feedback);
         return wrap;
       }
 
@@ -384,6 +394,7 @@
         accommodationDebounceId = setTimeout(() => {
           saveState();
           render();
+          accommodationDebounceId = null;
         }, 180);
       }
 
