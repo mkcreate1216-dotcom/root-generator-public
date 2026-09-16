@@ -320,7 +320,7 @@
         addAccommodationScopeEl.classList.toggle("hidden", state.addLocationType !== "accommodation");
         const note =
           state.addLocationType === "departure"
-            ? "出発地点は後から上書きできます。"
+            ? "到着地点は後から上書きできます。"
             : "";
         addTypeNoteEl.textContent = note;
         addTypeNoteEl.classList.toggle("hidden", !note);
