@@ -193,7 +193,7 @@
       }
 
       function addDay() {
-        flushAccommodationSync(false);
+        flushAccommodationSync(false, state.activeDayIndex, accommodationInputEl.value);
         const prevAccommodation = (state.days[state.days.length - 1].accommodation || "").trim();
         state.days.push(createDay(state.days.length + 1, prevAccommodation));
         state.activeDayIndex = state.days.length - 1;
@@ -220,7 +220,7 @@
           }`;
           button.textContent = day.name;
           button.addEventListener("click", () => {
-            flushAccommodationSync(false);
+            flushAccommodationSync(false, state.activeDayIndex, accommodationInputEl.value);
             state.activeDayIndex = index;
             state.openRouteMenuIndex = null;
             saveState();
@@ -333,15 +333,20 @@
         menu.className = `mt-2 flex gap-2 ${state.openRouteMenuIndex === routeIndex ? "" : "hidden"}`;
         menu.setAttribute("role", "menu");
         menu.setAttribute("aria-label", "地図アプリ選択");
+        wrap.addEventListener("focusout", () => {
+          setTimeout(() => {
+            if (!wrap.contains(document.activeElement)) {
+              state.openRouteMenuIndex = null;
+              render();
+            }
+          }, 0);
+        });
         menu.addEventListener("keydown", (event) => {
           if (event.key === "Escape") {
             event.preventDefault();
             state.openRouteMenuIndex = null;
             render();
             btn.focus();
-          } else if (event.key === "Tab") {
-            state.openRouteMenuIndex = null;
-            render();
           }
         });
 
@@ -427,13 +432,13 @@
         addSpot();
       });
 
-      function flushAccommodationSync(shouldRender = true) {
+      function flushAccommodationSync(shouldRender = true, sourceDayIndex = state.activeDayIndex, sourceValue = accommodationInputEl.value) {
         if (accommodationDebounceId) {
           clearTimeout(accommodationDebounceId);
           accommodationDebounceId = null;
         }
-        if (state.days[state.activeDayIndex]) {
-          state.days[state.activeDayIndex].accommodation = accommodationInputEl.value;
+        if (state.days[sourceDayIndex]) {
+          state.days[sourceDayIndex].accommodation = sourceValue;
         }
         syncAutoStarts();
         saveState();
@@ -466,7 +471,7 @@
       });
 
       accommodationInputEl.addEventListener("blur", () => {
-        flushAccommodationSync();
+        flushAccommodationSync(true, state.activeDayIndex, accommodationInputEl.value);
       });
 
       loadState();
