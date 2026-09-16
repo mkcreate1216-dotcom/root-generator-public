@@ -189,6 +189,7 @@
       }
 
       function addDay() {
+        flushAccommodationSync(false);
         const prevAccommodation = (state.days[state.days.length - 1].accommodation || "").trim();
         state.days.push(createDay(state.days.length + 1, prevAccommodation));
         state.activeDayIndex = state.days.length - 1;
@@ -225,6 +226,7 @@
         });
 
         const addButton = document.createElement("button");
+        addButton.type = "button";
         addButton.className =
           "rounded-full border border-dashed border-slate-400 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-600";
         addButton.textContent = "+ 日数追加";
@@ -275,6 +277,7 @@
         hint.textContent = state.activeDayIndex > 0 && index === 0 && state.days[state.activeDayIndex].autoStart ? "前日の宿泊地を反映中" : "";
 
         const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
         removeBtn.className = "rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100";
         removeBtn.textContent = "削除";
         removeBtn.addEventListener("click", () => {
@@ -305,6 +308,7 @@
         line.className = "h-5 w-px bg-slate-300";
 
         const btn = document.createElement("button");
+        btn.type = "button";
         const menuId = `route-menu-${state.activeDayIndex}-${routeIndex}`;
         btn.className =
           "rounded-full border border-sky-300 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 transition hover:bg-sky-100";
@@ -347,6 +351,7 @@
         }
 
         const googleBtn = document.createElement("button");
+        googleBtn.type = "button";
         googleBtn.className = "rounded-md bg-white px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50";
         googleBtn.textContent = "Google マップ";
         googleBtn.setAttribute("role", "menuitem");
@@ -361,6 +366,7 @@
         });
 
         const appleBtn = document.createElement("button");
+        appleBtn.type = "button";
         appleBtn.className = "rounded-md bg-white px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50";
         appleBtn.textContent = "Apple マップ";
         appleBtn.setAttribute("role", "menuitem");
