@@ -140,6 +140,10 @@
                     day.autoStart = false;
                     day.autoStartSlot = false;
                     day.autoStartValue = "";
+                  } else if (!managedValue && currentFirst) {
+                    day.autoStart = false;
+                    day.autoStartSlot = false;
+                    day.autoStartValue = "";
                   } else {
                     day.spots[0] = previousAccommodation;
                     day.autoStartValue = previousAccommodation;
@@ -449,7 +453,9 @@
           accommodationDebounceId = null;
           syncAutoStarts();
           saveState();
-          render();
+          if (state.activeDayIndex === dayIndex) {
+            render();
+          }
         }, 180);
       }
 
