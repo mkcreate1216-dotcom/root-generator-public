@@ -21,10 +21,20 @@
       </header>
 
       <section class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
-        <div class="mb-4 flex flex-wrap items-center gap-2" id="day-tabs"></div>
+        <div class="fixed right-4 top-4 z-10 flex flex-col gap-2" id="day-tabs"></div>
 
         <form id="add-spot-form" class="mb-4 rounded-xl bg-slate-50 p-3 sm:p-4">
           <label class="mb-2 block text-sm font-medium text-slate-700" for="new-spot-input">スポットを追加</label>
+          <div class="mb-3 flex flex-wrap gap-2" role="group" aria-label="追加する地点の種類">
+            <button id="add-type-spot" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">スポット</button>
+            <button id="add-type-departure" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">出発地点/到着地点</button>
+            <button id="add-type-accommodation" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">宿泊地</button>
+          </div>
+          <p id="add-type-note" class="mb-3 hidden text-xs text-slate-500"></p>
+          <div id="add-accommodation-scope" class="mb-3 hidden flex flex-wrap gap-2" role="group" aria-label="宿泊地の反映範囲">
+            <button id="add-accommodation-scope-all" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">以降すべて</button>
+            <button id="add-accommodation-scope-today" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">当日のみ</button>
+          </div>
           <div class="flex gap-2">
             <input
               id="new-spot-input"
@@ -44,7 +54,7 @@
 
         <div id="timeline" class="space-y-0"></div>
 
-        <div id="endpoint-section" class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+        <div id="endpoint-section" class="hidden mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
           <div id="departure-field">
             <label class="mb-2 block text-sm font-medium text-slate-700" for="departure-input">出発地点</label>
             <input
@@ -56,7 +66,7 @@
           </div>
         </div>
 
-        <div id="accommodation-section" class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+        <div id="accommodation-section" class="hidden mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
           <label class="mb-2 block text-sm font-medium text-slate-700" for="accommodation-input">宿泊地</label>
           <div class="mb-3 flex gap-2" role="group" aria-label="宿泊地の変更範囲">
             <button id="accommodation-scope-all" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">
@@ -88,7 +98,9 @@
         departure: "",
         arrival: "",
         autoArrival: true,
-        tripName: ""
+        tripName: "",
+        addLocationType: "spot",
+        addAccommodationScope: "all"
       };
 
       const dayTabsEl = document.getElementById("day-tabs");
@@ -96,6 +108,13 @@
       const tripNameInputEl = document.getElementById("trip-name-input");
       const newSpotInputEl = document.getElementById("new-spot-input");
       const addSpotFormEl = document.getElementById("add-spot-form");
+      const addTypeSpotEl = document.getElementById("add-type-spot");
+      const addTypeDepartureEl = document.getElementById("add-type-departure");
+      const addTypeAccommodationEl = document.getElementById("add-type-accommodation");
+      const addTypeNoteEl = document.getElementById("add-type-note");
+      const addAccommodationScopeEl = document.getElementById("add-accommodation-scope");
+      const addAccommodationScopeAllEl = document.getElementById("add-accommodation-scope-all");
+      const addAccommodationScopeTodayEl = document.getElementById("add-accommodation-scope-today");
       const endpointSectionEl = document.getElementById("endpoint-section");
       const departureFieldEl = document.getElementById("departure-field");
       const departureInputEl = document.getElementById("departure-input");
@@ -236,25 +255,77 @@
         const value = newSpotInputEl.value.trim();
         if (!value) return;
         const day = state.days[state.activeDayIndex];
-        day.spots.push(value);
+        if (state.addLocationType === "departure") {
+          state.departure = value;
+          state.arrival = value;
+          state.autoArrival = true;
+        } else if (state.addLocationType === "accommodation") {
+          const nextDay = state.days[state.activeDayIndex + 1];
+          const nextAccommodation = nextDay ? nextDay.accommodation : "";
+          day.accommodation = value;
+          day.autoAccommodation = false;
+          if (state.addAccommodationScope === "all") {
+            for (let i = state.activeDayIndex + 1; i < state.days.length; i++) {
+              state.days[i].autoAccommodation = true;
+            }
+          } else if (nextDay) {
+            nextDay.accommodation = nextAccommodation;
+            nextDay.autoAccommodation = false;
+          }
+          syncAutoStarts();
+        } else {
+          day.spots.push(value);
+        }
         newSpotInputEl.value = "";
         saveState();
         render();
       }
 
+      function setTagStyle(button, selected) {
+        button.setAttribute("aria-pressed", String(selected));
+        button.style.backgroundColor = selected ? "#0f766e" : "#ffffff";
+        button.style.borderColor = selected ? "#0f766e" : "#cbd5e1";
+        button.style.color = selected ? "#ffffff" : "#334155";
+      }
+
+      function renderAddSpotOptions() {
+        const isLastDay = state.activeDayIndex === state.days.length - 1;
+        if (isLastDay && state.addLocationType === "accommodation") {
+          state.addLocationType = "spot";
+        }
+        setTagStyle(addTypeSpotEl, state.addLocationType === "spot");
+        setTagStyle(addTypeDepartureEl, state.addLocationType === "departure");
+        setTagStyle(addTypeAccommodationEl, state.addLocationType === "accommodation");
+        addTypeAccommodationEl.disabled = isLastDay;
+        addAccommodationScopeEl.classList.toggle("hidden", state.addLocationType !== "accommodation");
+        const note =
+          state.addLocationType === "departure"
+            ? "出発地点は後から上書きできます。"
+            : "";
+        addTypeNoteEl.textContent = note;
+        addTypeNoteEl.classList.toggle("hidden", !note);
+        setTagStyle(addAccommodationScopeAllEl, state.addAccommodationScope === "all");
+        setTagStyle(addAccommodationScopeTodayEl, state.addAccommodationScope === "today");
+        newSpotInputEl.placeholder =
+          state.addLocationType === "departure"
+            ? "例: 東京駅"
+            : state.addLocationType === "accommodation"
+              ? "例: 京都駅周辺"
+              : "例: 浅草寺";
+      }
+
       function addDay() {
-        flushAccommodationSync(false, state.activeDayIndex, accommodationInputEl.value);
         const prevAccommodation = (state.days[state.days.length - 1].accommodation || "").trim();
         state.days.push(createDay(state.days.length + 1, prevAccommodation));
         state.activeDayIndex = state.days.length - 1;
         saveState();
         render();
+        document.getElementById(`day-section-${state.activeDayIndex}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
       function deleteActiveDay() {
         if (state.days.length <= 1) return;
 
-        flushAccommodationSync(false, state.activeDayIndex, accommodationInputEl.value);
         state.days.splice(state.activeDayIndex, 1);
         state.days.forEach((day, index) => {
           day.name = `Day ${index + 1}`;
@@ -280,7 +351,7 @@
         state.days.forEach((day, index) => {
           const button = document.createElement("button");
           const active = index === state.activeDayIndex;
-          button.className = `rounded-full border px-4 py-2 text-sm font-medium transition ${
+          button.className = `rounded-lg border px-3 py-2 text-left text-sm font-medium shadow-sm transition ${
             active ? "text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
           }`;
           if (active) {
@@ -290,11 +361,11 @@
           }
           button.textContent = day.name;
           button.addEventListener("click", () => {
-            flushAccommodationSync(false, state.activeDayIndex, accommodationInputEl.value);
             state.activeDayIndex = index;
             state.openRouteMenuIndex = null;
             saveState();
-            render();
+            document.getElementById(`day-section-${index}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+            renderTabs();
           });
           dayTabsEl.appendChild(button);
         });
@@ -317,7 +388,7 @@
         dayTabsEl.appendChild(deleteButton);
       }
 
-      function createSpotCard(spotValue, index, markerIndex = index) {
+      function createSpotCard(spotValue, index, markerIndex = index, dayIndex = state.activeDayIndex) {
         const card = document.createElement("div");
         card.className = "relative rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4";
 
@@ -339,10 +410,10 @@
         input.className =
           "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100";
         input.addEventListener("input", (e) => {
-          const day = state.days[state.activeDayIndex];
+          const day = state.days[dayIndex];
           day.spots[index] = e.target.value;
-          if (state.activeDayIndex > 0 && index === 0 && day.autoStartSlot) {
-            const previousAccommodation = (state.days[state.activeDayIndex - 1].accommodation || "").trim();
+          if (dayIndex > 0 && index === 0 && day.autoStartSlot) {
+            const previousAccommodation = (state.days[dayIndex - 1].accommodation || "").trim();
             const currentValue = e.target.value.trim();
             const shouldKeepAuto = currentValue === previousAccommodation;
             day.autoStart = shouldKeepAuto;
@@ -357,16 +428,16 @@
 
         const hint = document.createElement("span");
         hint.className = "text-xs text-slate-500";
-        hint.textContent = state.activeDayIndex > 0 && index === 0 && state.days[state.activeDayIndex].autoStart ? "前日の宿泊地を反映中" : "";
+        hint.textContent = dayIndex > 0 && index === 0 && state.days[dayIndex].autoStart ? "前日の宿泊地を反映中" : "";
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
         removeBtn.className = "rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100";
         removeBtn.textContent = "削除";
         removeBtn.addEventListener("click", () => {
-          const day = state.days[state.activeDayIndex];
+          const day = state.days[dayIndex];
           day.spots.splice(index, 1);
-          if (index === 0 && state.activeDayIndex > 0) {
+          if (index === 0 && dayIndex > 0) {
             day.autoStart = false;
             day.autoStartSlot = false;
             day.autoStartValue = "";
@@ -430,7 +501,10 @@
         locationLabel.textContent = label;
 
         const name = document.createElement(label === "到着地点" ? "input" : "p");
-        name.className = "mt-1 w-full rounded-lg border border-transparent bg-transparent text-sm font-medium text-slate-900 outline-none focus:border-violet-300 focus:bg-white focus:px-2 focus:py-1";
+        name.className =
+          label === "到着地点"
+            ? "mt-1 w-full rounded-lg border border-violet-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+            : "mt-1 text-sm font-medium text-slate-900";
         if (label === "到着地点") {
           name.type = "text";
           name.value = location;
@@ -450,7 +524,7 @@
         return card;
       }
 
-      function createRouteConnector(from, to, routeIndex) {
+      function createRouteConnector(from, to, routeIndex, dayIndex = state.activeDayIndex) {
         const wrap = document.createElement("div");
         wrap.className = "flex flex-col items-center py-2";
 
@@ -459,20 +533,21 @@
 
         const btn = document.createElement("button");
         btn.type = "button";
-        const menuId = `route-menu-${state.activeDayIndex}-${routeIndex}`;
+        const menuId = `route-menu-${dayIndex}-${routeIndex}`;
         btn.className =
           "rounded-full border border-sky-300 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 transition hover:bg-sky-100";
         btn.textContent = "ルート検索";
         btn.setAttribute("aria-controls", menuId);
-        btn.setAttribute("aria-expanded", String(state.openRouteMenuIndex === routeIndex));
+        btn.setAttribute("aria-expanded", String(state.openRouteMenuIndex === `${dayIndex}-${routeIndex}`));
         btn.addEventListener("click", () => {
-          state.openRouteMenuIndex = state.openRouteMenuIndex === routeIndex ? null : routeIndex;
+          const menuKey = `${dayIndex}-${routeIndex}`;
+          state.openRouteMenuIndex = state.openRouteMenuIndex === menuKey ? null : menuKey;
           render();
         });
 
         const menu = document.createElement("div");
         menu.id = menuId;
-        menu.className = `mt-2 flex gap-2 ${state.openRouteMenuIndex === routeIndex ? "" : "hidden"}`;
+        menu.className = `mt-2 flex gap-2 ${state.openRouteMenuIndex === `${dayIndex}-${routeIndex}` ? "" : "hidden"}`;
         menu.setAttribute("role", "menu");
         menu.setAttribute("aria-label", "地図アプリ選択");
         menu.addEventListener("keydown", (event) => {
@@ -528,15 +603,23 @@
         return wrap;
       }
 
-      function renderTimeline() {
-        const day = state.days[state.activeDayIndex];
-        const isFirstDay = state.activeDayIndex === 0;
-        const isLastDay = state.activeDayIndex === state.days.length - 1;
+      function createDayTimeline(day, dayIndex) {
+        const section = document.createElement("section");
+        section.id = `day-section-${dayIndex}`;
+        section.dataset.dayIndex = String(dayIndex);
+        section.className = "scroll-mt-4 border-t border-slate-200 py-6 first:border-t-0 first:pt-0";
+
+        const heading = document.createElement("h2");
+        heading.className = "mb-4 text-lg font-bold text-slate-800";
+        heading.textContent = day.name;
+        section.appendChild(heading);
+
+        const isFirstDay = dayIndex === 0;
+        const isLastDay = dayIndex === state.days.length - 1;
         const departure = isFirstDay ? state.departure.trim() : "";
         const arrival = isLastDay ? state.arrival.trim() : "";
         const accommodation = isLastDay ? "" : day.accommodation.trim();
         const items = [];
-        timelineEl.innerHTML = "";
 
         if (departure) {
           items.push({ type: "endpoint", value: departure, label: "出発地点" });
@@ -555,31 +638,38 @@
           const empty = document.createElement("p");
           empty.className = "rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500";
           empty.textContent = "まだスポットがありません。上の入力から追加してください。";
-          timelineEl.appendChild(empty);
-          return;
+          section.appendChild(empty);
+          return section;
         }
 
         items.forEach((item, index) => {
           if (item.type === "spot") {
-            timelineEl.appendChild(createSpotCard(item.value, item.spotIndex, index));
+            section.appendChild(createSpotCard(item.value, item.spotIndex, index, dayIndex));
           } else if (item.type === "accommodation") {
-            timelineEl.appendChild(createAccommodationCard(item.value, index));
+            section.appendChild(createAccommodationCard(item.value, index));
           } else {
-            timelineEl.appendChild(createEndpointCard(item.value, index, item.label));
+            section.appendChild(createEndpointCard(item.value, index, item.label));
           }
           if (index < items.length - 1) {
-            timelineEl.appendChild(createRouteConnector(item.value, items[index + 1].value, index));
+            section.appendChild(createRouteConnector(item.value, items[index + 1].value, index, dayIndex));
           }
+        });
+        return section;
+      }
+
+      function renderTimeline() {
+        timelineEl.innerHTML = "";
+        state.days.forEach((day, index) => {
+          timelineEl.appendChild(createDayTimeline(day, index));
         });
       }
 
       function renderEndpoints() {
-        const isFirstDay = state.activeDayIndex === 0;
         const isLastDay = state.activeDayIndex === state.days.length - 1;
-        endpointSectionEl.classList.toggle("hidden", !isFirstDay);
-        departureFieldEl.classList.toggle("hidden", !isFirstDay);
+        endpointSectionEl.classList.add("hidden");
+        departureFieldEl.classList.add("hidden");
         departureInputEl.value = state.departure;
-        accommodationSectionEl.classList.toggle("hidden", isLastDay);
+        accommodationSectionEl.classList.add("hidden");
       }
 
       function renderAccommodation() {
@@ -596,6 +686,20 @@
         accommodationScopeNextDayEl.style.color = allDays ? "#334155" : "#ffffff";
       }
 
+      function updateActiveDayFromScroll() {
+        const sections = [...document.querySelectorAll("[data-day-index]")];
+        if (sections.length === 0) return;
+        const closestSection = sections.reduce((closest, section) =>
+          Math.abs(section.getBoundingClientRect().top) < Math.abs(closest.getBoundingClientRect().top) ? section : closest
+        );
+        const dayIndex = Number(closestSection.dataset.dayIndex);
+        if (dayIndex !== state.activeDayIndex) {
+          state.activeDayIndex = dayIndex;
+          renderAddSpotOptions();
+          renderTabs();
+        }
+      }
+
       function render() {
         ensureValidState();
         syncAutoStarts();
@@ -604,6 +708,7 @@
         }
         tripNameInputEl.value = state.tripName;
         renderTabs();
+        renderAddSpotOptions();
         renderTimeline();
         renderEndpoints();
         renderAccommodation();
@@ -617,6 +722,31 @@
       tripNameInputEl.addEventListener("input", (e) => {
         state.tripName = e.target.value;
         saveState();
+      });
+
+      addTypeSpotEl.addEventListener("click", () => {
+        state.addLocationType = "spot";
+        renderAddSpotOptions();
+      });
+
+      addTypeDepartureEl.addEventListener("click", () => {
+        state.addLocationType = "departure";
+        renderAddSpotOptions();
+      });
+
+      addTypeAccommodationEl.addEventListener("click", () => {
+        state.addLocationType = "accommodation";
+        renderAddSpotOptions();
+      });
+
+      addAccommodationScopeAllEl.addEventListener("click", () => {
+        state.addAccommodationScope = "all";
+        renderAddSpotOptions();
+      });
+
+      addAccommodationScopeTodayEl.addEventListener("click", () => {
+        state.addAccommodationScope = "today";
+        renderAddSpotOptions();
       });
 
       function flushAccommodationSync(shouldRender = true, sourceDayIndex, sourceValue) {
@@ -690,9 +820,8 @@
 
       departureInputEl.addEventListener("input", (e) => {
         state.departure = e.target.value;
-        if (state.autoArrival) {
-          state.arrival = e.target.value;
-        }
+        state.arrival = e.target.value;
+        state.autoArrival = true;
         saveState();
         renderTimeline();
       });
@@ -710,6 +839,8 @@
       accommodationInputEl.addEventListener("blur", () => {
         flushAccommodationSync(true, state.activeDayIndex, accommodationInputEl.value);
       });
+
+      window.addEventListener("scroll", updateActiveDayFromScroll, { passive: true });
 
       loadState();
       ensureValidState();
