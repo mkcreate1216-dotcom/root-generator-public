@@ -65,6 +65,7 @@
       const addSpotFormEl = document.getElementById("add-spot-form");
       const accommodationInputEl = document.getElementById("accommodation-input");
       let accommodationDebounceId = null;
+      let pendingAccommodationSync = null;
 
       function createDay(dayNumber, prevAccommodation = "") {
         return {
@@ -335,7 +336,7 @@
         menu.setAttribute("aria-label", "地図アプリ選択");
         wrap.addEventListener("focusout", () => {
           setTimeout(() => {
-            if (!wrap.contains(document.activeElement)) {
+            if (state.openRouteMenuIndex === routeIndex && !wrap.contains(document.activeElement)) {
               state.openRouteMenuIndex = null;
               render();
             }
@@ -433,10 +434,15 @@
       });
 
       function flushAccommodationSync(shouldRender = true, sourceDayIndex = state.activeDayIndex, sourceValue = accommodationInputEl.value) {
+        if (pendingAccommodationSync) {
+          sourceDayIndex = pendingAccommodationSync.dayIndex;
+          sourceValue = pendingAccommodationSync.value;
+        }
         if (accommodationDebounceId) {
           clearTimeout(accommodationDebounceId);
           accommodationDebounceId = null;
         }
+        pendingAccommodationSync = null;
         if (state.days[sourceDayIndex]) {
           state.days[sourceDayIndex].accommodation = sourceValue;
         }
@@ -451,11 +457,13 @@
         if (accommodationDebounceId) {
           clearTimeout(accommodationDebounceId);
         }
+        pendingAccommodationSync = { dayIndex, value: accommodationValue };
         accommodationDebounceId = setTimeout(() => {
-          if (state.days[dayIndex]) {
-            state.days[dayIndex].accommodation = accommodationValue;
+          if (pendingAccommodationSync && state.days[pendingAccommodationSync.dayIndex]) {
+            state.days[pendingAccommodationSync.dayIndex].accommodation = pendingAccommodationSync.value;
           }
           accommodationDebounceId = null;
+          pendingAccommodationSync = null;
           syncAutoStarts();
           saveState();
           if (state.activeDayIndex === dayIndex) {
