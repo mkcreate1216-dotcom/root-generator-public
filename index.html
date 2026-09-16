@@ -313,6 +313,7 @@
         menu.setAttribute("aria-label", "地図アプリ選択");
 
         const feedback = document.createElement("p");
+        feedback.id = `${menuId}-feedback`;
         feedback.className = "mt-2 text-xs text-rose-600";
         feedback.setAttribute("aria-live", "polite");
 
@@ -324,6 +325,7 @@
         googleBtn.className = "rounded-md bg-white px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50";
         googleBtn.textContent = "Google マップ";
         googleBtn.setAttribute("role", "menuitem");
+        googleBtn.setAttribute("aria-describedby", feedback.id);
         googleBtn.addEventListener("click", () => {
           if (!from.trim() || !to.trim()) {
             showRouteValidation();
@@ -337,6 +339,7 @@
         appleBtn.className = "rounded-md bg-white px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-300 hover:bg-slate-50";
         appleBtn.textContent = "Apple マップ";
         appleBtn.setAttribute("role", "menuitem");
+        appleBtn.setAttribute("aria-describedby", feedback.id);
         appleBtn.addEventListener("click", () => {
           if (!from.trim() || !to.trim()) {
             showRouteValidation();
@@ -412,9 +415,9 @@
           clearTimeout(accommodationDebounceId);
         }
         accommodationDebounceId = setTimeout(() => {
+          accommodationDebounceId = null;
           syncAutoStarts();
           saveState();
-          accommodationDebounceId = null;
           render();
         }, 180);
       }
