@@ -11,6 +11,13 @@
       <header class="mb-6 rounded-2xl bg-white p-5 shadow-sm">
         <h1 class="text-2xl font-bold sm:text-3xl">旅程作成</h1>
         <p class="mt-2 text-sm text-slate-600">日程ごとにスポットをつなぎ、地図アプリでルート検索できます。</p>
+        <label class="mt-4 block text-sm font-medium text-slate-700" for="trip-name-input">旅行名</label>
+        <input
+          id="trip-name-input"
+          type="text"
+          placeholder="例: 春の京都旅行"
+          class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+        />
       </header>
 
       <section class="rounded-2xl bg-white p-4 shadow-sm sm:p-6">
@@ -80,11 +87,13 @@
         accommodationUpdateScope: "all",
         departure: "",
         arrival: "",
-        autoArrival: true
+        autoArrival: true,
+        tripName: ""
       };
 
       const dayTabsEl = document.getElementById("day-tabs");
       const timelineEl = document.getElementById("timeline");
+      const tripNameInputEl = document.getElementById("trip-name-input");
       const newSpotInputEl = document.getElementById("new-spot-input");
       const addSpotFormEl = document.getElementById("add-spot-form");
       const endpointSectionEl = document.getElementById("endpoint-section");
@@ -128,6 +137,7 @@
           const parsed = JSON.parse(raw);
           state.days = Array.isArray(parsed.days) ? parsed.days : [createDay(1)];
           state.activeDayIndex = Number.isInteger(parsed.activeDayIndex) ? parsed.activeDayIndex : 0;
+          state.tripName = typeof parsed.tripName === "string" ? parsed.tripName : "";
           state.departure = typeof parsed.departure === "string" ? parsed.departure : "";
           state.arrival = typeof parsed.arrival === "string" ? parsed.arrival : "";
           state.autoArrival = typeof parsed.autoArrival === "boolean" ? parsed.autoArrival : !state.arrival || state.arrival === state.departure;
@@ -154,6 +164,7 @@
           JSON.stringify({
             days: state.days,
             activeDayIndex: state.activeDayIndex,
+            tripName: state.tripName,
             departure: state.departure,
             arrival: state.arrival,
             autoArrival: state.autoArrival
@@ -191,7 +202,7 @@
                     day.autoStartValue = previousAccommodation;
                   }
                 }
-              } else if (day.spots.length === 0) {
+              } else {
                 day.spots.unshift(previousAccommodation);
                 day.autoStartSlot = true;
                 day.autoStartValue = previousAccommodation;
@@ -591,6 +602,7 @@
         if (state.autoArrival) {
           state.arrival = state.departure;
         }
+        tripNameInputEl.value = state.tripName;
         renderTabs();
         renderTimeline();
         renderEndpoints();
@@ -600,6 +612,11 @@
       addSpotFormEl.addEventListener("submit", (e) => {
         e.preventDefault();
         addSpot();
+      });
+
+      tripNameInputEl.addEventListener("input", (e) => {
+        state.tripName = e.target.value;
+        saveState();
       });
 
       function flushAccommodationSync(shouldRender = true, sourceDayIndex, sourceValue) {
