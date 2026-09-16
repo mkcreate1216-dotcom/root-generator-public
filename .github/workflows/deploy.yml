@@ -13,16 +13,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install dependencies
+    - name: Prepare site artifact
       run: |
-        npm install
-
-    - name: Build project
-      run: |
-        npm run build
+        mkdir -p dist
+        cp index.html dist/index.html
 
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./build
+        publish_dir: ./dist
