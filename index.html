@@ -37,7 +37,19 @@
 
         <div id="timeline" class="space-y-0"></div>
 
-        <div class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+        <div id="endpoint-section" class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+          <div id="departure-field">
+            <label class="mb-2 block text-sm font-medium text-slate-700" for="departure-input">出発地点</label>
+            <input
+              id="departure-input"
+              type="text"
+              placeholder="例: 東京駅"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+            />
+          </div>
+        </div>
+
+        <div id="accommodation-section" class="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
           <label class="mb-2 block text-sm font-medium text-slate-700" for="accommodation-input">宿泊地</label>
           <div class="mb-3 flex gap-2" role="group" aria-label="宿泊地の変更範囲">
             <button id="accommodation-scope-all" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">
@@ -65,13 +77,20 @@
         days: [],
         activeDayIndex: 0,
         openRouteMenuIndex: null,
-        accommodationUpdateScope: "all"
+        accommodationUpdateScope: "all",
+        departure: "",
+        arrival: "",
+        autoArrival: true
       };
 
       const dayTabsEl = document.getElementById("day-tabs");
       const timelineEl = document.getElementById("timeline");
       const newSpotInputEl = document.getElementById("new-spot-input");
       const addSpotFormEl = document.getElementById("add-spot-form");
+      const endpointSectionEl = document.getElementById("endpoint-section");
+      const departureFieldEl = document.getElementById("departure-field");
+      const departureInputEl = document.getElementById("departure-input");
+      const accommodationSectionEl = document.getElementById("accommodation-section");
       const accommodationInputEl = document.getElementById("accommodation-input");
       const accommodationScopeAllEl = document.getElementById("accommodation-scope-all");
       const accommodationScopeNextDayEl = document.getElementById("accommodation-scope-next-day");
@@ -109,6 +128,9 @@
           const parsed = JSON.parse(raw);
           state.days = Array.isArray(parsed.days) ? parsed.days : [createDay(1)];
           state.activeDayIndex = Number.isInteger(parsed.activeDayIndex) ? parsed.activeDayIndex : 0;
+          state.departure = typeof parsed.departure === "string" ? parsed.departure : "";
+          state.arrival = typeof parsed.arrival === "string" ? parsed.arrival : "";
+          state.autoArrival = typeof parsed.autoArrival === "boolean" ? parsed.autoArrival : !state.arrival || state.arrival === state.departure;
           for (let i = 0; i < state.days.length; i++) {
             const day = state.days[i] || {};
             day.name = day.name || `Day ${i + 1}`;
@@ -131,7 +153,10 @@
           STORAGE_KEY,
           JSON.stringify({
             days: state.days,
-            activeDayIndex: state.activeDayIndex
+            activeDayIndex: state.activeDayIndex,
+            departure: state.departure,
+            arrival: state.arrival,
+            autoArrival: state.autoArrival
           })
         );
       }
@@ -281,7 +306,7 @@
         dayTabsEl.appendChild(deleteButton);
       }
 
-      function createSpotCard(spotValue, index) {
+      function createSpotCard(spotValue, index, markerIndex = index) {
         const card = document.createElement("div");
         card.className = "relative rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4";
 
@@ -291,7 +316,7 @@
         const marker = document.createElement("div");
         marker.className =
           "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-bold text-white";
-        marker.textContent = String(index + 1);
+        marker.textContent = String(markerIndex + 1);
 
         const content = document.createElement("div");
         content.className = "w-full";
@@ -370,6 +395,45 @@
         name.textContent = accommodation;
 
         content.append(label, name);
+        row.append(marker, content);
+        card.appendChild(row);
+        return card;
+      }
+
+      function createEndpointCard(location, index, label) {
+        const card = document.createElement("div");
+        card.className = "rounded-xl border border-violet-200 bg-violet-50 p-3 shadow-sm sm:p-4";
+
+        const row = document.createElement("div");
+        row.className = "flex items-start gap-3";
+
+        const marker = document.createElement("div");
+        marker.className = "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white";
+        marker.textContent = String(index + 1);
+
+        const content = document.createElement("div");
+        content.className = "w-full";
+
+        const locationLabel = document.createElement("p");
+        locationLabel.className = "text-xs font-medium text-violet-700";
+        locationLabel.textContent = label;
+
+        const name = document.createElement(label === "到着地点" ? "input" : "p");
+        name.className = "mt-1 w-full rounded-lg border border-transparent bg-transparent text-sm font-medium text-slate-900 outline-none focus:border-violet-300 focus:bg-white focus:px-2 focus:py-1";
+        if (label === "到着地点") {
+          name.type = "text";
+          name.value = location;
+          name.placeholder = "到着地点を入力";
+          name.addEventListener("input", (e) => {
+            state.arrival = e.target.value;
+            state.autoArrival = false;
+            saveState();
+          });
+        } else {
+          name.textContent = location;
+        }
+
+        content.append(locationLabel, name);
         row.append(marker, content);
         card.appendChild(row);
         return card;
@@ -455,10 +519,28 @@
 
       function renderTimeline() {
         const day = state.days[state.activeDayIndex];
-        const accommodation = day.accommodation.trim();
+        const isFirstDay = state.activeDayIndex === 0;
+        const isLastDay = state.activeDayIndex === state.days.length - 1;
+        const departure = isFirstDay ? state.departure.trim() : "";
+        const arrival = isLastDay ? state.arrival.trim() : "";
+        const accommodation = isLastDay ? "" : day.accommodation.trim();
+        const items = [];
         timelineEl.innerHTML = "";
 
-        if (day.spots.length === 0 && !accommodation) {
+        if (departure) {
+          items.push({ type: "endpoint", value: departure, label: "出発地点" });
+        }
+        day.spots.forEach((spot, index) => {
+          items.push({ type: "spot", value: spot, spotIndex: index });
+        });
+        if (accommodation) {
+          items.push({ type: "accommodation", value: accommodation });
+        }
+        if (arrival) {
+          items.push({ type: "endpoint", value: arrival, label: "到着地点" });
+        }
+
+        if (items.length === 0) {
           const empty = document.createElement("p");
           empty.className = "rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500";
           empty.textContent = "まだスポットがありません。上の入力から追加してください。";
@@ -466,19 +548,27 @@
           return;
         }
 
-        day.spots.forEach((spot, index) => {
-          timelineEl.appendChild(createSpotCard(spot, index));
-          if (index < day.spots.length - 1) {
-            timelineEl.appendChild(createRouteConnector(day.spots[index], day.spots[index + 1], index));
+        items.forEach((item, index) => {
+          if (item.type === "spot") {
+            timelineEl.appendChild(createSpotCard(item.value, item.spotIndex, index));
+          } else if (item.type === "accommodation") {
+            timelineEl.appendChild(createAccommodationCard(item.value, index));
+          } else {
+            timelineEl.appendChild(createEndpointCard(item.value, index, item.label));
+          }
+          if (index < items.length - 1) {
+            timelineEl.appendChild(createRouteConnector(item.value, items[index + 1].value, index));
           }
         });
+      }
 
-        if (accommodation) {
-          if (day.spots.length > 0) {
-            timelineEl.appendChild(createRouteConnector(day.spots[day.spots.length - 1], accommodation, day.spots.length - 1));
-          }
-          timelineEl.appendChild(createAccommodationCard(accommodation, day.spots.length));
-        }
+      function renderEndpoints() {
+        const isFirstDay = state.activeDayIndex === 0;
+        const isLastDay = state.activeDayIndex === state.days.length - 1;
+        endpointSectionEl.classList.toggle("hidden", !isFirstDay);
+        departureFieldEl.classList.toggle("hidden", !isFirstDay);
+        departureInputEl.value = state.departure;
+        accommodationSectionEl.classList.toggle("hidden", isLastDay);
       }
 
       function renderAccommodation() {
@@ -498,8 +588,12 @@
       function render() {
         ensureValidState();
         syncAutoStarts();
+        if (state.autoArrival) {
+          state.arrival = state.departure;
+        }
         renderTabs();
         renderTimeline();
+        renderEndpoints();
         renderAccommodation();
       }
 
@@ -575,6 +669,15 @@
         syncAutoStarts();
         saveState();
         scheduleAccommodationSync(state.activeDayIndex, e.target.value);
+      });
+
+      departureInputEl.addEventListener("input", (e) => {
+        state.departure = e.target.value;
+        if (state.autoArrival) {
+          state.arrival = e.target.value;
+        }
+        saveState();
+        renderTimeline();
       });
 
       accommodationScopeAllEl.addEventListener("click", () => {
