@@ -67,9 +67,10 @@
       function createDay(dayNumber, prevAccommodation = "") {
         return {
           name: `Day ${dayNumber}`,
-          spots: dayNumber === 1 ? [] : [prevAccommodation],
+          spots: dayNumber === 1 ? [] : prevAccommodation ? [prevAccommodation] : [],
           accommodation: "",
-          autoStart: dayNumber !== 1
+          autoStart: dayNumber !== 1,
+          autoStartSlot: dayNumber !== 1 && !!prevAccommodation
         };
       }
 
@@ -98,6 +99,7 @@
             day.spots = Array.isArray(day.spots) ? day.spots : [];
             day.accommodation = typeof day.accommodation === "string" ? day.accommodation : "";
             day.autoStart = typeof day.autoStart === "boolean" ? day.autoStart : i !== 0;
+            day.autoStartSlot = typeof day.autoStartSlot === "boolean" ? day.autoStartSlot : day.autoStart && day.spots.length > 0;
             state.days[i] = day;
           }
         } catch {
@@ -121,10 +123,18 @@
           const previousAccommodation = (state.days[i - 1].accommodation || "").trim();
           const day = state.days[i];
           if (day.autoStart) {
-            if (day.spots.length === 0) {
-              day.spots.push(previousAccommodation);
+            if (previousAccommodation) {
+              if (day.autoStartSlot) {
+                day.spots[0] = previousAccommodation;
+              } else {
+                day.spots.unshift(previousAccommodation);
+                day.autoStartSlot = true;
+              }
             } else {
-              day.spots[0] = previousAccommodation;
+              if (day.autoStartSlot && day.spots.length > 0) {
+                day.spots.shift();
+              }
+              day.autoStartSlot = false;
             }
           }
         }
@@ -210,6 +220,7 @@
           day.spots[index] = e.target.value;
           if (state.activeDayIndex > 0 && index === 0) {
             day.autoStart = false;
+            day.autoStartSlot = false;
           }
           saveState();
         });
@@ -314,8 +325,8 @@
       }
 
       function render() {
-        syncAutoStarts();
         ensureValidState();
+        syncAutoStarts();
         renderTabs();
         renderTimeline();
         renderAccommodation();
