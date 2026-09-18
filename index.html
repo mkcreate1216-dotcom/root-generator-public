@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Roople</title>
+    <title>Roamark</title>
+    <title>roamark</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -20,7 +21,8 @@
       <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <header class="p-5 pb-0">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Roople</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Roam<span class="font-normal">ark</span></h1>
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">roamark</h1>
           <div class="flex flex-wrap items-center gap-2">
             <button id="trip-clear-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">ALLクリア</button>
             <button id="line-copy-btn" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900">
@@ -29,13 +31,13 @@
             </button>
           </div>
         </div>
-        <p class="mt-2 text-sm text-slate-600">日程ごとにスポットをつなぎ、地図アプリでルート検索できます。</p>
+        <p class="mt-2 text-sm text-slate-600">街のLandmarkを、旅のRoamarkへ。</p>
       </header>
 
       <section class="p-4 pt-2 sm:p-6 sm:pt-2">
         <div class="fixed right-6 top-1/2 z-40 flex flex-col items-center gap-2" id="day-tabs" style="transform: translateY(-50%)"></div>
 
-        <form id="add-spot-form" class="sticky top-0 z-30 mr-24 mb-2 rounded-xl border border-slate-200/60 p-3 shadow-sm backdrop-blur-md sm:p-3.5" style="background-color: rgba(255, 255, 255, 0.95)">
+        <form id="add-spot-form" class="sticky top-0 z-30 mb-2 rounded-xl border border-slate-200/60 p-3 shadow-sm backdrop-blur-md sm:p-3.5" style="background-color: rgba(255, 255, 255, 0.95)">
           <div class="relative mb-2" id="trip-combobox-container">
             <label class="text-xs font-medium text-slate-500" for="trip-name-input">旅行名</label>
             <div class="relative mt-0.5 flex items-center">
@@ -95,7 +97,7 @@
           </div>
         </form>
 
-        <div id="timeline" class="mr-24 space-y-0 pb-[70vh]"></div>
+        <div id="timeline" class="space-y-0 pb-[70vh]"></div>
 
         <div id="endpoint-section" class="hidden mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
           <div id="departure-field">
@@ -1225,7 +1227,7 @@
         summary.style.listStyle = "none";
 
         const chevronWrap = document.createElement("div");
-        chevronWrap.className = "flex items-center gap-1.5 text-slate-400 py-1";
+        chevronWrap.className = "flex shrink-0 items-center gap-1.5 text-slate-400 py-1";
 
         const chevron = document.createElement("i");
         chevron.setAttribute("data-lucide", "chevron-down");
@@ -1237,10 +1239,23 @@
 
         const items = getDayItems(day, dayIndex);
 
+        // 閉じるアイコンの隣（Day見出しの左隣）に閉じた時だけ表示するルート概要
+        const routeSummary = document.createElement("div");
+        routeSummary.className = `min-w-0 flex-1 overflow-hidden ${details.open ? "hidden" : ""}`;
+
+        const routeLocations = items.map((item) => (item.value || "").trim()).filter(Boolean);
+        if (routeLocations.length > 0) {
+          const routeText = document.createElement("span");
+          routeText.className = "block truncate text-xs font-normal text-slate-500";
+          routeText.textContent = routeLocations.join(" → ");
+          routeText.title = routeLocations.join(" → ");
+          routeSummary.appendChild(routeText);
+        }
+
         const heading = document.createElement(items.length < 2 ? "h2" : "a");
         heading.className = items.length < 2
-          ? "text-lg font-bold text-slate-800"
-          : "text-lg font-bold text-slate-900 transition hover:text-slate-600 hover:underline inline-flex items-center gap-1.5 cursor-pointer";
+          ? "shrink-0 text-lg font-bold text-slate-800"
+          : "shrink-0 text-lg font-bold text-slate-900 transition hover:text-slate-600 hover:underline inline-flex items-center gap-1.5 cursor-pointer";
         heading.textContent = day.name;
 
         if (items.length >= 2) {
@@ -1263,9 +1278,10 @@
             collapsedDays.add(dayIndex);
           }
           chevron.style.transform = details.open ? "rotate(0deg)" : "rotate(-90deg)";
+          routeSummary.classList.toggle("hidden", details.open);
         });
 
-        summary.append(chevronWrap, heading);
+        summary.append(chevronWrap, routeSummary, heading);
         details.appendChild(summary);
 
         const body = document.createElement("div");
