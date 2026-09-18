@@ -9,7 +9,14 @@
   <body class="min-h-screen bg-slate-100 text-slate-900">
     <div class="mx-auto w-full max-w-5xl p-4 sm:p-6">
       <header class="mb-0 rounded-2xl bg-white p-5 pb-0 shadow-sm">
-        <h1 class="text-2xl font-bold sm:text-3xl">Roople</h1>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h1 class="text-2xl font-bold sm:text-3xl">Roople</h1>
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="trip-switcher" class="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm outline-none"></select>
+            <button id="trip-new-btn" type="button" class="rounded-lg border border-sky-300 bg-sky-50 px-2 py-1.5 text-xs font-medium text-sky-700">新しい旅程を作成</button>
+            <button id="trip-delete-btn" type="button" class="rounded-lg border border-rose-300 bg-rose-50 px-2 py-1.5 text-xs font-medium text-rose-700">現在の旅程を削除</button>
+          </div>
+        </div>
         <p class="mt-2 text-sm text-slate-600">日程ごとにスポットをつなぎ、地図アプリでルート検索できます。</p>
       </header>
 
@@ -110,9 +117,17 @@
         addAccommodationScope: "all"
       };
 
+      const MAX_TRIPS = 3;
+      const TRIPS_STORAGE_KEY = "travel-itinerary-trips-v1";
+      let trips = [];
+      let activeTripId = null;
+
       const dayTabsEl = document.getElementById("day-tabs");
       const timelineEl = document.getElementById("timeline");
       const tripNameInputEl = document.getElementById("trip-name-input");
+      const tripSwitcherEl = document.getElementById("trip-switcher");
+      const tripNewBtnEl = document.getElementById("trip-new-btn");
+      const tripDeleteBtnEl = document.getElementById("trip-delete-btn");
       const addTargetDayEl = document.getElementById("add-target-day");
       const newSpotInputEl = document.getElementById("new-spot-input");
       const addSpotFormEl = document.getElementById("add-spot-form");
@@ -154,49 +169,132 @@
         }
       }
 
-      function loadState() {
+      function generateTripId() {
+        return `trip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      }
+
+      function createTripEntry(tripName) {
+        return {
+          id: generateTripId(),
+          tripName: tripName || "",
+          days: [createDay(1)],
+          activeDayIndex: 0,
+          departure: "",
+          arrival: "",
+          autoArrival: true
+        };
+      }
+
+      function sanitizeTrip(trip) {
+        const sanitized = trip && typeof trip === "object" ? trip : {};
+        sanitized.id = typeof sanitized.id === "string" && sanitized.id ? sanitized.id : generateTripId();
+        sanitized.tripName = typeof sanitized.tripName === "string" ? sanitized.tripName : "";
+        sanitized.days = Array.isArray(sanitized.days) && sanitized.days.length ? sanitized.days : [createDay(1)];
+        for (let i = 0; i < sanitized.days.length; i++) {
+          const day = sanitized.days[i] || {};
+          day.name = day.name || `Day ${i + 1}`;
+          day.spots = Array.isArray(day.spots) ? day.spots : [];
+          day.accommodation = typeof day.accommodation === "string" ? day.accommodation : "";
+          day.autoAccommodation = typeof day.autoAccommodation === "boolean" ? day.autoAccommodation : i !== 0;
+          day.autoStart = typeof day.autoStart === "boolean" ? day.autoStart : i !== 0;
+          day.autoStartSlot = typeof day.autoStartSlot === "boolean" ? day.autoStartSlot : day.autoStart && day.spots.length > 0;
+          day.autoStartValue = typeof day.autoStartValue === "string" ? day.autoStartValue : day.autoStartSlot ? day.spots[0] || "" : "";
+          sanitized.days[i] = day;
+        }
+        sanitized.activeDayIndex =
+          Number.isInteger(sanitized.activeDayIndex) && sanitized.activeDayIndex >= 0 && sanitized.activeDayIndex < sanitized.days.length ? sanitized.activeDayIndex : 0;
+        sanitized.departure = typeof sanitized.departure === "string" ? sanitized.departure : "";
+        sanitized.arrival = typeof sanitized.arrival === "string" ? sanitized.arrival : "";
+        sanitized.autoArrival = typeof sanitized.autoArrival === "boolean" ? sanitized.autoArrival : !sanitized.arrival || sanitized.arrival === sanitized.departure;
+        return sanitized;
+      }
+
+      function migrateLegacyTrip() {
+        // 旧バージョン（単一旅程保存）からの移行
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw) {
-            state.days = [createDay(1)];
-            return;
-          }
-          const parsed = JSON.parse(raw);
-          state.days = Array.isArray(parsed.days) ? parsed.days : [createDay(1)];
-          state.activeDayIndex = Number.isInteger(parsed.activeDayIndex) ? parsed.activeDayIndex : 0;
-          state.tripName = typeof parsed.tripName === "string" ? parsed.tripName : "";
-          state.departure = typeof parsed.departure === "string" ? parsed.departure : "";
-          state.arrival = typeof parsed.arrival === "string" ? parsed.arrival : "";
-          state.autoArrival = typeof parsed.autoArrival === "boolean" ? parsed.autoArrival : !state.arrival || state.arrival === state.departure;
-          for (let i = 0; i < state.days.length; i++) {
-            const day = state.days[i] || {};
-            day.name = day.name || `Day ${i + 1}`;
-            day.spots = Array.isArray(day.spots) ? day.spots : [];
-            day.accommodation = typeof day.accommodation === "string" ? day.accommodation : "";
-            day.autoAccommodation = typeof day.autoAccommodation === "boolean" ? day.autoAccommodation : i !== 0;
-            day.autoStart = typeof day.autoStart === "boolean" ? day.autoStart : i !== 0;
-            day.autoStartSlot = typeof day.autoStartSlot === "boolean" ? day.autoStartSlot : day.autoStart && day.spots.length > 0;
-            day.autoStartValue = typeof day.autoStartValue === "string" ? day.autoStartValue : day.autoStartSlot ? day.spots[0] || "" : "";
-            state.days[i] = day;
-          }
+          if (!raw) return null;
+          return sanitizeTrip(JSON.parse(raw));
         } catch {
-          state.days = [createDay(1)];
-          state.activeDayIndex = 0;
+          return null;
         }
       }
 
+      function loadTrips() {
+        try {
+          const raw = localStorage.getItem(TRIPS_STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            trips = Array.isArray(parsed.trips) && parsed.trips.length ? parsed.trips.slice(0, MAX_TRIPS).map(sanitizeTrip) : [];
+            if (!trips.length) trips = [createTripEntry("旅程1")];
+            activeTripId = trips.some((t) => t.id === parsed.activeTripId) ? parsed.activeTripId : trips[0].id;
+            return;
+          }
+        } catch {
+          trips = [];
+        }
+        const legacy = migrateLegacyTrip();
+        trips = [legacy || createTripEntry("旅程1")];
+        activeTripId = trips[0].id;
+      }
+
+      function getActiveTrip() {
+        return trips.find((t) => t.id === activeTripId) || trips[0];
+      }
+
+      function applyActiveTripToState() {
+        const trip = getActiveTrip();
+        activeTripId = trip.id;
+        state.days = trip.days;
+        state.activeDayIndex = trip.activeDayIndex;
+        state.tripName = trip.tripName;
+        state.departure = trip.departure;
+        state.arrival = trip.arrival;
+        state.autoArrival = trip.autoArrival;
+        state.openRouteMenuIndex = null;
+        state.accommodationUpdateScope = "all";
+        state.addLocationType = "spot";
+        state.addAccommodationScope = "all";
+      }
+
+      function persistActiveTripFromState() {
+        const trip = getActiveTrip();
+        if (!trip) return;
+        trip.days = state.days;
+        trip.activeDayIndex = state.activeDayIndex;
+        trip.tripName = state.tripName;
+        trip.departure = state.departure;
+        trip.arrival = state.arrival;
+        trip.autoArrival = state.autoArrival;
+      }
+
+      function saveTrips() {
+        persistActiveTripFromState();
+        localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify({ trips, activeTripId }));
+      }
+
+      function renderTripSwitcher() {
+        tripSwitcherEl.innerHTML = "";
+        trips.forEach((trip, index) => {
+          const option = document.createElement("option");
+          option.value = trip.id;
+          option.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅程${index + 1}`;
+          tripSwitcherEl.appendChild(option);
+        });
+        tripSwitcherEl.value = activeTripId;
+        const singleTrip = trips.length <= 1;
+        tripDeleteBtnEl.disabled = singleTrip;
+        tripDeleteBtnEl.classList.toggle("opacity-50", singleTrip);
+        tripDeleteBtnEl.classList.toggle("cursor-not-allowed", singleTrip);
+      }
+
+      function loadState() {
+        loadTrips();
+        applyActiveTripToState();
+      }
+
       function saveState() {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({
-            days: state.days,
-            activeDayIndex: state.activeDayIndex,
-            tripName: state.tripName,
-            departure: state.departure,
-            arrival: state.arrival,
-            autoArrival: state.autoArrival
-          })
-        );
+        saveTrips();
       }
 
       function syncAutoStarts() {
@@ -760,6 +858,7 @@
           state.arrival = state.departure;
         }
         tripNameInputEl.value = state.tripName;
+        renderTripSwitcher();
         renderTabs();
         renderAddSpotOptions();
         renderTimeline();
@@ -775,6 +874,47 @@
       tripNameInputEl.addEventListener("input", (e) => {
         state.tripName = e.target.value;
         saveState();
+        const activeOption = tripSwitcherEl.querySelector(`option[value="${activeTripId}"]`);
+        if (activeOption) {
+          const index = trips.findIndex((t) => t.id === activeTripId);
+          activeOption.textContent = state.tripName.trim() ? state.tripName : `旅程${index + 1}`;
+        }
+      });
+
+      tripSwitcherEl.addEventListener("change", (e) => {
+        saveTrips();
+        activeTripId = e.target.value;
+        applyActiveTripToState();
+        saveTrips();
+        render();
+      });
+
+      tripNewBtnEl.addEventListener("click", () => {
+        if (trips.length >= MAX_TRIPS) {
+          alert(`旅程は最大${MAX_TRIPS}件までしか作成できません。`);
+          return;
+        }
+        saveTrips();
+        const newTrip = createTripEntry(`旅程${trips.length + 1}`);
+        trips.push(newTrip);
+        activeTripId = newTrip.id;
+        applyActiveTripToState();
+        saveTrips();
+        render();
+      });
+
+      tripDeleteBtnEl.addEventListener("click", () => {
+        if (trips.length <= 1) {
+          alert("最後の1件の旅程は削除できません。");
+          return;
+        }
+        if (!confirm("現在の旅程を削除しますか？この操作は取り消せません。")) return;
+        const index = trips.findIndex((t) => t.id === activeTripId);
+        trips.splice(index, 1);
+        activeTripId = trips[Math.max(0, index - 1)].id;
+        applyActiveTripToState();
+        saveTrips();
+        render();
       });
 
       addTypeSpotEl.addEventListener("click", () => {
