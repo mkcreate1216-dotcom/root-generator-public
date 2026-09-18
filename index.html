@@ -3,63 +3,99 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Roople</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
+    <title>roamark</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      summary {
+        list-style: none;
+      }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+    </style>
   </head>
-  <body class="min-h-screen bg-slate-100 text-slate-900">
+  <body class="min-h-screen bg-slate-50 text-slate-900">
     <div class="mx-auto w-full max-w-5xl p-4 sm:p-6">
-      <header class="mb-0 rounded-2xl bg-white p-5 pb-0 shadow-sm">
-        <h1 class="text-2xl font-bold sm:text-3xl">Roople</h1>
-        <p class="mt-2 text-sm text-slate-600">日程ごとにスポットをつなぎ、地図アプリでルート検索できます。</p>
+      <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <header class="p-5 pb-0">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">roamark</h1>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="trip-clear-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">ALLクリア</button>
+            <button id="line-copy-btn" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900">
+              <i data-lucide="share-2" class="h-3.5 w-3.5"></i>
+              LINE共有コピー
+            </button>
+          </div>
+        </div>
+        <p class="mt-2 text-sm text-slate-600">街のLandmarkを、旅のRoamarkへ。</p>
       </header>
 
-      <section class="rounded-2xl bg-white p-4 pt-2 shadow-sm sm:p-6 sm:pt-2">
-        <div class="fixed right-4 top-1/2 z-30 flex flex-col items-center gap-2" id="day-tabs" style="transform: translateY(-50%)"></div>
+      <section class="p-4 pt-2 sm:p-6 sm:pt-2">
+        <div class="fixed right-6 top-1/2 z-40 flex flex-col items-center gap-2" id="day-tabs" style="transform: translateY(-50%)"></div>
 
-        <form id="add-spot-form" class="sticky top-0 z-20 mr-24 mb-4 rounded-xl p-3 shadow-sm sm:p-4" style="background-color: rgba(248, 250, 252, 0.7)">
-          <div class="mb-3">
-            <div class="flex items-center justify-between gap-2">
-              <label class="text-xs font-medium text-slate-500" for="trip-name-input">旅行名</label>
-              <p id="add-target-day" class="whitespace-nowrap rounded-full border border-sky-300 bg-sky-50 px-2 py-1 text-xs font-semibold leading-none text-sky-700"></p>
-            </div>
-            <div class="min-w-0">
+        <form id="add-spot-form" class="sticky top-0 z-30 mb-2 rounded-xl border border-slate-200/60 p-3 shadow-sm backdrop-blur-md sm:p-3.5" style="background-color: rgba(255, 255, 255, 0.95)">
+          <div class="relative mb-2" id="trip-combobox-container">
+            <label class="text-xs font-medium text-slate-500" for="trip-name-input">旅行名</label>
+            <div class="relative mt-0.5 flex items-center">
               <input
                 id="trip-name-input"
                 type="text"
                 placeholder="旅行名を入力"
-                class="mt-1 w-full border-b-2 border-slate-300 bg-transparent px-0 py-1 text-xl font-bold text-slate-900 outline-none transition focus:border-sky-500"
+                class="w-full rounded-lg border border-slate-300 bg-white py-1.5 pl-3 pr-9 text-sm font-bold text-slate-900 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
               />
+              <button
+                id="trip-combobox-toggle"
+                type="button"
+                aria-label="旅行一覧を表示"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                class="absolute right-1 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              >
+                <i data-lucide="chevron-down" class="h-4 w-4"></i>
+              </button>
             </div>
+            <ul
+              id="trip-combobox-menu"
+              role="listbox"
+              class="absolute left-0 right-0 z-50 mt-1 hidden max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+            ></ul>
           </div>
-          <label class="mb-2 block text-sm font-medium text-slate-700" for="new-spot-input">スポットを追加</label>
-          <div class="mb-3 flex flex-wrap gap-2" role="group" aria-label="追加する地点の種類">
-            <button id="add-type-spot" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">スポット</button>
-            <button id="add-type-departure" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">出発地点/到着地点</button>
-            <button id="add-type-accommodation" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">宿泊地</button>
-          </div>
-          <p id="add-type-note" class="mb-3 hidden text-xs text-slate-500"></p>
-          <div id="add-accommodation-scope" class="mb-3 hidden flex flex-wrap gap-2" role="group" aria-label="宿泊地の反映範囲">
-            <button id="add-accommodation-scope-all" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">以降すべて</button>
-            <button id="add-accommodation-scope-today" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">当日のみ</button>
-          </div>
+          <label class="mb-1.5 block text-xs font-medium text-slate-700" for="new-spot-input">スポット・地点を追加</label>
           <div class="flex gap-2">
             <input
               id="new-spot-input"
               type="text"
               placeholder="例: 浅草寺"
-              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              class="w-full min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
             />
+            <select
+              id="add-location-type-select"
+              aria-label="追加する地点の種類"
+              class="shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200 sm:text-sm cursor-pointer"
+            >
+              <option value="spot">スポット</option>
+              <option value="departure">出発地点/到着地点</option>
+              <option value="accommodation">宿泊地</option>
+            </select>
             <button
               id="add-spot-btn"
               type="submit"
-              class="shrink-0 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700"
+              class="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
             >
               追加
             </button>
           </div>
+          <p id="add-type-note" class="mt-2 hidden text-xs text-slate-500"></p>
+          <div id="add-accommodation-scope" class="mt-2 hidden flex flex-wrap items-center gap-2" role="group" aria-label="宿泊地の反映範囲">
+            <span class="text-xs text-slate-500">反映範囲:</span>
+            <button id="add-accommodation-scope-all" type="button" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700">以降すべて</button>
+            <button id="add-accommodation-scope-today" type="button" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700">当日のみ</button>
+          </div>
         </form>
 
-        <div id="timeline" class="mr-24 space-y-0"></div>
+        <div id="timeline" class="space-y-0 pb-[70vh]"></div>
 
         <div id="endpoint-section" class="hidden mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
           <div id="departure-field">
@@ -68,7 +104,7 @@
               id="departure-input"
               type="text"
               placeholder="例: 東京駅"
-              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
             />
           </div>
         </div>
@@ -87,11 +123,12 @@
             id="accommodation-input"
             type="text"
             placeholder="例: 京都駅周辺"
-            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
           />
           <p class="mt-2 text-xs text-slate-500">入力すると翌日の出発地点（先頭）にデフォルトで反映されます。</p>
         </div>
       </section>
+      </div>
     </div>
 
     <script>
@@ -110,15 +147,25 @@
         addAccommodationScope: "all"
       };
 
+      const MAX_TRIPS = 3;
+      const TRIPS_STORAGE_KEY = "travel-itinerary-trips-v1";
+      let trips = [];
+      let activeTripId = null;
+
       const dayTabsEl = document.getElementById("day-tabs");
       const timelineEl = document.getElementById("timeline");
       const tripNameInputEl = document.getElementById("trip-name-input");
-      const addTargetDayEl = document.getElementById("add-target-day");
+      const tripComboboxContainerEl = document.getElementById("trip-combobox-container");
+      const tripComboboxToggleEl = document.getElementById("trip-combobox-toggle");
+      const tripComboboxMenuEl = document.getElementById("trip-combobox-menu");
+      const tripSwitcherEl = document.getElementById("trip-switcher");
+      const tripNewBtnEl = document.getElementById("trip-new-btn");
+      const tripDeleteBtnEl = document.getElementById("trip-delete-btn");
+      const tripClearBtnEl = document.getElementById("trip-clear-btn");
+      const lineCopyBtnEl = document.getElementById("line-copy-btn");
       const newSpotInputEl = document.getElementById("new-spot-input");
       const addSpotFormEl = document.getElementById("add-spot-form");
-      const addTypeSpotEl = document.getElementById("add-type-spot");
-      const addTypeDepartureEl = document.getElementById("add-type-departure");
-      const addTypeAccommodationEl = document.getElementById("add-type-accommodation");
+      const addLocationTypeSelectEl = document.getElementById("add-location-type-select");
       const addTypeNoteEl = document.getElementById("add-type-note");
       const addAccommodationScopeEl = document.getElementById("add-accommodation-scope");
       const addAccommodationScopeAllEl = document.getElementById("add-accommodation-scope-all");
@@ -132,6 +179,10 @@
       const accommodationScopeNextDayEl = document.getElementById("accommodation-scope-next-day");
       let accommodationDebounceId = null;
       let pendingAccommodationSync = null;
+      let draggedSpot = null;
+      const collapsedDays = new Set();
+      let isScrollingToTab = false;
+      let scrollTimeoutId = null;
 
       function createDay(dayNumber, prevAccommodation = "") {
         return {
@@ -154,49 +205,295 @@
         }
       }
 
-      function loadState() {
+      function generateTripId() {
+        return `trip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      }
+
+      function createTripEntry(tripName) {
+        return {
+          id: generateTripId(),
+          tripName: tripName || "",
+          days: [createDay(1)],
+          activeDayIndex: 0,
+          departure: "",
+          arrival: "",
+          autoArrival: true
+        };
+      }
+
+      function sanitizeTrip(trip) {
+        const sanitized = trip && typeof trip === "object" ? trip : {};
+        sanitized.id = typeof sanitized.id === "string" && sanitized.id ? sanitized.id : generateTripId();
+        sanitized.tripName = typeof sanitized.tripName === "string" ? sanitized.tripName : "";
+        sanitized.days = Array.isArray(sanitized.days) && sanitized.days.length ? sanitized.days : [createDay(1)];
+        for (let i = 0; i < sanitized.days.length; i++) {
+          const day = sanitized.days[i] || {};
+          day.name = day.name || `Day ${i + 1}`;
+          day.spots = Array.isArray(day.spots) ? day.spots : [];
+          day.accommodation = typeof day.accommodation === "string" ? day.accommodation : "";
+          day.autoAccommodation = typeof day.autoAccommodation === "boolean" ? day.autoAccommodation : i !== 0;
+          day.autoStart = typeof day.autoStart === "boolean" ? day.autoStart : i !== 0;
+          day.autoStartSlot = typeof day.autoStartSlot === "boolean" ? day.autoStartSlot : day.autoStart && day.spots.length > 0;
+          day.autoStartValue = typeof day.autoStartValue === "string" ? day.autoStartValue : day.autoStartSlot ? day.spots[0] || "" : "";
+          sanitized.days[i] = day;
+        }
+        sanitized.activeDayIndex =
+          Number.isInteger(sanitized.activeDayIndex) && sanitized.activeDayIndex >= 0 && sanitized.activeDayIndex < sanitized.days.length ? sanitized.activeDayIndex : 0;
+        sanitized.departure = typeof sanitized.departure === "string" ? sanitized.departure : "";
+        sanitized.arrival = typeof sanitized.arrival === "string" ? sanitized.arrival : "";
+        sanitized.autoArrival = typeof sanitized.autoArrival === "boolean" ? sanitized.autoArrival : !sanitized.arrival || sanitized.arrival === sanitized.departure;
+        return sanitized;
+      }
+
+      function migrateLegacyTrip() {
+        // 旧バージョン（単一旅程保存）からの移行
         try {
           const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw) {
-            state.days = [createDay(1)];
-            return;
-          }
-          const parsed = JSON.parse(raw);
-          state.days = Array.isArray(parsed.days) ? parsed.days : [createDay(1)];
-          state.activeDayIndex = Number.isInteger(parsed.activeDayIndex) ? parsed.activeDayIndex : 0;
-          state.tripName = typeof parsed.tripName === "string" ? parsed.tripName : "";
-          state.departure = typeof parsed.departure === "string" ? parsed.departure : "";
-          state.arrival = typeof parsed.arrival === "string" ? parsed.arrival : "";
-          state.autoArrival = typeof parsed.autoArrival === "boolean" ? parsed.autoArrival : !state.arrival || state.arrival === state.departure;
-          for (let i = 0; i < state.days.length; i++) {
-            const day = state.days[i] || {};
-            day.name = day.name || `Day ${i + 1}`;
-            day.spots = Array.isArray(day.spots) ? day.spots : [];
-            day.accommodation = typeof day.accommodation === "string" ? day.accommodation : "";
-            day.autoAccommodation = typeof day.autoAccommodation === "boolean" ? day.autoAccommodation : i !== 0;
-            day.autoStart = typeof day.autoStart === "boolean" ? day.autoStart : i !== 0;
-            day.autoStartSlot = typeof day.autoStartSlot === "boolean" ? day.autoStartSlot : day.autoStart && day.spots.length > 0;
-            day.autoStartValue = typeof day.autoStartValue === "string" ? day.autoStartValue : day.autoStartSlot ? day.spots[0] || "" : "";
-            state.days[i] = day;
-          }
+          if (!raw) return null;
+          return sanitizeTrip(JSON.parse(raw));
         } catch {
-          state.days = [createDay(1)];
-          state.activeDayIndex = 0;
+          return null;
         }
       }
 
+      function loadTrips() {
+        try {
+          const raw = localStorage.getItem(TRIPS_STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            trips = Array.isArray(parsed.trips) && parsed.trips.length ? parsed.trips.slice(0, MAX_TRIPS).map(sanitizeTrip) : [];
+            if (!trips.length) trips = [createTripEntry("旅行1")];
+            activeTripId = trips.some((t) => t.id === parsed.activeTripId) ? parsed.activeTripId : trips[0].id;
+            return;
+          }
+        } catch {
+          trips = [];
+        }
+        const legacy = migrateLegacyTrip();
+        trips = [legacy || createTripEntry("旅行1")];
+        activeTripId = trips[0].id;
+      }
+
+      function getActiveTrip() {
+        return trips.find((t) => t.id === activeTripId) || trips[0];
+      }
+
+      function applyActiveTripToState() {
+        const trip = getActiveTrip();
+        activeTripId = trip.id;
+        state.days = trip.days;
+        state.activeDayIndex = trip.activeDayIndex;
+        state.tripName = trip.tripName;
+        state.departure = trip.departure;
+        state.arrival = trip.arrival;
+        state.autoArrival = trip.autoArrival;
+        state.openRouteMenuIndex = null;
+        state.accommodationUpdateScope = "all";
+        state.addLocationType = "spot";
+        state.addAccommodationScope = "all";
+      }
+
+      function persistActiveTripFromState() {
+        const trip = getActiveTrip();
+        if (!trip) return;
+        trip.days = state.days;
+        trip.activeDayIndex = state.activeDayIndex;
+        trip.tripName = state.tripName;
+        trip.departure = state.departure;
+        trip.arrival = state.arrival;
+        trip.autoArrival = state.autoArrival;
+      }
+
+      function saveTrips() {
+        persistActiveTripFromState();
+        localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify({ trips, activeTripId }));
+      }
+
+      let isTripMenuOpen = false;
+
+      function toggleTripMenu(force) {
+        isTripMenuOpen = typeof force === "boolean" ? force : !isTripMenuOpen;
+        if (tripComboboxMenuEl) {
+          tripComboboxMenuEl.classList.toggle("hidden", !isTripMenuOpen);
+        }
+        if (tripComboboxToggleEl) {
+          tripComboboxToggleEl.setAttribute("aria-expanded", String(isTripMenuOpen));
+        }
+        if (isTripMenuOpen) {
+          renderTripComboboxMenu();
+        }
+      }
+
+      function createNewTrip() {
+        if (trips.length >= MAX_TRIPS) {
+          alert(`旅行は最大${MAX_TRIPS}件までしか作成できません。`);
+          return;
+        }
+        saveTrips();
+        const newTrip = createTripEntry(`旅行${trips.length + 1}`);
+        trips.push(newTrip);
+        activeTripId = newTrip.id;
+        applyActiveTripToState();
+        saveTrips();
+        render();
+        if (tripNameInputEl) {
+          tripNameInputEl.focus();
+          tripNameInputEl.select();
+        }
+      }
+
+      function deleteTrip(tripId) {
+        if (trips.length <= 1) {
+          alert("最後の1件の旅行は削除できません。");
+          return;
+        }
+        const index = trips.findIndex((t) => t.id === tripId);
+        if (index === -1) return;
+        const targetTrip = trips[index];
+        const displayName = targetTrip.tripName && targetTrip.tripName.trim() ? targetTrip.tripName : `旅行${index + 1}`;
+        if (!confirm(`「${displayName}」を削除しますか？この操作は取り消せません。`)) {
+          return;
+        }
+        trips.splice(index, 1);
+        if (tripId === activeTripId) {
+          activeTripId = trips[Math.max(0, index - 1)].id;
+          applyActiveTripToState();
+        }
+        saveTrips();
+        render();
+      }
+
+      function renderTripComboboxMenu() {
+        if (!tripComboboxMenuEl) return;
+        tripComboboxMenuEl.innerHTML = "";
+        trips.forEach((trip, index) => {
+          const item = document.createElement("li");
+          const isSelected = trip.id === activeTripId;
+          item.className = `flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-sm transition hover:bg-slate-100 ${
+            isSelected ? "bg-slate-50 font-bold text-slate-900" : "text-slate-700"
+          }`;
+          item.setAttribute("role", "option");
+          item.setAttribute("aria-selected", String(isSelected));
+
+          const labelArea = document.createElement("div");
+          labelArea.className = "flex min-w-0 flex-1 items-center gap-2";
+
+          if (isSelected) {
+            const check = document.createElement("i");
+            check.setAttribute("data-lucide", "check");
+            check.className = "h-4 w-4 shrink-0 text-slate-900";
+            labelArea.appendChild(check);
+          } else {
+            const spacer = document.createElement("span");
+            spacer.className = "h-4 w-4 shrink-0";
+            labelArea.appendChild(spacer);
+          }
+
+          const label = document.createElement("span");
+          label.className = "truncate";
+          label.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
+          labelArea.appendChild(label);
+
+          item.appendChild(labelArea);
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.type = "button";
+          const displayName = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
+          deleteBtn.setAttribute("aria-label", `${displayName}を削除`);
+          const singleTrip = trips.length <= 1;
+          if (singleTrip) {
+            deleteBtn.disabled = true;
+            deleteBtn.className = "rounded-md p-1 text-slate-200 cursor-not-allowed shrink-0";
+            deleteBtn.title = "最後の1件の旅行は削除できません";
+          } else {
+            deleteBtn.className = "rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 transition shrink-0";
+            deleteBtn.title = `${displayName}を削除`;
+            deleteBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              deleteTrip(trip.id);
+            });
+          }
+          deleteBtn.innerHTML = '<i data-lucide="x" class="h-3.5 w-3.5"></i>';
+          item.appendChild(deleteBtn);
+
+          item.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (trip.id !== activeTripId) {
+              saveTrips();
+              activeTripId = trip.id;
+              applyActiveTripToState();
+              saveTrips();
+              render();
+            }
+            toggleTripMenu(false);
+          });
+
+          tripComboboxMenuEl.appendChild(item);
+        });
+
+        // 最下部に「新しい旅程を作成」を配置
+        const separator = document.createElement("li");
+        separator.className = "my-1 border-t border-slate-100";
+        separator.setAttribute("role", "separator");
+        tripComboboxMenuEl.appendChild(separator);
+
+        const addActionItem = document.createElement("li");
+        const addBtn = document.createElement("button");
+        addBtn.type = "button";
+        const isMaxTrips = trips.length >= MAX_TRIPS;
+        addBtn.className = `flex w-full items-center gap-2 px-3 py-2 text-xs font-medium transition ${
+          isMaxTrips
+            ? "cursor-not-allowed text-slate-400"
+            : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+        }`;
+        addBtn.innerHTML = '<i data-lucide="plus" class="h-4 w-4 shrink-0"></i><span>新しい旅程を作成</span>';
+        if (isMaxTrips) {
+          addBtn.disabled = true;
+          addBtn.title = `旅行は最大${MAX_TRIPS}件まで作成できます`;
+        } else {
+          addBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            createNewTrip();
+            toggleTripMenu(false);
+          });
+        }
+        addActionItem.appendChild(addBtn);
+        tripComboboxMenuEl.appendChild(addActionItem);
+
+        if (window.lucide) {
+          lucide.createIcons();
+        }
+      }
+
+      function renderTripSwitcher() {
+        if (tripSwitcherEl) {
+          tripSwitcherEl.innerHTML = "";
+          trips.forEach((trip, index) => {
+            const option = document.createElement("option");
+            option.value = trip.id;
+            option.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
+            tripSwitcherEl.appendChild(option);
+          });
+          tripSwitcherEl.value = activeTripId;
+        }
+        if (tripDeleteBtnEl) {
+          const singleTrip = trips.length <= 1;
+          tripDeleteBtnEl.disabled = singleTrip;
+          tripDeleteBtnEl.classList.toggle("opacity-50", singleTrip);
+          tripDeleteBtnEl.classList.toggle("cursor-not-allowed", singleTrip);
+        }
+        if (isTripMenuOpen) {
+          renderTripComboboxMenu();
+        }
+      }
+
+      function loadState() {
+        loadTrips();
+        applyActiveTripToState();
+      }
+
       function saveState() {
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({
-            days: state.days,
-            activeDayIndex: state.activeDayIndex,
-            tripName: state.tripName,
-            departure: state.departure,
-            arrival: state.arrival,
-            autoArrival: state.autoArrival
-          })
-        );
+        saveTrips();
       }
 
       function syncAutoStarts() {
@@ -262,11 +559,104 @@
         }
       }
 
+      function animateSpotReorder(dayIndex, mutateFn) {
+        const section = document.getElementById(`day-section-${dayIndex}`);
+        const firstRects = new Map();
+        if (section) {
+          section.querySelectorAll('[data-spot-card="true"]').forEach((card) => {
+            firstRects.set(card.dataset.spotValue, card.getBoundingClientRect());
+          });
+        }
+        mutateFn();
+        render();
+        const newSection = document.getElementById(`day-section-${dayIndex}`);
+        if (!newSection) return;
+        newSection.querySelectorAll('[data-spot-card="true"]').forEach((card) => {
+          const firstRect = firstRects.get(card.dataset.spotValue);
+          if (!firstRect) return;
+          const lastRect = card.getBoundingClientRect();
+          const deltaY = firstRect.top - lastRect.top;
+          if (!deltaY) return;
+          card.style.transition = "none";
+          card.style.transform = `translateY(${deltaY}px)`;
+          requestAnimationFrame(() => {
+            card.style.transition = "transform 300ms ease";
+            card.style.transform = "";
+          });
+        });
+      }
+
+      function moveSpot(dayIndex, index, direction) {
+        const day = state.days[dayIndex];
+        const targetIndex = index + direction;
+        if (targetIndex < 0 || targetIndex >= day.spots.length) return;
+        animateSpotReorder(dayIndex, () => {
+          [day.spots[index], day.spots[targetIndex]] = [day.spots[targetIndex], day.spots[index]];
+          if (dayIndex > 0 && (index === 0 || targetIndex === 0)) {
+            day.autoStart = false;
+            day.autoStartSlot = false;
+            day.autoStartValue = "";
+          }
+          state.openRouteMenuIndex = null;
+          saveState();
+        });
+      }
+
+      function moveSpotTo(dayIndex, fromIndex, toIndex) {
+        const day = state.days[dayIndex];
+        if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= day.spots.length || toIndex >= day.spots.length) return;
+        animateSpotReorder(dayIndex, () => {
+          const [moved] = day.spots.splice(fromIndex, 1);
+          day.spots.splice(toIndex, 0, moved);
+          if (dayIndex > 0 && (fromIndex === 0 || toIndex === 0)) {
+            day.autoStart = false;
+            day.autoStartSlot = false;
+            day.autoStartValue = "";
+          }
+          state.openRouteMenuIndex = null;
+          saveState();
+        });
+      }
+
       function getDayRouteUrl(locations) {
         const origin = encodeURIComponent(locations[0]);
         const destination = encodeURIComponent(locations[locations.length - 1]);
         const waypoints = locations.slice(1, -1).map(encodeURIComponent).join("%7C");
         return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ""}`;
+      }
+
+      function showToast(message) {
+        const toast = document.createElement("div");
+        toast.textContent = message;
+        toast.className = "fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white shadow-lg";
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+      }
+
+      function generateItineraryText() {
+        const title = state.tripName.trim() ? state.tripName.trim() : "旅行";
+        const lines = [`【${title}】`, ""];
+        state.days.forEach((day, dayIndex) => {
+          const items = getDayItems(day, dayIndex);
+          lines.push(`■ ${day.name}`);
+          items.forEach((item, index) => {
+            if (item.type === "accommodation") {
+              lines.push(`[宿泊地: ${item.value}]`);
+            } else {
+              const suffix = item.type === "endpoint" ? (item.label === "出発地点" ? " (出発)" : " (到着)") : "";
+              lines.push(`・${item.value}${suffix}`);
+            }
+            const nextItem = items[index + 1];
+            if (nextItem && item.type !== "accommodation" && nextItem.type !== "accommodation") {
+              const from = item.value.trim();
+              const to = nextItem.value.trim();
+              const routeUrl = from && to ? `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}` : "";
+              lines.push(routeUrl ? ` ↓ (ルート: ${routeUrl})` : " ↓");
+            }
+          });
+          lines.push("");
+        });
+        return lines.join("\n").trim();
       }
 
       function addSpot() {
@@ -294,23 +684,22 @@
           day.spots.push(value);
         }
         newSpotInputEl.value = "";
+        state.addLocationType = "spot";
         saveState();
         render();
       }
 
       function setTagStyle(button, selected) {
         button.setAttribute("aria-pressed", String(selected));
-        button.style.backgroundColor = selected ? "#0f766e" : "#ffffff";
-        button.style.borderColor = selected ? "#0f766e" : "#cbd5e1";
-        button.style.color = selected ? "#ffffff" : "#334155";
+        button.style.backgroundColor = selected ? "#18181b" : "#ffffff";
+        button.style.borderColor = selected ? "#18181b" : "#d4d4d8";
+        button.style.color = selected ? "#ffffff" : "#3f3f46";
       }
 
       function renderAddSpotOptions() {
-        addTargetDayEl.textContent = `+ ${state.days[state.activeDayIndex].name}`;
-        addTargetDayEl.title = `${state.days[state.activeDayIndex].name} に追加`;
-        setTagStyle(addTypeSpotEl, state.addLocationType === "spot");
-        setTagStyle(addTypeDepartureEl, state.addLocationType === "departure");
-        setTagStyle(addTypeAccommodationEl, state.addLocationType === "accommodation");
+        if (addLocationTypeSelectEl) {
+          addLocationTypeSelectEl.value = state.addLocationType;
+        }
         addAccommodationScopeEl.classList.toggle("hidden", state.addLocationType !== "accommodation");
         const note =
           state.addLocationType === "departure"
@@ -326,6 +715,7 @@
             : state.addLocationType === "accommodation"
               ? "例: 京都駅周辺"
               : "例: 浅草寺";
+        updateStickyOffsets();
       }
 
       function addDay() {
@@ -360,17 +750,34 @@
         render();
       }
 
+      function updateStickyOffsets() {
+        if (addSpotFormEl) {
+          const height = Math.round(addSpotFormEl.getBoundingClientRect().height);
+          document.documentElement.style.setProperty("--sticky-form-height", `${height}px`);
+        }
+      }
+
+      function scrollToDay(index) {
+        const section = document.getElementById(`day-section-${index}`);
+        if (!section) return;
+        updateStickyOffsets();
+        const formHeight = addSpotFormEl ? Math.round(addSpotFormEl.getBoundingClientRect().height) : 135;
+        const sectionTop = section.getBoundingClientRect().top + window.scrollY;
+        const targetScrollY = Math.max(0, sectionTop - formHeight + 2);
+        window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+      }
+
       function renderTabs() {
         dayTabsEl.innerHTML = "";
         state.days.forEach((day, index) => {
           const button = document.createElement("button");
           const active = index === state.activeDayIndex;
-          button.className = `w-20 rounded-lg border px-3 py-2 text-center text-sm font-medium shadow-sm transition ${
+          button.className = `w-15 rounded-lg border px-3 py-2 text-center text-sm font-medium shadow-sm transition ${
             active ? "text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
           }`;
           if (active) {
-            button.style.backgroundColor = "#0284c7";
-            button.style.borderColor = "#0284c7";
+            button.style.backgroundColor = "#18181b";
+            button.style.borderColor = "#18181b";
             button.style.color = "#ffffff";
           }
           button.textContent = day.name;
@@ -378,16 +785,15 @@
             state.activeDayIndex = index;
             state.openRouteMenuIndex = null;
             saveState();
-            if (index === 0) {
-              window.scrollTo({ top: 0, behavior: "smooth" });
-              requestAnimationFrame(() => {
-                state.activeDayIndex = 0;
-                renderAddSpotOptions();
-                renderTabs();
-              });
-            } else {
-              document.getElementById(`day-section-${index}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }
+
+            isScrollingToTab = true;
+            if (scrollTimeoutId) clearTimeout(scrollTimeoutId);
+            scrollTimeoutId = setTimeout(() => {
+              isScrollingToTab = false;
+            }, 800);
+
+            scrollToDay(index);
+            renderAddSpotOptions();
             renderTabs();
           });
           dayTabsEl.appendChild(button);
@@ -396,7 +802,7 @@
         const addButton = document.createElement("button");
         addButton.type = "button";
         addButton.className =
-          "flex h-9 w-9 items-center justify-center self-center rounded-full border border-dashed border-slate-400 bg-white p-0 text-lg font-semibold leading-none text-slate-700 transition hover:border-slate-600";
+          "flex h-9 w-9 items-center justify-center self-center rounded-full bg-slate-900 p-0 text-lg font-semibold leading-none text-white shadow-xs transition hover:bg-slate-800";
         const addIcon = document.createElement("span");
         addIcon.textContent = "+";
         addIcon.style.transform = "translateY(-1px)";
@@ -409,7 +815,7 @@
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
         deleteButton.className =
-          "flex h-9 w-9 items-center justify-center self-center rounded-full border border-rose-200 bg-rose-50 p-0 text-lg font-semibold leading-none text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50";
+          "flex h-9 w-9 items-center justify-center self-center rounded-full bg-slate-200 p-0 text-lg font-semibold leading-none text-slate-700 transition hover:bg-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-slate-200";
         const deleteIcon = document.createElement("span");
         deleteIcon.textContent = "−";
         deleteIcon.style.transform = "translateY(-1px)";
@@ -423,14 +829,50 @@
 
       function createSpotCard(spotValue, index, markerIndex = index, dayIndex = state.activeDayIndex) {
         const card = document.createElement("div");
-        card.className = "relative rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4";
+        card.className = "sticky top-24 relative rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-300 sm:p-4";
+        card.style.zIndex = String(markerIndex + 1);
+        card.dataset.spotCard = "true";
+        card.dataset.spotValue = spotValue;
+        card.draggable = true;
+
+        card.addEventListener("dragstart", (e) => {
+          draggedSpot = { dayIndex, index };
+          card.classList.add("opacity-50");
+          e.dataTransfer.effectAllowed = "move";
+          e.dataTransfer.setData("text/plain", String(index));
+        });
+        card.addEventListener("dragend", () => {
+          draggedSpot = null;
+          card.classList.remove("opacity-50");
+        });
+        card.addEventListener("dragover", (e) => {
+          if (!draggedSpot || draggedSpot.dayIndex !== dayIndex) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          card.classList.add("border-slate-800", "bg-slate-100");
+        });
+        card.addEventListener("dragleave", () => {
+          card.classList.remove("border-slate-800", "bg-slate-100");
+        });
+        card.addEventListener("drop", (e) => {
+          if (!draggedSpot || draggedSpot.dayIndex !== dayIndex) return;
+          e.preventDefault();
+          card.classList.remove("border-slate-800", "bg-slate-100");
+          moveSpotTo(dayIndex, draggedSpot.index, index);
+        });
 
         const row = document.createElement("div");
         row.className = "flex items-start gap-3";
 
+        const handle = document.createElement("div");
+        handle.className = "mt-2 flex h-6 w-5 shrink-0 cursor-grab select-none items-center justify-center text-slate-400 active:cursor-grabbing";
+        handle.textContent = "⠿";
+        handle.setAttribute("aria-hidden", "true");
+        handle.title = "ドラッグして並び替え";
+
         const marker = document.createElement("div");
         marker.className =
-          "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-bold text-white";
+          "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white";
         marker.textContent = String(markerIndex + 1);
 
         const content = document.createElement("div");
@@ -441,7 +883,7 @@
         input.value = spotValue;
         input.placeholder = "スポット名";
         input.className =
-          "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100";
+          "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
         input.addEventListener("input", (e) => {
           const day = state.days[dayIndex];
           day.spots[index] = e.target.value;
@@ -459,13 +901,36 @@
         const controls = document.createElement("div");
         controls.className = "mt-2 flex items-center justify-between gap-2";
 
+        const moveGroup = document.createElement("div");
+        moveGroup.className = "flex items-center gap-1";
+
+        const upBtn = document.createElement("button");
+        upBtn.type = "button";
+        upBtn.className =
+          "rounded-md border border-slate-300 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40";
+        upBtn.innerHTML = '<i data-lucide="arrow-up" class="h-3.5 w-3.5"></i>';
+        upBtn.setAttribute("aria-label", "上に移動");
+        upBtn.disabled = index === 0;
+        upBtn.addEventListener("click", () => moveSpot(dayIndex, index, -1));
+
+        const downBtn = document.createElement("button");
+        downBtn.type = "button";
+        downBtn.className =
+          "rounded-md border border-slate-300 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40";
+        downBtn.innerHTML = '<i data-lucide="arrow-down" class="h-3.5 w-3.5"></i>';
+        downBtn.setAttribute("aria-label", "下に移動");
+        downBtn.disabled = index === state.days[dayIndex].spots.length - 1;
+        downBtn.addEventListener("click", () => moveSpot(dayIndex, index, 1));
+
+        moveGroup.append(upBtn, downBtn);
+
         const hint = document.createElement("span");
-        hint.className = "text-xs text-slate-500";
+        hint.className = "flex-1 text-xs text-slate-500";
         hint.textContent = dayIndex > 0 && index === 0 && state.days[dayIndex].autoStart ? "前日の宿泊地を反映中" : "";
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
-        removeBtn.className = "rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100";
+        removeBtn.className = "rounded-md bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900";
         removeBtn.textContent = "削除";
         removeBtn.addEventListener("click", () => {
           const day = state.days[dayIndex];
@@ -480,96 +945,180 @@
           render();
         });
 
-        controls.append(hint, removeBtn);
+        controls.append(moveGroup, hint, removeBtn);
         content.append(input, controls);
-        row.append(marker, content);
+        row.append(handle, marker, content);
         card.appendChild(row);
         return card;
       }
 
-      function createAccommodationCard(accommodation, index) {
+      function createAccommodationCard(accommodation, index, dayIndex = state.activeDayIndex) {
         const card = document.createElement("div");
-        card.className = "rounded-xl border border-green-200 bg-green-50 p-3 shadow-sm sm:p-4";
+        card.className = "sticky top-24 relative rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-300 sm:p-4";
+        card.style.zIndex = String(index + 1);
+        card.dataset.spotCard = "true";
 
         const row = document.createElement("div");
         row.className = "flex items-start gap-3";
 
+        const spacer = document.createElement("div");
+        spacer.className = "mt-2 flex h-6 w-5 shrink-0 items-center justify-center text-slate-300 select-none text-xs";
+        spacer.setAttribute("aria-hidden", "true");
+
         const marker = document.createElement("div");
-        marker.className = "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-600 text-xs font-bold text-white";
+        marker.className =
+          "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white";
         marker.textContent = String(index + 1);
 
         const content = document.createElement("div");
         content.className = "w-full";
 
-        const label = document.createElement("p");
-        label.className = "text-xs font-medium text-green-700";
-        label.textContent = "宿泊地";
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = accommodation;
+        input.placeholder = "宿泊地を入力";
+        input.className =
+          "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
+        input.addEventListener("input", (e) => {
+          const day = state.days[dayIndex];
+          if (day) {
+            day.accommodation = e.target.value;
+            day.autoAccommodation = false;
+            syncAutoStarts();
+            saveState();
+          }
+        });
+        input.addEventListener("blur", () => {
+          render();
+        });
 
-        const name = document.createElement("p");
-        name.className = "mt-1 text-sm font-medium text-slate-900";
-        name.textContent = accommodation;
+        const controls = document.createElement("div");
+        controls.className = "mt-2 flex items-center justify-between gap-2";
 
-        content.append(label, name);
-        row.append(marker, content);
+        const badge = document.createElement("span");
+        badge.className = "rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600";
+        badge.textContent = "宿泊地";
+
+        const hint = document.createElement("span");
+        hint.className = "flex-1 text-xs text-slate-500";
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "rounded-md bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900";
+        removeBtn.textContent = "削除";
+        removeBtn.setAttribute("aria-label", "宿泊地を削除");
+        removeBtn.addEventListener("click", () => {
+          const day = state.days[dayIndex];
+          if (day) {
+            day.accommodation = "";
+            day.autoAccommodation = false;
+            syncAutoStarts();
+          }
+          state.openRouteMenuIndex = null;
+          saveState();
+          render();
+        });
+
+        controls.append(badge, hint, removeBtn);
+        content.append(input, controls);
+        row.append(spacer, marker, content);
         card.appendChild(row);
         return card;
       }
 
-      function createEndpointCard(location, index, label) {
+      function createEndpointCard(location, index, label, dayIndex = state.activeDayIndex) {
         const card = document.createElement("div");
-        card.className = "rounded-xl border border-violet-200 bg-violet-50 p-3 shadow-sm sm:p-4";
+        card.className = "sticky top-24 relative rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-300 sm:p-4";
+        card.style.zIndex = String(index + 1);
+        card.dataset.spotCard = "true";
 
         const row = document.createElement("div");
         row.className = "flex items-start gap-3";
 
+        const spacer = document.createElement("div");
+        spacer.className = "mt-2 flex h-6 w-5 shrink-0 items-center justify-center text-slate-300 select-none text-xs";
+        spacer.setAttribute("aria-hidden", "true");
+
         const marker = document.createElement("div");
-        marker.className = "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white";
+        marker.className =
+          "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white";
         marker.textContent = String(index + 1);
 
         const content = document.createElement("div");
         content.className = "w-full";
 
-        const locationLabel = document.createElement("p");
-        locationLabel.className = "text-xs font-medium text-violet-700";
-        locationLabel.textContent = label;
-
-        const name = document.createElement(label === "到着地点" ? "input" : "p");
-        name.className =
-          label === "到着地点"
-            ? "mt-1 w-full rounded-lg border border-violet-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-            : "mt-1 text-sm font-medium text-slate-900";
-        if (label === "到着地点") {
-          name.type = "text";
-          name.value = location;
-          name.placeholder = "到着地点を入力";
-          name.addEventListener("input", (e) => {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = location;
+        input.placeholder = `${label}を入力`;
+        input.className =
+          "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
+        input.addEventListener("input", (e) => {
+          if (label === "出発地点") {
+            state.departure = e.target.value;
+            departureInputEl.value = state.departure;
+          } else if (label === "到着地点") {
             state.arrival = e.target.value;
             state.autoArrival = false;
-            saveState();
-          });
-        } else {
-          name.textContent = location;
-        }
+          }
+          saveState();
+        });
+        input.addEventListener("blur", () => {
+          render();
+        });
 
-        content.append(locationLabel, name);
-        row.append(marker, content);
+        const controls = document.createElement("div");
+        controls.className = "mt-2 flex items-center justify-between gap-2";
+
+        const badge = document.createElement("span");
+        badge.className = "rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600";
+        badge.textContent = label;
+
+        const hint = document.createElement("span");
+        hint.className = "flex-1 text-xs text-slate-500";
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "rounded-md bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900";
+        removeBtn.textContent = "削除";
+        removeBtn.setAttribute("aria-label", `${label}を削除`);
+        removeBtn.addEventListener("click", () => {
+          if (label === "出発地点") {
+            if (state.autoArrival) {
+              state.arrival = state.departure;
+              state.autoArrival = false;
+            }
+            state.departure = "";
+            departureInputEl.value = "";
+          } else if (label === "到着地点") {
+            state.arrival = "";
+            state.autoArrival = false;
+          }
+          state.openRouteMenuIndex = null;
+          saveState();
+          render();
+        });
+
+        controls.append(badge, hint, removeBtn);
+        content.append(input, controls);
+        row.append(spacer, marker, content);
         card.appendChild(row);
         return card;
       }
 
       function createRouteConnector(from, to, routeIndex, dayIndex = state.activeDayIndex) {
         const wrap = document.createElement("div");
-        wrap.className = "flex flex-col items-center py-2";
+        wrap.className = "relative flex flex-col items-center py-3";
 
         const line = document.createElement("div");
-        line.className = "h-5 w-px bg-slate-300";
+        line.className = "pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 border-l-2 border-dashed border-slate-200";
 
         const btn = document.createElement("button");
         btn.type = "button";
         const menuId = `route-menu-${dayIndex}-${routeIndex}`;
         btn.className =
-          "rounded-full border border-sky-300 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 transition hover:bg-sky-100";
-        btn.textContent = "ルート検索";
+          "relative z-10 inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-100 hover:text-slate-900";
+        btn.innerHTML = '<i data-lucide="route" class="h-3.5 w-3.5"></i>ルート';
         btn.setAttribute("aria-controls", menuId);
         btn.setAttribute("aria-expanded", String(state.openRouteMenuIndex === `${dayIndex}-${routeIndex}`));
         btn.addEventListener("click", () => {
@@ -580,7 +1129,9 @@
 
         const menu = document.createElement("div");
         menu.id = menuId;
-        menu.className = `mt-2 flex gap-2 ${state.openRouteMenuIndex === `${dayIndex}-${routeIndex}` ? "" : "hidden"}`;
+        menu.className = `relative z-10 mt-2 flex gap-2 rounded-xl border border-slate-100 bg-white p-2 shadow-lg ${
+          state.openRouteMenuIndex === `${dayIndex}-${routeIndex}` ? "" : "hidden"
+        }`;
         menu.setAttribute("role", "menu");
         menu.setAttribute("aria-label", "地図アプリ選択");
         menu.addEventListener("keydown", (event) => {
@@ -594,7 +1145,7 @@
 
         const feedback = document.createElement("p");
         feedback.id = `${menuId}-feedback`;
-        feedback.className = "mt-2 text-xs text-rose-600";
+        feedback.className = "relative z-10 mt-2 text-center text-xs font-medium text-slate-500";
         feedback.setAttribute("aria-live", "polite");
 
         function showRouteValidation() {
@@ -636,16 +1187,7 @@
         return wrap;
       }
 
-      function createDayTimeline(day, dayIndex) {
-        const section = document.createElement("section");
-        section.id = `day-section-${dayIndex}`;
-        section.dataset.dayIndex = String(dayIndex);
-        section.className = "scroll-mt-4 border-t border-slate-200 py-6 first:border-t-0 first:pt-0";
-
-        const heading = document.createElement("h2");
-        heading.className = "text-lg font-bold text-slate-800";
-        heading.textContent = day.name;
-
+      function getDayItems(day, dayIndex) {
         const isFirstDay = dayIndex === 0;
         const isLastDay = dayIndex === state.days.length - 1;
         const departure = isFirstDay ? state.departure.trim() : "";
@@ -659,54 +1201,113 @@
         day.spots.forEach((spot, index) => {
           items.push({ type: "spot", value: spot, spotIndex: index });
         });
-        if (accommodation) {
+        if (accommodation && !isLastDay) {
           items.push({ type: "accommodation", value: accommodation });
         }
         if (arrival) {
           items.push({ type: "endpoint", value: arrival, label: "到着地点" });
         }
+        return items;
+      }
 
-        const sectionHeader = document.createElement("div");
-        sectionHeader.className = "mb-4 flex items-center justify-between gap-3";
+      function createDayTimeline(day, dayIndex) {
+        const details = document.createElement("details");
+        details.id = `day-section-${dayIndex}`;
+        details.dataset.dayIndex = String(dayIndex);
+        details.className = "border-t border-slate-200 py-2 first:border-t-0 first:pt-0";
+        details.style.scrollMarginTop = "var(--sticky-form-height, 135px)";
+        details.open = !collapsedDays.has(dayIndex);
 
-        const routeButton = document.createElement(items.length < 2 ? "button" : "a");
-        routeButton.className =
-          "shrink-0 rounded-lg border border-sky-300 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-50";
-        routeButton.textContent = "この日のルート";
-        routeButton.title = "Google マップでこの日のルートを開く";
-        if (items.length < 2) {
-          routeButton.type = "button";
-          routeButton.disabled = true;
-        } else {
-          routeButton.href = getDayRouteUrl(items.map((item) => item.value));
-          routeButton.target = "_blank";
-          routeButton.rel = "noopener noreferrer";
+        const summary = document.createElement("summary");
+        summary.className =
+          "sticky z-20 flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-white/95 px-3 py-2.5 backdrop-blur-sm shadow-xs";
+        summary.style.top = "var(--sticky-form-height, 135px)";
+        summary.style.listStyle = "none";
+
+        const chevronWrap = document.createElement("div");
+        chevronWrap.className = "flex shrink-0 items-center gap-1.5 text-slate-400 py-1";
+
+        const chevron = document.createElement("i");
+        chevron.setAttribute("data-lucide", "chevron-down");
+        chevron.className = "h-4 w-4 shrink-0 text-slate-400";
+        chevron.style.transition = "transform 200ms";
+        chevron.style.transform = details.open ? "rotate(0deg)" : "rotate(-90deg)";
+
+        chevronWrap.appendChild(chevron);
+
+        const items = getDayItems(day, dayIndex);
+
+        // 閉じるアイコンの隣（Day見出しの左隣）に閉じた時だけ表示するルート概要
+        const routeSummary = document.createElement("div");
+        routeSummary.className = `min-w-0 flex-1 overflow-hidden ${details.open ? "hidden" : ""}`;
+
+        const routeLocations = items.map((item) => (item.value || "").trim()).filter(Boolean);
+        if (routeLocations.length > 0) {
+          const routeText = document.createElement("span");
+          routeText.className = "block truncate text-xs font-normal text-slate-500";
+          routeText.textContent = routeLocations.join(" → ");
+          routeText.title = routeLocations.join(" → ");
+          routeSummary.appendChild(routeText);
         }
 
-        sectionHeader.append(heading, routeButton);
-        section.appendChild(sectionHeader);
+        const heading = document.createElement(items.length < 2 ? "h2" : "a");
+        heading.className = items.length < 2
+          ? "shrink-0 text-lg font-bold text-slate-800"
+          : "shrink-0 text-lg font-bold text-slate-900 transition hover:text-slate-600 hover:underline inline-flex items-center gap-1.5 cursor-pointer";
+        heading.textContent = day.name;
+
+        if (items.length >= 2) {
+          heading.href = getDayRouteUrl(items.map((item) => item.value));
+          heading.target = "_blank";
+          heading.rel = "noopener noreferrer";
+          heading.title = "Google マップでこの日のルートを開く";
+          heading.addEventListener("click", (e) => e.stopPropagation());
+
+          const extIcon = document.createElement("i");
+          extIcon.setAttribute("data-lucide", "external-link");
+          extIcon.className = "h-4 w-4 text-slate-400 shrink-0";
+          heading.appendChild(extIcon);
+        }
+
+        details.addEventListener("toggle", () => {
+          if (details.open) {
+            collapsedDays.delete(dayIndex);
+          } else {
+            collapsedDays.add(dayIndex);
+          }
+          chevron.style.transform = details.open ? "rotate(0deg)" : "rotate(-90deg)";
+          routeSummary.classList.toggle("hidden", details.open);
+        });
+
+        summary.append(chevronWrap, routeSummary, heading);
+        details.appendChild(summary);
+
+        const body = document.createElement("div");
+        body.className = "pt-2";
 
         if (items.length === 0) {
           const empty = document.createElement("p");
           empty.className = "rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500";
           empty.textContent = "まだスポットがありません。上の入力から追加してください。";
-          section.appendChild(empty);
-          return section;
+          body.appendChild(empty);
+          details.appendChild(body);
+          return details;
         }
 
         items.forEach((item, index) => {
           if (item.type === "spot") {
-            section.appendChild(createSpotCard(item.value, item.spotIndex, index, dayIndex));
+            body.appendChild(createSpotCard(item.value, item.spotIndex, index, dayIndex));
           } else if (item.type === "accommodation") {
-            section.appendChild(createAccommodationCard(item.value, index));
+            body.appendChild(createAccommodationCard(item.value, index, dayIndex));
           } else {
-            section.appendChild(createEndpointCard(item.value, index, item.label));
+            body.appendChild(createEndpointCard(item.value, index, item.label, dayIndex));
           }
           if (index < items.length - 1) {
-            section.appendChild(createRouteConnector(item.value, items[index + 1].value, index, dayIndex));
+            body.appendChild(createRouteConnector(item.value, items[index + 1].value, index, dayIndex));
           }
         });
-        return section;
+        details.appendChild(body);
+        return details;
       }
 
       function renderTimeline() {
@@ -730,22 +1331,40 @@
         const allDays = state.accommodationUpdateScope === "all";
         accommodationScopeAllEl.setAttribute("aria-pressed", String(allDays));
         accommodationScopeNextDayEl.setAttribute("aria-pressed", String(!allDays));
-        accommodationScopeAllEl.style.backgroundColor = allDays ? "#0f766e" : "#ffffff";
-        accommodationScopeAllEl.style.borderColor = allDays ? "#0f766e" : "#cbd5e1";
-        accommodationScopeAllEl.style.color = allDays ? "#ffffff" : "#334155";
-        accommodationScopeNextDayEl.style.backgroundColor = allDays ? "#ffffff" : "#0f766e";
-        accommodationScopeNextDayEl.style.borderColor = allDays ? "#cbd5e1" : "#0f766e";
-        accommodationScopeNextDayEl.style.color = allDays ? "#334155" : "#ffffff";
+        accommodationScopeAllEl.style.backgroundColor = allDays ? "#18181b" : "#ffffff";
+        accommodationScopeAllEl.style.borderColor = allDays ? "#18181b" : "#d4d4d8";
+        accommodationScopeAllEl.style.color = allDays ? "#ffffff" : "#3f3f46";
+        accommodationScopeNextDayEl.style.backgroundColor = allDays ? "#ffffff" : "#18181b";
+        accommodationScopeNextDayEl.style.borderColor = allDays ? "#d4d4d8" : "#18181b";
+        accommodationScopeNextDayEl.style.color = allDays ? "#3f3f46" : "#ffffff";
       }
 
       function updateActiveDayFromScroll() {
+        if (isScrollingToTab) return;
         const sections = [...document.querySelectorAll("[data-day-index]")];
         if (sections.length === 0) return;
-        const isAtBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
-        const closestSection = sections.reduce((closest, section) =>
-          Math.abs(section.getBoundingClientRect().top) < Math.abs(closest.getBoundingClientRect().top) ? section : closest
-        );
-        const dayIndex = isAtBottom ? state.days.length - 1 : Number(closestSection.dataset.dayIndex);
+
+        const formRect = addSpotFormEl ? addSpotFormEl.getBoundingClientRect() : null;
+        const targetY = formRect ? Math.round(formRect.bottom + 16) : 140;
+        let currentSection = null;
+
+        for (const section of sections) {
+          const rect = section.getBoundingClientRect();
+          if (rect.top <= targetY && rect.bottom > targetY) {
+            currentSection = section;
+            break;
+          }
+        }
+
+        if (!currentSection) {
+          currentSection = sections.reduce((closest, section) => {
+            const rect = section.getBoundingClientRect();
+            const closestRect = closest.getBoundingClientRect();
+            return Math.abs(rect.top - targetY) < Math.abs(closestRect.top - targetY) ? section : closest;
+          });
+        }
+
+        const dayIndex = Number(currentSection.dataset.dayIndex);
         if (dayIndex !== state.activeDayIndex) {
           state.activeDayIndex = dayIndex;
           renderAddSpotOptions();
@@ -759,12 +1378,19 @@
         if (state.autoArrival) {
           state.arrival = state.departure;
         }
-        tripNameInputEl.value = state.tripName;
+        if (tripNameInputEl) {
+          tripNameInputEl.value = state.tripName;
+        }
+        updateStickyOffsets();
+        renderTripSwitcher();
         renderTabs();
         renderAddSpotOptions();
         renderTimeline();
         renderEndpoints();
         renderAccommodation();
+        if (window.lucide) {
+          lucide.createIcons();
+        }
       }
 
       addSpotFormEl.addEventListener("submit", (e) => {
@@ -772,25 +1398,99 @@
         addSpot();
       });
 
-      tripNameInputEl.addEventListener("input", (e) => {
-        state.tripName = e.target.value;
+      if (tripNameInputEl) {
+        tripNameInputEl.addEventListener("input", (e) => {
+          state.tripName = e.target.value;
+          saveState();
+          if (tripSwitcherEl) {
+            const activeOption = tripSwitcherEl.querySelector(`option[value="${activeTripId}"]`);
+            if (activeOption) {
+              const index = trips.findIndex((t) => t.id === activeTripId);
+              activeOption.textContent = state.tripName.trim() ? state.tripName : `旅行${index + 1}`;
+            }
+          }
+          if (isTripMenuOpen) {
+            renderTripComboboxMenu();
+          }
+        });
+        tripNameInputEl.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            toggleTripMenu(false);
+          }
+        });
+      }
+
+      if (tripComboboxToggleEl) {
+        tripComboboxToggleEl.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleTripMenu();
+        });
+      }
+
+      document.addEventListener("click", (e) => {
+        if (!tripComboboxContainerEl) return;
+        if (!tripComboboxContainerEl.contains(e.target)) {
+          toggleTripMenu(false);
+        }
+      });
+
+      if (tripSwitcherEl) {
+        tripSwitcherEl.addEventListener("change", (e) => {
+          saveTrips();
+          activeTripId = e.target.value;
+          applyActiveTripToState();
+          saveTrips();
+          render();
+        });
+      }
+
+      if (tripNewBtnEl) {
+        tripNewBtnEl.addEventListener("click", createNewTrip);
+      }
+
+      if (tripDeleteBtnEl) {
+        tripDeleteBtnEl.addEventListener("click", () => {
+          deleteTrip(activeTripId);
+        });
+      }
+
+      tripClearBtnEl.addEventListener("click", () => {
+        if (!confirm("日程（Day）を残し、すべてのスポット、宿泊地、出発地点、到着地点をクリアしますか？この操作は取り消せません。")) {
+          return;
+        }
+        state.days.forEach((day, index) => {
+          day.spots = [];
+          day.accommodation = "";
+          day.autoAccommodation = index !== 0;
+          day.autoStart = index !== 0;
+          day.autoStartSlot = false;
+          day.autoStartValue = "";
+        });
+        state.departure = "";
+        state.arrival = "";
+        state.autoArrival = true;
+        state.openRouteMenuIndex = null;
         saveState();
+        render();
+        showToast("すべての地点・スポットをクリアしました");
       });
 
-      addTypeSpotEl.addEventListener("click", () => {
-        state.addLocationType = "spot";
-        renderAddSpotOptions();
+      lineCopyBtnEl.addEventListener("click", async () => {
+        const text = generateItineraryText();
+        try {
+          await navigator.clipboard.writeText(text);
+          showToast("コピーしました！");
+        } catch {
+          alert("コピーに失敗しました。");
+        }
       });
 
-      addTypeDepartureEl.addEventListener("click", () => {
-        state.addLocationType = "departure";
-        renderAddSpotOptions();
-      });
-
-      addTypeAccommodationEl.addEventListener("click", () => {
-        state.addLocationType = "accommodation";
-        renderAddSpotOptions();
-      });
+      if (addLocationTypeSelectEl) {
+        addLocationTypeSelectEl.addEventListener("change", (e) => {
+          state.addLocationType = e.target.value;
+          renderAddSpotOptions();
+        });
+      }
 
       addAccommodationScopeAllEl.addEventListener("click", () => {
         state.addAccommodationScope = "all";
@@ -894,6 +1594,7 @@
       });
 
       window.addEventListener("scroll", updateActiveDayFromScroll, { passive: true });
+      window.addEventListener("resize", updateStickyOffsets, { passive: true });
 
       loadState();
       ensureValidState();
