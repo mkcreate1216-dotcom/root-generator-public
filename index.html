@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>roamark</title>
+    <title>たびおり</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -13,27 +13,50 @@
       summary::-webkit-details-marker {
         display: none;
       }
+
+      /* 日程タグ（day-tabs）と白い背景カードの重なり防止 */
+      #app-wrapper {
+        padding-left: 0.75rem;
+        padding-right: 4.875rem; /* スマホ時に白い背景が縮んで日程タグ用の余白を確保 */
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+      }
+      @media (min-width: 640px) {
+        #app-wrapper {
+          padding-left: 1.5rem;
+          /* デスクトップで十分な余白があるときは中央配置、狭くなって日程タグと重なりそうになったら右側が縮む */
+          padding-right: max(1.5rem, calc(6.5rem - max(0px, (100vw - 64rem) / 2)));
+          padding-top: 1.5rem;
+          padding-bottom: 1.5rem;
+        }
+      }
+      #day-tabs::-webkit-scrollbar {
+        display: none;
+      }
+      #day-tabs {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
     </style>
   </head>
   <body class="min-h-screen bg-slate-50 text-slate-900">
-    <div class="mx-auto w-full max-w-5xl p-4 sm:p-6">
+    <div id="app-wrapper" class="mx-auto w-full max-w-5xl">
       <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <header class="p-5 pb-0">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">roamark</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">たびおり</h1>
           <div class="flex flex-wrap items-center gap-2">
-            <button id="trip-clear-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">ALLクリア</button>
             <button id="line-copy-btn" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900">
               <i data-lucide="share-2" class="h-3.5 w-3.5"></i>
               LINE共有コピー
             </button>
           </div>
         </div>
-        <p class="mt-2 text-sm text-slate-600">街のLandmarkを、旅のRoamarkへ。</p>
+        <p class="mt-2 text-sm text-slate-600">旅-織り。予定を縦糸に、想い出を横糸に。</p>
       </header>
 
       <section class="p-4 pt-2 sm:p-6 sm:pt-2">
-        <div class="fixed right-6 top-1/2 z-40 flex flex-col items-center gap-2" id="day-tabs" style="transform: translateY(-50%)"></div>
+        <div class="fixed right-2.5 sm:right-6 top-1/2 z-40 flex max-h-[85vh] flex-col items-center gap-2 overflow-y-auto" id="day-tabs" style="transform: translateY(-50%)"></div>
 
         <form id="add-spot-form" class="sticky top-0 z-30 mb-2 rounded-xl border border-slate-200/60 p-3 shadow-sm backdrop-blur-md sm:p-3.5" style="background-color: rgba(255, 255, 255, 0.95)">
           <div class="relative mb-2" id="trip-combobox-container">
@@ -161,7 +184,6 @@
       const tripSwitcherEl = document.getElementById("trip-switcher");
       const tripNewBtnEl = document.getElementById("trip-new-btn");
       const tripDeleteBtnEl = document.getElementById("trip-delete-btn");
-      const tripClearBtnEl = document.getElementById("trip-clear-btn");
       const lineCopyBtnEl = document.getElementById("line-copy-btn");
       const newSpotInputEl = document.getElementById("new-spot-input");
       const addSpotFormEl = document.getElementById("add-spot-form");
@@ -625,12 +647,43 @@
         return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ""}`;
       }
 
-      function showToast(message) {
+      let currentToastEl = null;
+      let toastTimeoutId = null;
+
+      function showToast(message, onUndo) {
+        if (currentToastEl) {
+          currentToastEl.remove();
+          if (toastTimeoutId) clearTimeout(toastTimeoutId);
+        }
+
         const toast = document.createElement("div");
-        toast.textContent = message;
-        toast.className = "fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white shadow-lg";
+        toast.className =
+          "fixed bottom-6 left-1/2 z-50 flex max-w-[90vw] -translate-x-1/2 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2.5 text-sm text-white shadow-xl backdrop-blur-sm transition-all";
+
+        const textSpan = document.createElement("span");
+        textSpan.textContent = message;
+        toast.appendChild(textSpan);
+
+        if (typeof onUndo === "function") {
+          const undoBtn = document.createElement("button");
+          undoBtn.type = "button";
+          undoBtn.className =
+            "shrink-0 font-bold text-sky-400 underline decoration-sky-400/60 underline-offset-2 transition hover:text-sky-300";
+          undoBtn.textContent = "元に戻す";
+          undoBtn.addEventListener("click", () => {
+            toast.remove();
+            if (toastTimeoutId) clearTimeout(toastTimeoutId);
+            onUndo();
+          });
+          toast.appendChild(undoBtn);
+        }
+
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 2000);
+        currentToastEl = toast;
+        toastTimeoutId = setTimeout(() => {
+          toast.remove();
+          if (currentToastEl === toast) currentToastEl = null;
+        }, onUndo ? 6000 : 2500);
       }
 
       function generateItineraryText() {
@@ -727,10 +780,44 @@
         document.getElementById(`day-section-${state.activeDayIndex}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
-      function deleteActiveDay() {
-        if (state.days.length <= 1) return;
+      const dayUndoStack = [];
 
-        state.days.splice(state.activeDayIndex, 1);
+      function undoDeleteDay() {
+        if (dayUndoStack.length === 0) return false;
+        const item = dayUndoStack.pop();
+        if (!item || !item.day) return false;
+
+        state.days.splice(item.index, 0, item.day);
+        state.days.forEach((day, index) => {
+          day.name = `Day ${index + 1}`;
+        });
+        state.activeDayIndex = Math.min(item.index, state.days.length - 1);
+        state.openRouteMenuIndex = null;
+        syncAutoStarts();
+        saveState();
+        render();
+        scrollToDay(state.activeDayIndex);
+        showToast(`「${item.day.name}」を元に戻しました`);
+        return true;
+      }
+
+      function deleteActiveDay() {
+        if (state.days.length <= 1) {
+          alert("日程は最低1日必要です。");
+          return;
+        }
+
+        const targetIndex = state.activeDayIndex;
+        const targetDay = state.days[targetIndex];
+        const targetName = targetDay?.name || `Day ${targetIndex + 1}`;
+
+        // セッション内Undo用にディープコピーして保持
+        dayUndoStack.push({
+          index: targetIndex,
+          day: JSON.parse(JSON.stringify(targetDay))
+        });
+
+        state.days.splice(targetIndex, 1);
         state.days.forEach((day, index) => {
           day.name = `Day ${index + 1}`;
           if (index === 0 && day.autoStartSlot && (day.spots[0] || "").trim() === (day.autoStartValue || "").trim()) {
@@ -743,11 +830,15 @@
             day.autoAccommodation = false;
           }
         });
-        state.activeDayIndex = Math.min(state.activeDayIndex, state.days.length - 1);
+        state.activeDayIndex = Math.min(targetIndex, state.days.length - 1);
         state.openRouteMenuIndex = null;
         syncAutoStarts();
         saveState();
         render();
+        scrollToDay(state.activeDayIndex);
+        showToast(`「${targetName}」を削除しました（Ctrl+Zで戻せます）`, () => {
+          undoDeleteDay();
+        });
       }
 
       function updateStickyOffsets() {
@@ -772,7 +863,7 @@
         state.days.forEach((day, index) => {
           const button = document.createElement("button");
           const active = index === state.activeDayIndex;
-          button.className = `w-15 rounded-lg border px-3 py-2 text-center text-sm font-medium shadow-sm transition ${
+          button.className = `w-14 sm:w-16 shrink-0 rounded-lg border px-1.5 py-1.5 sm:px-3 sm:py-2 text-center text-xs sm:text-sm font-medium shadow-sm transition ${
             active ? "text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
           }`;
           if (active) {
@@ -802,7 +893,7 @@
         const addButton = document.createElement("button");
         addButton.type = "button";
         addButton.className =
-          "flex h-9 w-9 items-center justify-center self-center rounded-full bg-slate-900 p-0 text-lg font-semibold leading-none text-white shadow-xs transition hover:bg-slate-800";
+          "flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full bg-slate-900 p-0 text-base sm:text-lg font-semibold leading-none text-white shadow-xs transition hover:bg-slate-800";
         const addIcon = document.createElement("span");
         addIcon.textContent = "+";
         addIcon.style.transform = "translateY(-1px)";
@@ -815,13 +906,14 @@
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
         deleteButton.className =
-          "flex h-9 w-9 items-center justify-center self-center rounded-full bg-slate-200 p-0 text-lg font-semibold leading-none text-slate-700 transition hover:bg-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-slate-200";
+          "flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full bg-slate-200 p-0 text-base sm:text-lg font-semibold leading-none text-slate-700 transition hover:bg-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-slate-200";
         const deleteIcon = document.createElement("span");
         deleteIcon.textContent = "−";
         deleteIcon.style.transform = "translateY(-1px)";
         deleteButton.appendChild(deleteIcon);
-        deleteButton.setAttribute("aria-label", "日程を削除");
-        deleteButton.title = "日程を削除";
+        const activeDayName = state.days[state.activeDayIndex]?.name || `Day ${state.activeDayIndex + 1}`;
+        deleteButton.setAttribute("aria-label", `選択中の日程（${activeDayName}）を削除`);
+        deleteButton.title = `選択中の日程（${activeDayName}）を削除`;
         deleteButton.disabled = state.days.length <= 1;
         deleteButton.addEventListener("click", deleteActiveDay);
         dayTabsEl.appendChild(deleteButton);
@@ -1279,6 +1371,15 @@
           routeSummary.classList.toggle("hidden", details.open);
         });
 
+        details.addEventListener("click", () => {
+          if (state.activeDayIndex !== dayIndex) {
+            state.activeDayIndex = dayIndex;
+            saveState();
+            renderAddSpotOptions();
+            renderTabs();
+          }
+        });
+
         summary.append(chevronWrap, routeSummary, heading);
         details.appendChild(summary);
 
@@ -1454,27 +1555,6 @@
         });
       }
 
-      tripClearBtnEl.addEventListener("click", () => {
-        if (!confirm("日程（Day）を残し、すべてのスポット、宿泊地、出発地点、到着地点をクリアしますか？この操作は取り消せません。")) {
-          return;
-        }
-        state.days.forEach((day, index) => {
-          day.spots = [];
-          day.accommodation = "";
-          day.autoAccommodation = index !== 0;
-          day.autoStart = index !== 0;
-          day.autoStartSlot = false;
-          day.autoStartValue = "";
-        });
-        state.departure = "";
-        state.arrival = "";
-        state.autoArrival = true;
-        state.openRouteMenuIndex = null;
-        saveState();
-        render();
-        showToast("すべての地点・スポットをクリアしました");
-      });
-
       lineCopyBtnEl.addEventListener("click", async () => {
         const text = generateItineraryText();
         try {
@@ -1595,6 +1675,18 @@
 
       window.addEventListener("scroll", updateActiveDayFromScroll, { passive: true });
       window.addEventListener("resize", updateStickyOffsets, { passive: true });
+      window.addEventListener("keydown", (e) => {
+        const isZ = e.key === "z" || e.key === "Z";
+        const isUndoKey = (e.ctrlKey || e.metaKey) && isZ && !e.shiftKey;
+        if (isUndoKey) {
+          const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : "";
+          const isEditable = activeTag === "input" || activeTag === "textarea" || document.activeElement?.isContentEditable;
+          if (!isEditable && dayUndoStack.length > 0) {
+            e.preventDefault();
+            undoDeleteDay();
+          }
+        }
+      });
 
       loadState();
       ensureValidState();
