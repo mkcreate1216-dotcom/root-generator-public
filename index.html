@@ -26,7 +26,7 @@
             <button id="trip-new-btn" type="button" class="rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800">新しい旅程を作成</button>
             <button id="trip-delete-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">現在の旅程を削除</button>
             <button id="trip-clear-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">ALLクリア</button>
-            <button id="line-copy-btn" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-800 transition hover:bg-slate-200">
+            <button id="line-copy-btn" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900">
               <i data-lucide="share-2" class="h-3.5 w-3.5"></i>
               LINE用テキストをコピー
             </button>
@@ -769,10 +769,8 @@
         return card;
       }
 
-      function createAccommodationCard(accommodation, index) {
       function createAccommodationCard(accommodation, index, dayIndex = state.activeDayIndex) {
         const card = document.createElement("div");
-        card.className = "sticky top-24 rounded-2xl border border-slate-200 bg-slate-100/90 p-3 shadow-sm sm:p-4";
         card.className = "sticky top-24 relative rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-300 sm:p-4";
         card.style.zIndex = String(index + 1);
         card.dataset.spotCard = "true";
@@ -785,7 +783,6 @@
         spacer.setAttribute("aria-hidden", "true");
 
         const marker = document.createElement("div");
-        marker.className = "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-600 text-xs font-bold text-white";
         marker.className =
           "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white";
         marker.textContent = String(index + 1);
@@ -793,9 +790,6 @@
         const content = document.createElement("div");
         content.className = "w-full";
 
-        const label = document.createElement("p");
-        label.className = "text-xs font-semibold text-slate-600";
-        label.textContent = "宿泊地";
         const input = document.createElement("input");
         input.type = "text";
         input.value = accommodation;
@@ -815,14 +809,9 @@
           render();
         });
 
-        const name = document.createElement("p");
-        name.className = "mt-1 text-sm font-medium text-slate-900";
-        name.textContent = accommodation;
         const controls = document.createElement("div");
         controls.className = "mt-2 flex items-center justify-between gap-2";
 
-        content.append(label, name);
-        row.append(marker, content);
         const badge = document.createElement("span");
         badge.className = "rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600";
         badge.textContent = "宿泊地";
@@ -854,10 +843,8 @@
         return card;
       }
 
-      function createEndpointCard(location, index, label) {
       function createEndpointCard(location, index, label, dayIndex = state.activeDayIndex) {
         const card = document.createElement("div");
-        card.className = "sticky top-24 rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-sm sm:p-4";
         card.className = "sticky top-24 relative rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-300 sm:p-4";
         card.style.zIndex = String(index + 1);
         card.dataset.spotCard = "true";
@@ -870,7 +857,6 @@
         spacer.setAttribute("aria-hidden", "true");
 
         const marker = document.createElement("div");
-        marker.className = "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white ring-2 ring-slate-200";
         marker.className =
           "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white";
         marker.textContent = String(index + 1);
@@ -878,8 +864,6 @@
         const content = document.createElement("div");
         content.className = "w-full";
 
-        const header = document.createElement("div");
-        header.className = "flex items-center justify-between gap-2";
         const input = document.createElement("input");
         input.type = "text";
         input.value = location;
@@ -900,9 +884,6 @@
           render();
         });
 
-        const locationLabel = document.createElement("p");
-        locationLabel.className = "text-xs font-semibold text-slate-800";
-        locationLabel.textContent = label;
         const controls = document.createElement("div");
         controls.className = "mt-2 flex items-center justify-between gap-2";
 
@@ -935,28 +916,6 @@
           render();
         });
 
-        header.append(locationLabel, removeBtn);
-
-        const name = document.createElement(label === "到着地点" ? "input" : "p");
-        name.className =
-          label === "到着地点"
-            ? "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
-            : "mt-1 text-sm font-medium text-slate-900";
-        if (label === "到着地点") {
-          name.type = "text";
-          name.value = location;
-          name.placeholder = "到着地点を入力";
-          name.addEventListener("input", (e) => {
-            state.arrival = e.target.value;
-            state.autoArrival = false;
-            saveState();
-          });
-        } else {
-          name.textContent = location;
-        }
-
-        content.append(header, name);
-        row.append(marker, content);
         controls.append(badge, hint, removeBtn);
         content.append(input, controls);
         row.append(spacer, marker, content);
@@ -1142,10 +1101,8 @@
           if (item.type === "spot") {
             body.appendChild(createSpotCard(item.value, item.spotIndex, index, dayIndex));
           } else if (item.type === "accommodation") {
-            body.appendChild(createAccommodationCard(item.value, index));
             body.appendChild(createAccommodationCard(item.value, index, dayIndex));
           } else {
-            body.appendChild(createEndpointCard(item.value, index, item.label));
             body.appendChild(createEndpointCard(item.value, index, item.label, dayIndex));
           }
           if (index < items.length - 1) {
