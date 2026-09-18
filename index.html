@@ -4,24 +4,36 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Roople</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      summary {
+        list-style: none;
+      }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+    </style>
   </head>
-  <body class="min-h-screen bg-slate-100 text-slate-900">
+  <body class="min-h-screen bg-slate-50 text-slate-900">
     <div class="mx-auto w-full max-w-5xl p-4 sm:p-6">
-      <header class="mb-0 rounded-2xl bg-white p-5 pb-0 shadow-sm">
+      <header class="mb-0 rounded-2xl border border-slate-100 bg-white p-5 pb-0 shadow-sm">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h1 class="text-2xl font-bold sm:text-3xl">Roople</h1>
           <div class="flex flex-wrap items-center gap-2">
             <select id="trip-switcher" class="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm outline-none"></select>
             <button id="trip-new-btn" type="button" class="rounded-lg border border-sky-300 bg-sky-50 px-2 py-1.5 text-xs font-medium text-sky-700">新しい旅程を作成</button>
             <button id="trip-delete-btn" type="button" class="rounded-lg border border-rose-300 bg-rose-50 px-2 py-1.5 text-xs font-medium text-rose-700">現在の旅程を削除</button>
-            <button id="line-copy-btn" type="button" class="rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-xs font-medium text-emerald-700">LINE用テキストをコピー</button>
+            <button id="line-copy-btn" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-xs font-medium text-emerald-700">
+              <i data-lucide="share-2" class="h-3.5 w-3.5"></i>
+              LINE用テキストをコピー
+            </button>
           </div>
         </div>
         <p class="mt-2 text-sm text-slate-600">日程ごとにスポットをつなぎ、地図アプリでルート検索できます。</p>
       </header>
 
-      <section class="rounded-2xl bg-white p-4 pt-2 shadow-sm sm:p-6 sm:pt-2">
+      <section class="rounded-2xl border border-slate-100 bg-white p-4 pt-2 shadow-sm sm:p-6 sm:pt-2">
         <div class="fixed right-4 top-1/2 z-30 flex flex-col items-center gap-2" id="day-tabs" style="transform: translateY(-50%)"></div>
 
         <form id="add-spot-form" class="sticky top-0 z-20 mr-24 mb-4 rounded-xl p-3 shadow-sm sm:p-4" style="background-color: rgba(248, 250, 252, 0.7)">
@@ -150,6 +162,7 @@
       let accommodationDebounceId = null;
       let pendingAccommodationSync = null;
       let draggedSpot = null;
+      const collapsedDays = new Set();
 
       function createDay(dayNumber, prevAccommodation = "") {
         return {
@@ -363,34 +376,63 @@
         }
       }
 
+      function animateSpotReorder(dayIndex, mutateFn) {
+        const section = document.getElementById(`day-section-${dayIndex}`);
+        const firstRects = new Map();
+        if (section) {
+          section.querySelectorAll('[data-spot-card="true"]').forEach((card) => {
+            firstRects.set(card.dataset.spotValue, card.getBoundingClientRect());
+          });
+        }
+        mutateFn();
+        render();
+        const newSection = document.getElementById(`day-section-${dayIndex}`);
+        if (!newSection) return;
+        newSection.querySelectorAll('[data-spot-card="true"]').forEach((card) => {
+          const firstRect = firstRects.get(card.dataset.spotValue);
+          if (!firstRect) return;
+          const lastRect = card.getBoundingClientRect();
+          const deltaY = firstRect.top - lastRect.top;
+          if (!deltaY) return;
+          card.style.transition = "none";
+          card.style.transform = `translateY(${deltaY}px)`;
+          requestAnimationFrame(() => {
+            card.style.transition = "transform 300ms ease";
+            card.style.transform = "";
+          });
+        });
+      }
+
       function moveSpot(dayIndex, index, direction) {
         const day = state.days[dayIndex];
         const targetIndex = index + direction;
         if (targetIndex < 0 || targetIndex >= day.spots.length) return;
-        [day.spots[index], day.spots[targetIndex]] = [day.spots[targetIndex], day.spots[index]];
-        if (dayIndex > 0 && (index === 0 || targetIndex === 0)) {
-          day.autoStart = false;
-          day.autoStartSlot = false;
-          day.autoStartValue = "";
-        }
-        state.openRouteMenuIndex = null;
-        saveState();
-        render();
+        animateSpotReorder(dayIndex, () => {
+          [day.spots[index], day.spots[targetIndex]] = [day.spots[targetIndex], day.spots[index]];
+          if (dayIndex > 0 && (index === 0 || targetIndex === 0)) {
+            day.autoStart = false;
+            day.autoStartSlot = false;
+            day.autoStartValue = "";
+          }
+          state.openRouteMenuIndex = null;
+          saveState();
+        });
       }
 
       function moveSpotTo(dayIndex, fromIndex, toIndex) {
         const day = state.days[dayIndex];
         if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= day.spots.length || toIndex >= day.spots.length) return;
-        const [moved] = day.spots.splice(fromIndex, 1);
-        day.spots.splice(toIndex, 0, moved);
-        if (dayIndex > 0 && (fromIndex === 0 || toIndex === 0)) {
-          day.autoStart = false;
-          day.autoStartSlot = false;
-          day.autoStartValue = "";
-        }
-        state.openRouteMenuIndex = null;
-        saveState();
-        render();
+        animateSpotReorder(dayIndex, () => {
+          const [moved] = day.spots.splice(fromIndex, 1);
+          day.spots.splice(toIndex, 0, moved);
+          if (dayIndex > 0 && (fromIndex === 0 || toIndex === 0)) {
+            day.autoStart = false;
+            day.autoStartSlot = false;
+            day.autoStartValue = "";
+          }
+          state.openRouteMenuIndex = null;
+          saveState();
+        });
       }
 
       function getDayRouteUrl(locations) {
@@ -588,7 +630,10 @@
 
       function createSpotCard(spotValue, index, markerIndex = index, dayIndex = state.activeDayIndex) {
         const card = document.createElement("div");
-        card.className = "relative rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition sm:p-4";
+        card.className = "sticky top-24 relative rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-300 sm:p-4";
+        card.style.zIndex = String(markerIndex + 1);
+        card.dataset.spotCard = "true";
+        card.dataset.spotValue = spotValue;
         card.draggable = true;
 
         card.addEventListener("dragstart", (e) => {
@@ -663,8 +708,8 @@
         const upBtn = document.createElement("button");
         upBtn.type = "button";
         upBtn.className =
-          "rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40";
-        upBtn.textContent = "↑";
+          "rounded-md border border-slate-300 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40";
+        upBtn.innerHTML = '<i data-lucide="arrow-up" class="h-3.5 w-3.5"></i>';
         upBtn.setAttribute("aria-label", "上に移動");
         upBtn.disabled = index === 0;
         upBtn.addEventListener("click", () => moveSpot(dayIndex, index, -1));
@@ -672,8 +717,8 @@
         const downBtn = document.createElement("button");
         downBtn.type = "button";
         downBtn.className =
-          "rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40";
-        downBtn.textContent = "↓";
+          "rounded-md border border-slate-300 bg-white p-1.5 text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40";
+        downBtn.innerHTML = '<i data-lucide="arrow-down" class="h-3.5 w-3.5"></i>';
         downBtn.setAttribute("aria-label", "下に移動");
         downBtn.disabled = index === state.days[dayIndex].spots.length - 1;
         downBtn.addEventListener("click", () => moveSpot(dayIndex, index, 1));
@@ -710,7 +755,8 @@
 
       function createAccommodationCard(accommodation, index) {
         const card = document.createElement("div");
-        card.className = "rounded-xl border border-green-200 bg-green-50 p-3 shadow-sm sm:p-4";
+        card.className = "sticky top-24 rounded-2xl border border-green-200 bg-green-50 p-3 shadow-sm sm:p-4";
+        card.style.zIndex = String(index + 1);
 
         const row = document.createElement("div");
         row.className = "flex items-start gap-3";
@@ -738,7 +784,8 @@
 
       function createEndpointCard(location, index, label) {
         const card = document.createElement("div");
-        card.className = "rounded-xl border border-violet-200 bg-violet-50 p-3 shadow-sm sm:p-4";
+        card.className = "sticky top-24 rounded-2xl border border-violet-200 bg-violet-50 p-3 shadow-sm sm:p-4";
+        card.style.zIndex = String(index + 1);
 
         const row = document.createElement("div");
         row.className = "flex items-start gap-3";
@@ -780,17 +827,14 @@
 
       function createRouteConnector(from, to, routeIndex, dayIndex = state.activeDayIndex) {
         const wrap = document.createElement("div");
-        wrap.className = "flex flex-col items-center py-2";
-
-        const line = document.createElement("div");
-        line.className = "h-5 w-px bg-slate-300";
+        wrap.className = "relative ml-3 flex flex-col items-center border-l-2 border-dashed border-slate-200 py-3";
 
         const btn = document.createElement("button");
         btn.type = "button";
         const menuId = `route-menu-${dayIndex}-${routeIndex}`;
         btn.className =
-          "rounded-full border border-sky-300 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 transition hover:bg-sky-100";
-        btn.textContent = "ルート検索";
+          "-ml-3 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-sky-700 shadow-sm transition hover:bg-slate-50";
+        btn.innerHTML = '<i data-lucide="route" class="h-3.5 w-3.5"></i>ルート';
         btn.setAttribute("aria-controls", menuId);
         btn.setAttribute("aria-expanded", String(state.openRouteMenuIndex === `${dayIndex}-${routeIndex}`));
         btn.addEventListener("click", () => {
@@ -801,7 +845,9 @@
 
         const menu = document.createElement("div");
         menu.id = menuId;
-        menu.className = `mt-2 flex gap-2 ${state.openRouteMenuIndex === `${dayIndex}-${routeIndex}` ? "" : "hidden"}`;
+        menu.className = `mt-2 flex gap-2 rounded-xl border border-slate-100 bg-white p-2 shadow-lg ${
+          state.openRouteMenuIndex === `${dayIndex}-${routeIndex}` ? "" : "hidden"
+        }`;
         menu.setAttribute("role", "menu");
         menu.setAttribute("aria-label", "地図アプリ選択");
         menu.addEventListener("keydown", (event) => {
@@ -853,7 +899,7 @@
         });
 
         menu.append(googleBtn, appleBtn);
-        wrap.append(line, btn, menu, feedback);
+        wrap.append(btn, menu, feedback);
         return wrap;
       }
 
@@ -881,19 +927,42 @@
       }
 
       function createDayTimeline(day, dayIndex) {
-        const section = document.createElement("section");
-        section.id = `day-section-${dayIndex}`;
-        section.dataset.dayIndex = String(dayIndex);
-        section.className = "scroll-mt-4 border-t border-slate-200 py-6 first:border-t-0 first:pt-0";
+        const details = document.createElement("details");
+        details.id = `day-section-${dayIndex}`;
+        details.dataset.dayIndex = String(dayIndex);
+        details.className = "scroll-mt-24 border-t border-slate-200 py-2 first:border-t-0 first:pt-0";
+        details.open = !collapsedDays.has(dayIndex);
+
+        const summary = document.createElement("summary");
+        summary.className =
+          "sticky top-16 z-20 flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-white/95 px-1 py-3";
+        summary.style.listStyle = "none";
+
+        const titleWrap = document.createElement("div");
+        titleWrap.className = "flex items-center gap-2";
+
+        const chevron = document.createElement("i");
+        chevron.setAttribute("data-lucide", "chevron-down");
+        chevron.className = "h-4 w-4 shrink-0 text-slate-400";
+        chevron.style.transition = "transform 200ms";
+        chevron.style.transform = details.open ? "rotate(0deg)" : "rotate(-90deg)";
 
         const heading = document.createElement("h2");
         heading.className = "text-lg font-bold text-slate-800";
         heading.textContent = day.name;
 
-        const items = getDayItems(day, dayIndex);
+        titleWrap.append(chevron, heading);
 
-        const sectionHeader = document.createElement("div");
-        sectionHeader.className = "mb-4 flex items-center justify-between gap-3";
+        details.addEventListener("toggle", () => {
+          if (details.open) {
+            collapsedDays.delete(dayIndex);
+          } else {
+            collapsedDays.add(dayIndex);
+          }
+          chevron.style.transform = details.open ? "rotate(0deg)" : "rotate(-90deg)";
+        });
+
+        const items = getDayItems(day, dayIndex);
 
         const routeButton = document.createElement(items.length < 2 ? "button" : "a");
         routeButton.className =
@@ -908,31 +977,37 @@
           routeButton.target = "_blank";
           routeButton.rel = "noopener noreferrer";
         }
+        routeButton.addEventListener("click", (e) => e.stopPropagation());
 
-        sectionHeader.append(heading, routeButton);
-        section.appendChild(sectionHeader);
+        summary.append(titleWrap, routeButton);
+        details.appendChild(summary);
+
+        const body = document.createElement("div");
+        body.className = "pt-2";
 
         if (items.length === 0) {
           const empty = document.createElement("p");
           empty.className = "rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500";
           empty.textContent = "まだスポットがありません。上の入力から追加してください。";
-          section.appendChild(empty);
-          return section;
+          body.appendChild(empty);
+          details.appendChild(body);
+          return details;
         }
 
         items.forEach((item, index) => {
           if (item.type === "spot") {
-            section.appendChild(createSpotCard(item.value, item.spotIndex, index, dayIndex));
+            body.appendChild(createSpotCard(item.value, item.spotIndex, index, dayIndex));
           } else if (item.type === "accommodation") {
-            section.appendChild(createAccommodationCard(item.value, index));
+            body.appendChild(createAccommodationCard(item.value, index));
           } else {
-            section.appendChild(createEndpointCard(item.value, index, item.label));
+            body.appendChild(createEndpointCard(item.value, index, item.label));
           }
           if (index < items.length - 1) {
-            section.appendChild(createRouteConnector(item.value, items[index + 1].value, index, dayIndex));
+            body.appendChild(createRouteConnector(item.value, items[index + 1].value, index, dayIndex));
           }
         });
-        return section;
+        details.appendChild(body);
+        return details;
       }
 
       function renderTimeline() {
@@ -992,6 +1067,9 @@
         renderTimeline();
         renderEndpoints();
         renderAccommodation();
+        if (window.lucide) {
+          lucide.createIcons();
+        }
       }
 
       addSpotFormEl.addEventListener("submit", (e) => {
