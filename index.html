@@ -17,7 +17,8 @@
   </head>
   <body class="min-h-screen bg-slate-50 text-slate-900">
     <div class="mx-auto w-full max-w-5xl p-4 sm:p-6">
-      <header class="mb-0 rounded-2xl border border-slate-100 bg-white p-5 pb-0 shadow-sm">
+      <div class="rounded-2xl border border-slate-100 bg-white shadow-sm">
+      <header class="p-5 pb-0">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h1 class="text-2xl font-bold sm:text-3xl">Roople</h1>
           <div class="flex flex-wrap items-center gap-2">
@@ -33,8 +34,8 @@
         <p class="mt-2 text-sm text-slate-600">日程ごとにスポットをつなぎ、地図アプリでルート検索できます。</p>
       </header>
 
-      <section class="rounded-2xl border border-slate-100 bg-white p-4 pt-2 shadow-sm sm:p-6 sm:pt-2">
-        <div class="fixed right-4 top-1/2 z-30 flex flex-col items-center gap-2" id="day-tabs" style="transform: translateY(-50%)"></div>
+      <section class="p-4 pt-2 sm:p-6 sm:pt-2">F
+        <div class="fixed right-6 top-1/2 z-30 flex flex-col items-center gap-2" id="day-tabs" style="transform: translateY(-50%)"></div>
 
         <form id="add-spot-form" class="sticky top-0 z-20 mr-24 mb-4 rounded-xl p-3 shadow-sm sm:p-4" style="background-color: rgba(248, 250, 252, 0.7)">
           <div class="mb-3">
@@ -112,6 +113,7 @@
           <p class="mt-2 text-xs text-slate-500">入力すると翌日の出発地点（先頭）にデフォルトで反映されます。</p>
         </div>
       </section>
+      </div>
     </div>
 
     <script>
@@ -917,7 +919,7 @@
         day.spots.forEach((spot, index) => {
           items.push({ type: "spot", value: spot, spotIndex: index });
         });
-        if (accommodation) {
+        if (accommodation && !isLastDay) {
           items.push({ type: "accommodation", value: accommodation });
         }
         if (arrival) {
