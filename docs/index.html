@@ -38,7 +38,7 @@
         scrollbar-width: none;
       }
 
-      /* グローバル・ホバーメッセージ（ツールチップ: 上品なスレートグレー系） */
+      /* グローバル・ホバーメッセージ（ツールチップ: グレー背景に黒文字） */
       #app-tooltip {
         position: fixed;
         z-index: 9999;
@@ -51,9 +51,10 @@
         font-weight: 500;
         padding: 0.35rem 0.65rem;
         border-radius: 0.375rem;
-        background-color: #334155; /* 上品なスレートグレー */
-        color: #f8fafc;
-        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+        background-color: #e2e8f0; /* グレー背景 (slate-200) */
+        color: #0f172a; /* 黒文字 (slate-900) */
+        border: 1px solid #cbd5e1; /* 境界線 (slate-300) */
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
         top: -9999px;
         left: -9999px;
       }
@@ -1063,8 +1064,6 @@
             button.style.color = "#ffffff";
           }
           button.textContent = day.name;
-          button.setAttribute("data-tooltip", `${day.name}を表示`);
-          button.setAttribute("data-tooltip-pos", "left");
           button.addEventListener("click", () => {
             state.activeDayIndex = index;
             state.openRouteMenuIndex = null;
@@ -1112,8 +1111,6 @@
         addIcon.style.transform = "translateY(-1px)";
         addButton.appendChild(addIcon);
         addButton.setAttribute("aria-label", "日程追加");
-        addButton.setAttribute("data-tooltip", "日程を追加");
-        addButton.setAttribute("data-tooltip-pos", "left");
         addButton.addEventListener("click", addDay);
         dayTabsEl.appendChild(addButton);
 
@@ -1127,8 +1124,6 @@
         deleteButton.appendChild(deleteIcon);
         const activeDayName = state.days[state.activeDayIndex]?.name || `Day ${state.activeDayIndex + 1}`;
         deleteButton.setAttribute("aria-label", `選択中の日程（${activeDayName}）を削除`);
-        deleteButton.setAttribute("data-tooltip", `選択中の日程（${activeDayName}）を削除`);
-        deleteButton.setAttribute("data-tooltip-pos", "left");
         deleteButton.disabled = state.days.length <= 1;
         deleteButton.addEventListener("click", deleteActiveDay);
         dayTabsEl.appendChild(deleteButton);
@@ -2086,14 +2081,14 @@
           arrowEl.style.right = "-8px";
           arrowEl.style.top = "50%";
           arrowEl.style.transform = "translateY(-50%)";
-          arrowEl.style.borderLeftColor = "#334155";
+          arrowEl.style.borderLeftColor = "#e2e8f0";
         } else if (pos === "top") {
           left = rect.left + (rect.width - tipWidth) / 2;
           top = rect.top - tipHeight - 8;
           arrowEl.style.bottom = "-8px";
           arrowEl.style.left = "50%";
           arrowEl.style.transform = "translateX(-50%)";
-          arrowEl.style.borderTopColor = "#334155";
+          arrowEl.style.borderTopColor = "#e2e8f0";
         } else {
           // bottom (デフォルト)
           left = rect.left + (rect.width - tipWidth) / 2;
@@ -2101,7 +2096,7 @@
           arrowEl.style.top = "-8px";
           arrowEl.style.left = "50%";
           arrowEl.style.transform = "translateX(-50%)";
-          arrowEl.style.borderBottomColor = "#334155";
+          arrowEl.style.borderBottomColor = "#e2e8f0";
         }
 
         // 画面外へのはみ出し防止（クランプ）
