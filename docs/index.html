@@ -786,13 +786,18 @@
         const validLocations = (locations || []).map((loc) => (loc || "").trim()).filter(Boolean);
         if (validLocations.length < 2) return "";
         const origin = encodeURIComponent(validLocations[0]);
-        if (mapType === "apple") {
-          const stops = validLocations.slice(1).map(encodeURIComponent).join("+to:");
-          return `https://maps.apple.com/?saddr=${origin}&daddr=${stops}`;
-        }
         const destination = encodeURIComponent(validLocations[validLocations.length - 1]);
-        const waypoints = validLocations.slice(1, -1).map(encodeURIComponent).join("%7C");
-        return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypoints ? `&waypoints=${waypoints}` : ""}`;
+        const waypoints = validLocations.slice(1, -1);
+
+        if (mapType === "apple") {
+          if (waypoints.length > 0) {
+            const waypointsParams = waypoints.map((wp) => `waypoint=${encodeURIComponent(wp)}`).join("&");
+            return `https://maps.apple.com/directions?source=${origin}&destination=${destination}&${waypointsParams}`;
+          }
+          return `https://maps.apple.com/?saddr=${origin}&daddr=${destination}`;
+        }
+        const waypointsParam = waypoints.map(encodeURIComponent).join("%7C");
+        return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypointsParam ? `&waypoints=${waypointsParam}` : ""}`;
       }
 
       let currentToastEl = null;

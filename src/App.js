@@ -9,18 +9,28 @@ const App = () => {
   // Google Maps URL生成
   const generateGoogleMapsUrl = () => {
     const base = "https://www.google.com/maps/dir/?api=1";
-    const wp = waypoints.join("|");
-    return `${base}&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(
-      destination
-    )}&waypoints=${encodeURIComponent(wp)}`;
+    const validWaypoints = waypoints.map((wp) => wp.trim()).filter(Boolean);
+    const wp = validWaypoints.map(encodeURIComponent).join("|");
+    return `${base}&origin=${encodeURIComponent(origin.trim())}&destination=${encodeURIComponent(
+      destination.trim()
+    )}${wp ? `&waypoints=${wp}` : ""}`;
   };
 
   // Apple Maps URL生成
   const generateAppleMapsUrl = () => {
-    const stops = [...waypoints, destination].join("+to:");
-    return `http://maps.apple.com/?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(
-      stops
-    )}`;
+    const originTrimmed = origin.trim();
+    const destTrimmed = destination.trim();
+    const validWaypoints = waypoints.map((wp) => wp.trim()).filter(Boolean);
+    const originEncoded = encodeURIComponent(originTrimmed);
+    const destEncoded = encodeURIComponent(destTrimmed);
+
+    if (validWaypoints.length > 0) {
+      const waypointsParams = validWaypoints
+        .map((wp) => `waypoint=${encodeURIComponent(wp)}`)
+        .join("&");
+      return `https://maps.apple.com/directions?source=${originEncoded}&destination=${destEncoded}&${waypointsParams}`;
+    }
+    return `https://maps.apple.com/?saddr=${originEncoded}&daddr=${destEncoded}`;
   };
 
   // 寄り道追加
