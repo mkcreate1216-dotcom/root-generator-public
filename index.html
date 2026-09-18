@@ -22,8 +22,6 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Roople</h1>
           <div class="flex flex-wrap items-center gap-2">
-            <button id="trip-new-btn" type="button" class="rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800">新しい旅行を作成</button>
-            <button id="trip-delete-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">現在の旅行を削除</button>
             <button id="trip-clear-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">ALLクリア</button>
             <button id="line-copy-btn" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900">
               <i data-lucide="share-2" class="h-3.5 w-3.5"></i>
@@ -38,39 +36,49 @@
         <div class="fixed right-6 top-1/2 z-40 flex flex-col items-center gap-2" id="day-tabs" style="transform: translateY(-50%)"></div>
 
         <form id="add-spot-form" class="sticky top-0 z-30 mr-24 mb-2 rounded-xl border border-slate-200/60 p-3 shadow-sm backdrop-blur-md sm:p-3.5" style="background-color: rgba(255, 255, 255, 0.95)">
-          <div class="mb-2">
+          <div class="relative mb-2" id="trip-combobox-container">
             <label class="text-xs font-medium text-slate-500" for="trip-name-input">旅行名</label>
-            <div class="mt-0.5 flex items-center gap-2">
-              <select
-                id="trip-switcher"
-                class="shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-800 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
-              ></select>
+            <div class="relative mt-0.5 flex items-center">
               <input
                 id="trip-name-input"
                 type="text"
                 placeholder="旅行名を入力"
-                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-bold text-slate-900 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+                class="w-full rounded-lg border border-slate-300 bg-white py-1.5 pl-3 pr-9 text-sm font-bold text-slate-900 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
               />
+              <button
+                id="trip-combobox-toggle"
+                type="button"
+                aria-label="旅行一覧を表示"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                class="absolute right-1 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              >
+                <i data-lucide="chevron-down" class="h-4 w-4"></i>
+              </button>
             </div>
+            <ul
+              id="trip-combobox-menu"
+              role="listbox"
+              class="absolute left-0 right-0 z-50 mt-1 hidden max-h-60 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+            ></ul>
           </div>
-          <label class="mb-1.5 block text-xs font-medium text-slate-700" for="new-spot-input">スポットを追加</label>
-          <div class="mb-2.5 flex flex-wrap gap-2" role="group" aria-label="追加する地点の種類">
-            <button id="add-type-spot" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">スポット</button>
-            <button id="add-type-departure" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">出発地点/到着地点</button>
-            <button id="add-type-accommodation" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">宿泊地</button>
-          </div>
-          <p id="add-type-note" class="mb-3 hidden text-xs text-slate-500"></p>
-          <div id="add-accommodation-scope" class="mb-3 hidden flex flex-wrap gap-2" role="group" aria-label="宿泊地の反映範囲">
-            <button id="add-accommodation-scope-all" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">以降すべて</button>
-            <button id="add-accommodation-scope-today" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700">当日のみ</button>
-          </div>
+          <label class="mb-1.5 block text-xs font-medium text-slate-700" for="new-spot-input">スポット・地点を追加</label>
           <div class="flex gap-2">
             <input
               id="new-spot-input"
               type="text"
               placeholder="例: 浅草寺"
-              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+              class="w-full min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
             />
+            <select
+              id="add-location-type-select"
+              aria-label="追加する地点の種類"
+              class="shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200 sm:text-sm cursor-pointer"
+            >
+              <option value="spot">スポット</option>
+              <option value="departure">出発地点/到着地点</option>
+              <option value="accommodation">宿泊地</option>
+            </select>
             <button
               id="add-spot-btn"
               type="submit"
@@ -78,6 +86,12 @@
             >
               追加
             </button>
+          </div>
+          <p id="add-type-note" class="mt-2 hidden text-xs text-slate-500"></p>
+          <div id="add-accommodation-scope" class="mt-2 hidden flex flex-wrap items-center gap-2" role="group" aria-label="宿泊地の反映範囲">
+            <span class="text-xs text-slate-500">反映範囲:</span>
+            <button id="add-accommodation-scope-all" type="button" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700">以降すべて</button>
+            <button id="add-accommodation-scope-today" type="button" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700">当日のみ</button>
           </div>
         </form>
 
@@ -141,6 +155,9 @@
       const dayTabsEl = document.getElementById("day-tabs");
       const timelineEl = document.getElementById("timeline");
       const tripNameInputEl = document.getElementById("trip-name-input");
+      const tripComboboxContainerEl = document.getElementById("trip-combobox-container");
+      const tripComboboxToggleEl = document.getElementById("trip-combobox-toggle");
+      const tripComboboxMenuEl = document.getElementById("trip-combobox-menu");
       const tripSwitcherEl = document.getElementById("trip-switcher");
       const tripNewBtnEl = document.getElementById("trip-new-btn");
       const tripDeleteBtnEl = document.getElementById("trip-delete-btn");
@@ -148,9 +165,7 @@
       const lineCopyBtnEl = document.getElementById("line-copy-btn");
       const newSpotInputEl = document.getElementById("new-spot-input");
       const addSpotFormEl = document.getElementById("add-spot-form");
-      const addTypeSpotEl = document.getElementById("add-type-spot");
-      const addTypeDepartureEl = document.getElementById("add-type-departure");
-      const addTypeAccommodationEl = document.getElementById("add-type-accommodation");
+      const addLocationTypeSelectEl = document.getElementById("add-location-type-select");
       const addTypeNoteEl = document.getElementById("add-type-note");
       const addAccommodationScopeEl = document.getElementById("add-accommodation-scope");
       const addAccommodationScopeAllEl = document.getElementById("add-accommodation-scope-all");
@@ -294,19 +309,182 @@
         localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify({ trips, activeTripId }));
       }
 
-      function renderTripSwitcher() {
-        tripSwitcherEl.innerHTML = "";
+      let isTripMenuOpen = false;
+
+      function toggleTripMenu(force) {
+        isTripMenuOpen = typeof force === "boolean" ? force : !isTripMenuOpen;
+        if (tripComboboxMenuEl) {
+          tripComboboxMenuEl.classList.toggle("hidden", !isTripMenuOpen);
+        }
+        if (tripComboboxToggleEl) {
+          tripComboboxToggleEl.setAttribute("aria-expanded", String(isTripMenuOpen));
+        }
+        if (isTripMenuOpen) {
+          renderTripComboboxMenu();
+        }
+      }
+
+      function createNewTrip() {
+        if (trips.length >= MAX_TRIPS) {
+          alert(`旅行は最大${MAX_TRIPS}件までしか作成できません。`);
+          return;
+        }
+        saveTrips();
+        const newTrip = createTripEntry(`旅行${trips.length + 1}`);
+        trips.push(newTrip);
+        activeTripId = newTrip.id;
+        applyActiveTripToState();
+        saveTrips();
+        render();
+        if (tripNameInputEl) {
+          tripNameInputEl.focus();
+          tripNameInputEl.select();
+        }
+      }
+
+      function deleteTrip(tripId) {
+        if (trips.length <= 1) {
+          alert("最後の1件の旅行は削除できません。");
+          return;
+        }
+        const index = trips.findIndex((t) => t.id === tripId);
+        if (index === -1) return;
+        const targetTrip = trips[index];
+        const displayName = targetTrip.tripName && targetTrip.tripName.trim() ? targetTrip.tripName : `旅行${index + 1}`;
+        if (!confirm(`「${displayName}」を削除しますか？この操作は取り消せません。`)) {
+          return;
+        }
+        trips.splice(index, 1);
+        if (tripId === activeTripId) {
+          activeTripId = trips[Math.max(0, index - 1)].id;
+          applyActiveTripToState();
+        }
+        saveTrips();
+        render();
+      }
+
+      function renderTripComboboxMenu() {
+        if (!tripComboboxMenuEl) return;
+        tripComboboxMenuEl.innerHTML = "";
         trips.forEach((trip, index) => {
-          const option = document.createElement("option");
-          option.value = trip.id;
-          option.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
-          tripSwitcherEl.appendChild(option);
+          const item = document.createElement("li");
+          const isSelected = trip.id === activeTripId;
+          item.className = `flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-sm transition hover:bg-slate-100 ${
+            isSelected ? "bg-slate-50 font-bold text-slate-900" : "text-slate-700"
+          }`;
+          item.setAttribute("role", "option");
+          item.setAttribute("aria-selected", String(isSelected));
+
+          const labelArea = document.createElement("div");
+          labelArea.className = "flex min-w-0 flex-1 items-center gap-2";
+
+          if (isSelected) {
+            const check = document.createElement("i");
+            check.setAttribute("data-lucide", "check");
+            check.className = "h-4 w-4 shrink-0 text-slate-900";
+            labelArea.appendChild(check);
+          } else {
+            const spacer = document.createElement("span");
+            spacer.className = "h-4 w-4 shrink-0";
+            labelArea.appendChild(spacer);
+          }
+
+          const label = document.createElement("span");
+          label.className = "truncate";
+          label.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
+          labelArea.appendChild(label);
+
+          item.appendChild(labelArea);
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.type = "button";
+          const displayName = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
+          deleteBtn.setAttribute("aria-label", `${displayName}を削除`);
+          const singleTrip = trips.length <= 1;
+          if (singleTrip) {
+            deleteBtn.disabled = true;
+            deleteBtn.className = "rounded-md p-1 text-slate-200 cursor-not-allowed shrink-0";
+            deleteBtn.title = "最後の1件の旅行は削除できません";
+          } else {
+            deleteBtn.className = "rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 transition shrink-0";
+            deleteBtn.title = `${displayName}を削除`;
+            deleteBtn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              deleteTrip(trip.id);
+            });
+          }
+          deleteBtn.innerHTML = '<i data-lucide="x" class="h-3.5 w-3.5"></i>';
+          item.appendChild(deleteBtn);
+
+          item.addEventListener("click", (e) => {
+            e.stopPropagation();
+            if (trip.id !== activeTripId) {
+              saveTrips();
+              activeTripId = trip.id;
+              applyActiveTripToState();
+              saveTrips();
+              render();
+            }
+            toggleTripMenu(false);
+          });
+
+          tripComboboxMenuEl.appendChild(item);
         });
-        tripSwitcherEl.value = activeTripId;
-        const singleTrip = trips.length <= 1;
-        tripDeleteBtnEl.disabled = singleTrip;
-        tripDeleteBtnEl.classList.toggle("opacity-50", singleTrip);
-        tripDeleteBtnEl.classList.toggle("cursor-not-allowed", singleTrip);
+
+        // 最下部に「新しい旅程を作成」を配置
+        const separator = document.createElement("li");
+        separator.className = "my-1 border-t border-slate-100";
+        separator.setAttribute("role", "separator");
+        tripComboboxMenuEl.appendChild(separator);
+
+        const addActionItem = document.createElement("li");
+        const addBtn = document.createElement("button");
+        addBtn.type = "button";
+        const isMaxTrips = trips.length >= MAX_TRIPS;
+        addBtn.className = `flex w-full items-center gap-2 px-3 py-2 text-xs font-medium transition ${
+          isMaxTrips
+            ? "cursor-not-allowed text-slate-400"
+            : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+        }`;
+        addBtn.innerHTML = '<i data-lucide="plus" class="h-4 w-4 shrink-0"></i><span>新しい旅程を作成</span>';
+        if (isMaxTrips) {
+          addBtn.disabled = true;
+          addBtn.title = `旅行は最大${MAX_TRIPS}件まで作成できます`;
+        } else {
+          addBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            createNewTrip();
+            toggleTripMenu(false);
+          });
+        }
+        addActionItem.appendChild(addBtn);
+        tripComboboxMenuEl.appendChild(addActionItem);
+
+        if (window.lucide) {
+          lucide.createIcons();
+        }
+      }
+
+      function renderTripSwitcher() {
+        if (tripSwitcherEl) {
+          tripSwitcherEl.innerHTML = "";
+          trips.forEach((trip, index) => {
+            const option = document.createElement("option");
+            option.value = trip.id;
+            option.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
+            tripSwitcherEl.appendChild(option);
+          });
+          tripSwitcherEl.value = activeTripId;
+        }
+        if (tripDeleteBtnEl) {
+          const singleTrip = trips.length <= 1;
+          tripDeleteBtnEl.disabled = singleTrip;
+          tripDeleteBtnEl.classList.toggle("opacity-50", singleTrip);
+          tripDeleteBtnEl.classList.toggle("cursor-not-allowed", singleTrip);
+        }
+        if (isTripMenuOpen) {
+          renderTripComboboxMenu();
+        }
       }
 
       function loadState() {
@@ -506,6 +684,7 @@
           day.spots.push(value);
         }
         newSpotInputEl.value = "";
+        state.addLocationType = "spot";
         saveState();
         render();
       }
@@ -518,9 +697,9 @@
       }
 
       function renderAddSpotOptions() {
-        setTagStyle(addTypeSpotEl, state.addLocationType === "spot");
-        setTagStyle(addTypeDepartureEl, state.addLocationType === "departure");
-        setTagStyle(addTypeAccommodationEl, state.addLocationType === "accommodation");
+        if (addLocationTypeSelectEl) {
+          addLocationTypeSelectEl.value = state.addLocationType;
+        }
         addAccommodationScopeEl.classList.toggle("hidden", state.addLocationType !== "accommodation");
         const note =
           state.addLocationType === "departure"
@@ -536,6 +715,7 @@
             : state.addLocationType === "accommodation"
               ? "例: 京都駅周辺"
               : "例: 浅草寺";
+        updateStickyOffsets();
       }
 
       function addDay() {
@@ -1208,49 +1388,57 @@
         tripNameInputEl.addEventListener("input", (e) => {
           state.tripName = e.target.value;
           saveState();
-          const activeOption = tripSwitcherEl.querySelector(`option[value="${activeTripId}"]`);
-          if (activeOption) {
-            const index = trips.findIndex((t) => t.id === activeTripId);
-            activeOption.textContent = state.tripName.trim() ? state.tripName : `旅行${index + 1}`;
+          if (tripSwitcherEl) {
+            const activeOption = tripSwitcherEl.querySelector(`option[value="${activeTripId}"]`);
+            if (activeOption) {
+              const index = trips.findIndex((t) => t.id === activeTripId);
+              activeOption.textContent = state.tripName.trim() ? state.tripName : `旅行${index + 1}`;
+            }
+          }
+          if (isTripMenuOpen) {
+            renderTripComboboxMenu();
+          }
+        });
+        tripNameInputEl.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            toggleTripMenu(false);
           }
         });
       }
 
-      tripSwitcherEl.addEventListener("change", (e) => {
-        saveTrips();
-        activeTripId = e.target.value;
-        applyActiveTripToState();
-        saveTrips();
-        render();
+      if (tripComboboxToggleEl) {
+        tripComboboxToggleEl.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleTripMenu();
+        });
+      }
+
+      document.addEventListener("click", (e) => {
+        if (!tripComboboxContainerEl) return;
+        if (!tripComboboxContainerEl.contains(e.target)) {
+          toggleTripMenu(false);
+        }
       });
 
-      tripNewBtnEl.addEventListener("click", () => {
-        if (trips.length >= MAX_TRIPS) {
-          alert(`旅行は最大${MAX_TRIPS}件までしか作成できません。`);
-          return;
-        }
-        saveTrips();
-        const newTrip = createTripEntry(`旅行${trips.length + 1}`);
-        trips.push(newTrip);
-        activeTripId = newTrip.id;
-        applyActiveTripToState();
-        saveTrips();
-        render();
-      });
+      if (tripSwitcherEl) {
+        tripSwitcherEl.addEventListener("change", (e) => {
+          saveTrips();
+          activeTripId = e.target.value;
+          applyActiveTripToState();
+          saveTrips();
+          render();
+        });
+      }
 
-      tripDeleteBtnEl.addEventListener("click", () => {
-        if (trips.length <= 1) {
-          alert("最後の1件の旅行は削除できません。");
-          return;
-        }
-        if (!confirm("現在の旅行を削除しますか？この操作は取り消せません。")) return;
-        const index = trips.findIndex((t) => t.id === activeTripId);
-        trips.splice(index, 1);
-        activeTripId = trips[Math.max(0, index - 1)].id;
-        applyActiveTripToState();
-        saveTrips();
-        render();
-      });
+      if (tripNewBtnEl) {
+        tripNewBtnEl.addEventListener("click", createNewTrip);
+      }
+
+      if (tripDeleteBtnEl) {
+        tripDeleteBtnEl.addEventListener("click", () => {
+          deleteTrip(activeTripId);
+        });
+      }
 
       tripClearBtnEl.addEventListener("click", () => {
         if (!confirm("日程（Day）を残し、すべてのスポット、宿泊地、出発地点、到着地点をクリアしますか？この操作は取り消せません。")) {
@@ -1283,20 +1471,12 @@
         }
       });
 
-      addTypeSpotEl.addEventListener("click", () => {
-        state.addLocationType = "spot";
-        renderAddSpotOptions();
-      });
-
-      addTypeDepartureEl.addEventListener("click", () => {
-        state.addLocationType = "departure";
-        renderAddSpotOptions();
-      });
-
-      addTypeAccommodationEl.addEventListener("click", () => {
-        state.addLocationType = "accommodation";
-        renderAddSpotOptions();
-      });
+      if (addLocationTypeSelectEl) {
+        addLocationTypeSelectEl.addEventListener("change", (e) => {
+          state.addLocationType = e.target.value;
+          renderAddSpotOptions();
+        });
+      }
 
       addAccommodationScopeAllEl.addEventListener("click", () => {
         state.addAccommodationScope = "all";
