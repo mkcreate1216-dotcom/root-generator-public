@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 
 const App = () => {
-  // State管理
+// State management
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [waypoints, setWaypoints] = useState([]);
 
-  // Google Maps URL生成
+  // Google Maps URL generation
   const generateGoogleMapsUrl = () => {
     const base = "https://www.google.com/maps/dir/?api=1";
     const wp = waypoints.join("|");
@@ -15,7 +15,7 @@ const App = () => {
     )}&waypoints=${encodeURIComponent(wp)}`;
   };
 
-  // Apple Maps URL生成
+  // Apple Maps URL generation
   const generateAppleMapsUrl = () => {
     const stops = [...waypoints, destination].join("+to:");
     return `http://maps.apple.com/?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(
@@ -23,67 +23,67 @@ const App = () => {
     )}`;
   };
 
-  // 寄り道追加
+  // Add waypoint
   const addWaypoint = () => {
     setWaypoints([...waypoints, ""]);
   };
 
-  // 寄り道削除
+  // Remove waypoint
   const removeWaypoint = (index) => {
     const updatedWaypoints = [...waypoints];
     updatedWaypoints.splice(index, 1);
     setWaypoints(updatedWaypoints);
   };
 
-  // 入力変更時のハンドラー
+  // Input change handler
   const updateWaypoint = (index, value) => {
     const updatedWaypoints = [...waypoints];
     updatedWaypoints[index] = value;
     setWaypoints(updatedWaypoints);
   };
 
-  // 地図アプリ遷移用
+  // Navigation to map app
   const openUrl = (url) => {
     window.location.href = url;
   };
 
   return (
     <div style={{ padding: "16px", fontFamily: "Arial, sans-serif" }}>
-      <h1>寄り道ルート作成</h1>
+      <h1>Multi-Stop Route Generator</h1>
       <div>
         <label>
-          出発地: <br />
+          Departure: <br />
           <input
             type="text"
             value={origin}
             onChange={(e) => setOrigin(e.target.value)}
-            placeholder="例: 東京駅"
+            placeholder="e.g. Tokyo Station"
             style={{ width: "100%", marginBottom: "8px" }}
           />
         </label>
       </div>
       <div>
         <label>
-          目的地: <br />
+          Destination: <br />
           <input
             type="text"
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
-            placeholder="例: 新大阪駅"
+            placeholder="e.g. Shin-Osaka Station"
             style={{ width: "100%", marginBottom: "8px" }}
           />
         </label>
       </div>
       <div>
         <label>
-          寄り道:
+          Stops:
           {waypoints.map((wp, index) => (
             <div key={index} style={{ marginBottom: "8px" }}>
               <input
                 type="text"
                 value={wp}
                 onChange={(e) => updateWaypoint(index, e.target.value)}
-                placeholder={`寄り道${index + 1}`}
+                placeholder={`Stop ${index + 1}`}
                 style={{ width: "80%" }}
               />
               <button
@@ -97,7 +97,7 @@ const App = () => {
                   cursor: "pointer"
                 }}
               >
-                削除
+                Delete
               </button>
             </div>
           ))}
@@ -112,14 +112,14 @@ const App = () => {
             cursor: "pointer"
           }}
         >
-          ＋寄り道追加
+          + Add Stop
         </button>
       </div>
       <button
         onClick={() =>
           origin && destination
             ? openUrl(generateGoogleMapsUrl())
-            : alert("出発地と目的地を入力してください")
+            : alert("Please enter both departure and destination")
         }
         style={{
           marginTop: "16px",
@@ -131,13 +131,13 @@ const App = () => {
           width: "100%"
         }}
       >
-        Google Mapsで開く
+        Open in Google Maps
       </button>
       <button
         onClick={() =>
           origin && destination
             ? openUrl(generateAppleMapsUrl())
-            : alert("出発地と目的地を入力してください")
+            : alert("Please enter both departure and destination")
         }
         style={{
           marginTop: "8px",
@@ -149,7 +149,7 @@ const App = () => {
           width: "100%"
         }}
       >
-        Apple Mapsで開く
+        Open in Apple Maps
       </button>
     </div>
   );
