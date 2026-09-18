@@ -17,16 +17,16 @@
   </head>
   <body class="min-h-screen bg-slate-50 text-slate-900">
     <div class="mx-auto w-full max-w-5xl p-4 sm:p-6">
-      <div class="rounded-2xl border border-slate-100 bg-white shadow-sm">
+      <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <header class="p-5 pb-0">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <h1 class="text-2xl font-bold sm:text-3xl">Roople</h1>
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Roople</h1>
           <div class="flex flex-wrap items-center gap-2">
-            <select id="trip-switcher" class="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm outline-none"></select>
-            <button id="trip-new-btn" type="button" class="rounded-lg border border-sky-300 bg-sky-50 px-2 py-1.5 text-xs font-medium text-sky-700">新しい旅程を作成</button>
-            <button id="trip-delete-btn" type="button" class="rounded-lg border border-rose-300 bg-rose-50 px-2 py-1.5 text-xs font-medium text-rose-700">現在の旅程を削除</button>
-            <button id="trip-clear-btn" type="button" class="rounded-lg border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs font-medium text-amber-700 transition hover:bg-amber-100">ALLクリア</button>
-            <button id="line-copy-btn" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-xs font-medium text-emerald-700">
+            <select id="trip-switcher" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 outline-none"></select>
+            <button id="trip-new-btn" type="button" class="rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800">新しい旅程を作成</button>
+            <button id="trip-delete-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">現在の旅程を削除</button>
+            <button id="trip-clear-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">ALLクリア</button>
+            <button id="line-copy-btn" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-800 transition hover:bg-slate-200">
               <i data-lucide="share-2" class="h-3.5 w-3.5"></i>
               LINE用テキストをコピー
             </button>
@@ -38,7 +38,7 @@
       <section class="p-4 pt-2 sm:p-6 sm:pt-2">
         <div class="fixed right-6 top-1/2 z-40 flex flex-col items-center gap-2" id="day-tabs" style="transform: translateY(-50%)"></div>
 
-        <form id="add-spot-form" class="sticky top-0 z-30 mr-24 mb-2 rounded-xl p-3 shadow-sm backdrop-blur-md sm:p-3.5" style="background-color: rgba(248, 250, 252, 0.95)">
+        <form id="add-spot-form" class="sticky top-0 z-30 mr-24 mb-2 rounded-xl border border-slate-200/60 p-3 shadow-sm backdrop-blur-md sm:p-3.5" style="background-color: rgba(255, 255, 255, 0.95)">
           <div class="mb-2">
             <label class="text-xs font-medium text-slate-500" for="trip-name-input">旅行名</label>
             <div class="min-w-0">
@@ -46,7 +46,7 @@
                 id="trip-name-input"
                 type="text"
                 placeholder="旅行名を入力"
-                class="mt-0.5 w-full border-b border-slate-300 bg-transparent px-0 py-0.5 text-lg font-bold text-slate-900 outline-none transition focus:border-sky-500"
+                class="mt-0.5 w-full border-b border-slate-300 bg-transparent px-0 py-0.5 text-lg font-bold text-slate-900 outline-none transition focus:border-slate-900"
               />
             </div>
           </div>
@@ -66,12 +66,12 @@
               id="new-spot-input"
               type="text"
               placeholder="例: 浅草寺"
-              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
             />
             <button
               id="add-spot-btn"
               type="submit"
-              class="shrink-0 rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-sky-700"
+              class="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
             >
               追加
             </button>
@@ -87,7 +87,7 @@
               id="departure-input"
               type="text"
               placeholder="例: 東京駅"
-              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
             />
           </div>
         </div>
@@ -106,7 +106,7 @@
             id="accommodation-input"
             type="text"
             placeholder="例: 京都駅周辺"
-            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
           />
           <p class="mt-2 text-xs text-slate-500">入力すると翌日の出発地点（先頭）にデフォルトで反映されます。</p>
         </div>
@@ -509,9 +509,9 @@
 
       function setTagStyle(button, selected) {
         button.setAttribute("aria-pressed", String(selected));
-        button.style.backgroundColor = selected ? "#0f766e" : "#ffffff";
-        button.style.borderColor = selected ? "#0f766e" : "#cbd5e1";
-        button.style.color = selected ? "#ffffff" : "#334155";
+        button.style.backgroundColor = selected ? "#18181b" : "#ffffff";
+        button.style.borderColor = selected ? "#18181b" : "#d4d4d8";
+        button.style.color = selected ? "#ffffff" : "#3f3f46";
       }
 
       function renderAddSpotOptions() {
@@ -593,8 +593,8 @@
             active ? "text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
           }`;
           if (active) {
-            button.style.backgroundColor = "#0284c7";
-            button.style.borderColor = "#0284c7";
+            button.style.backgroundColor = "#18181b";
+            button.style.borderColor = "#18181b";
             button.style.color = "#ffffff";
           }
           button.textContent = day.name;
@@ -619,7 +619,7 @@
         const addButton = document.createElement("button");
         addButton.type = "button";
         addButton.className =
-          "flex h-9 w-9 items-center justify-center self-center rounded-full border border-dashed border-slate-400 bg-white p-0 text-lg font-semibold leading-none text-slate-700 transition hover:border-slate-600";
+          "flex h-9 w-9 items-center justify-center self-center rounded-full bg-slate-900 p-0 text-lg font-semibold leading-none text-white shadow-xs transition hover:bg-slate-800";
         const addIcon = document.createElement("span");
         addIcon.textContent = "+";
         addIcon.style.transform = "translateY(-1px)";
@@ -632,7 +632,7 @@
         const deleteButton = document.createElement("button");
         deleteButton.type = "button";
         deleteButton.className =
-          "flex h-9 w-9 items-center justify-center self-center rounded-full border border-rose-200 bg-rose-50 p-0 text-lg font-semibold leading-none text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50";
+          "flex h-9 w-9 items-center justify-center self-center rounded-full bg-slate-200 p-0 text-lg font-semibold leading-none text-slate-700 transition hover:bg-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-slate-200";
         const deleteIcon = document.createElement("span");
         deleteIcon.textContent = "−";
         deleteIcon.style.transform = "translateY(-1px)";
@@ -666,15 +666,15 @@
           if (!draggedSpot || draggedSpot.dayIndex !== dayIndex) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
-          card.classList.add("border-sky-400", "bg-sky-50");
+          card.classList.add("border-slate-800", "bg-slate-100");
         });
         card.addEventListener("dragleave", () => {
-          card.classList.remove("border-sky-400", "bg-sky-50");
+          card.classList.remove("border-slate-800", "bg-slate-100");
         });
         card.addEventListener("drop", (e) => {
           if (!draggedSpot || draggedSpot.dayIndex !== dayIndex) return;
           e.preventDefault();
-          card.classList.remove("border-sky-400", "bg-sky-50");
+          card.classList.remove("border-slate-800", "bg-slate-100");
           moveSpotTo(dayIndex, draggedSpot.index, index);
         });
 
@@ -689,7 +689,7 @@
 
         const marker = document.createElement("div");
         marker.className =
-          "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-sky-600 text-xs font-bold text-white";
+          "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white";
         marker.textContent = String(markerIndex + 1);
 
         const content = document.createElement("div");
@@ -700,7 +700,7 @@
         input.value = spotValue;
         input.placeholder = "スポット名";
         input.className =
-          "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100";
+          "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
         input.addEventListener("input", (e) => {
           const day = state.days[dayIndex];
           day.spots[index] = e.target.value;
@@ -747,7 +747,7 @@
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
-        removeBtn.className = "rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100";
+        removeBtn.className = "rounded-md bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900";
         removeBtn.textContent = "削除";
         removeBtn.addEventListener("click", () => {
           const day = state.days[dayIndex];
@@ -770,44 +770,109 @@
       }
 
       function createAccommodationCard(accommodation, index) {
+      function createAccommodationCard(accommodation, index, dayIndex = state.activeDayIndex) {
         const card = document.createElement("div");
-        card.className = "sticky top-24 rounded-2xl border border-green-200 bg-green-50 p-3 shadow-sm sm:p-4";
+        card.className = "sticky top-24 rounded-2xl border border-slate-200 bg-slate-100/90 p-3 shadow-sm sm:p-4";
+        card.className = "sticky top-24 relative rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-300 sm:p-4";
         card.style.zIndex = String(index + 1);
+        card.dataset.spotCard = "true";
 
         const row = document.createElement("div");
         row.className = "flex items-start gap-3";
 
+        const spacer = document.createElement("div");
+        spacer.className = "mt-2 flex h-6 w-5 shrink-0 items-center justify-center text-slate-300 select-none text-xs";
+        spacer.setAttribute("aria-hidden", "true");
+
         const marker = document.createElement("div");
-        marker.className = "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-600 text-xs font-bold text-white";
+        marker.className = "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-600 text-xs font-bold text-white";
+        marker.className =
+          "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white";
         marker.textContent = String(index + 1);
 
         const content = document.createElement("div");
         content.className = "w-full";
 
         const label = document.createElement("p");
-        label.className = "text-xs font-medium text-green-700";
+        label.className = "text-xs font-semibold text-slate-600";
         label.textContent = "宿泊地";
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = accommodation;
+        input.placeholder = "宿泊地を入力";
+        input.className =
+          "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
+        input.addEventListener("input", (e) => {
+          const day = state.days[dayIndex];
+          if (day) {
+            day.accommodation = e.target.value;
+            day.autoAccommodation = false;
+            syncAutoStarts();
+            saveState();
+          }
+        });
+        input.addEventListener("blur", () => {
+          render();
+        });
 
         const name = document.createElement("p");
         name.className = "mt-1 text-sm font-medium text-slate-900";
         name.textContent = accommodation;
+        const controls = document.createElement("div");
+        controls.className = "mt-2 flex items-center justify-between gap-2";
 
         content.append(label, name);
         row.append(marker, content);
+        const badge = document.createElement("span");
+        badge.className = "rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600";
+        badge.textContent = "宿泊地";
+
+        const hint = document.createElement("span");
+        hint.className = "flex-1 text-xs text-slate-500";
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "rounded-md bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900";
+        removeBtn.textContent = "削除";
+        removeBtn.setAttribute("aria-label", "宿泊地を削除");
+        removeBtn.addEventListener("click", () => {
+          const day = state.days[dayIndex];
+          if (day) {
+            day.accommodation = "";
+            day.autoAccommodation = false;
+            syncAutoStarts();
+          }
+          state.openRouteMenuIndex = null;
+          saveState();
+          render();
+        });
+
+        controls.append(badge, hint, removeBtn);
+        content.append(input, controls);
+        row.append(spacer, marker, content);
         card.appendChild(row);
         return card;
       }
 
       function createEndpointCard(location, index, label) {
+      function createEndpointCard(location, index, label, dayIndex = state.activeDayIndex) {
         const card = document.createElement("div");
-        card.className = "sticky top-24 rounded-2xl border border-violet-200 bg-violet-50 p-3 shadow-sm sm:p-4";
+        card.className = "sticky top-24 rounded-2xl border border-slate-300 bg-slate-50 p-3 shadow-sm sm:p-4";
+        card.className = "sticky top-24 relative rounded-2xl border border-slate-100 bg-white p-3 shadow-sm transition-all duration-300 sm:p-4";
         card.style.zIndex = String(index + 1);
+        card.dataset.spotCard = "true";
 
         const row = document.createElement("div");
         row.className = "flex items-start gap-3";
 
+        const spacer = document.createElement("div");
+        spacer.className = "mt-2 flex h-6 w-5 shrink-0 items-center justify-center text-slate-300 select-none text-xs";
+        spacer.setAttribute("aria-hidden", "true");
+
         const marker = document.createElement("div");
-        marker.className = "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-violet-600 text-xs font-bold text-white";
+        marker.className = "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white ring-2 ring-slate-200";
+        marker.className =
+          "mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white";
         marker.textContent = String(index + 1);
 
         const content = document.createElement("div");
@@ -815,14 +880,42 @@
 
         const header = document.createElement("div");
         header.className = "flex items-center justify-between gap-2";
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = location;
+        input.placeholder = `${label}を入力`;
+        input.className =
+          "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
+        input.addEventListener("input", (e) => {
+          if (label === "出発地点") {
+            state.departure = e.target.value;
+            departureInputEl.value = state.departure;
+          } else if (label === "到着地点") {
+            state.arrival = e.target.value;
+            state.autoArrival = false;
+          }
+          saveState();
+        });
+        input.addEventListener("blur", () => {
+          render();
+        });
 
         const locationLabel = document.createElement("p");
-        locationLabel.className = "text-xs font-medium text-violet-700";
+        locationLabel.className = "text-xs font-semibold text-slate-800";
         locationLabel.textContent = label;
+        const controls = document.createElement("div");
+        controls.className = "mt-2 flex items-center justify-between gap-2";
+
+        const badge = document.createElement("span");
+        badge.className = "rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600";
+        badge.textContent = label;
+
+        const hint = document.createElement("span");
+        hint.className = "flex-1 text-xs text-slate-500";
 
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
-        removeBtn.className = "rounded-md bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100";
+        removeBtn.className = "rounded-md bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900";
         removeBtn.textContent = "削除";
         removeBtn.setAttribute("aria-label", `${label}を削除`);
         removeBtn.addEventListener("click", () => {
@@ -832,6 +925,7 @@
               state.autoArrival = false;
             }
             state.departure = "";
+            departureInputEl.value = "";
           } else if (label === "到着地点") {
             state.arrival = "";
             state.autoArrival = false;
@@ -846,7 +940,7 @@
         const name = document.createElement(label === "到着地点" ? "input" : "p");
         name.className =
           label === "到着地点"
-            ? "mt-1 w-full rounded-lg border border-violet-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+            ? "mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
             : "mt-1 text-sm font-medium text-slate-900";
         if (label === "到着地点") {
           name.type = "text";
@@ -863,6 +957,9 @@
 
         content.append(header, name);
         row.append(marker, content);
+        controls.append(badge, hint, removeBtn);
+        content.append(input, controls);
+        row.append(spacer, marker, content);
         card.appendChild(row);
         return card;
       }
@@ -878,7 +975,7 @@
         btn.type = "button";
         const menuId = `route-menu-${dayIndex}-${routeIndex}`;
         btn.className =
-          "relative z-10 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-sky-700 shadow-sm transition hover:bg-slate-50";
+          "relative z-10 inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-xs transition hover:bg-slate-100 hover:text-slate-900";
         btn.innerHTML = '<i data-lucide="route" class="h-3.5 w-3.5"></i>ルート';
         btn.setAttribute("aria-controls", menuId);
         btn.setAttribute("aria-expanded", String(state.openRouteMenuIndex === `${dayIndex}-${routeIndex}`));
@@ -906,7 +1003,7 @@
 
         const feedback = document.createElement("p");
         feedback.id = `${menuId}-feedback`;
-        feedback.className = "relative z-10 mt-2 text-center text-xs text-rose-600";
+        feedback.className = "relative z-10 mt-2 text-center text-xs font-medium text-slate-500";
         feedback.setAttribute("aria-live", "polite");
 
         function showRouteValidation() {
@@ -1001,7 +1098,7 @@
         const heading = document.createElement(items.length < 2 ? "h2" : "a");
         heading.className = items.length < 2
           ? "text-lg font-bold text-slate-800"
-          : "text-lg font-bold text-sky-700 transition hover:text-sky-900 hover:underline inline-flex items-center gap-1.5 cursor-pointer";
+          : "text-lg font-bold text-slate-900 transition hover:text-slate-600 hover:underline inline-flex items-center gap-1.5 cursor-pointer";
         heading.textContent = day.name;
 
         if (items.length >= 2) {
@@ -1013,7 +1110,7 @@
 
           const extIcon = document.createElement("i");
           extIcon.setAttribute("data-lucide", "external-link");
-          extIcon.className = "h-4 w-4 text-sky-500 shrink-0";
+          extIcon.className = "h-4 w-4 text-slate-400 shrink-0";
           heading.appendChild(extIcon);
         }
 
@@ -1046,8 +1143,10 @@
             body.appendChild(createSpotCard(item.value, item.spotIndex, index, dayIndex));
           } else if (item.type === "accommodation") {
             body.appendChild(createAccommodationCard(item.value, index));
+            body.appendChild(createAccommodationCard(item.value, index, dayIndex));
           } else {
             body.appendChild(createEndpointCard(item.value, index, item.label));
+            body.appendChild(createEndpointCard(item.value, index, item.label, dayIndex));
           }
           if (index < items.length - 1) {
             body.appendChild(createRouteConnector(item.value, items[index + 1].value, index, dayIndex));
@@ -1078,12 +1177,12 @@
         const allDays = state.accommodationUpdateScope === "all";
         accommodationScopeAllEl.setAttribute("aria-pressed", String(allDays));
         accommodationScopeNextDayEl.setAttribute("aria-pressed", String(!allDays));
-        accommodationScopeAllEl.style.backgroundColor = allDays ? "#0f766e" : "#ffffff";
-        accommodationScopeAllEl.style.borderColor = allDays ? "#0f766e" : "#cbd5e1";
-        accommodationScopeAllEl.style.color = allDays ? "#ffffff" : "#334155";
-        accommodationScopeNextDayEl.style.backgroundColor = allDays ? "#ffffff" : "#0f766e";
-        accommodationScopeNextDayEl.style.borderColor = allDays ? "#cbd5e1" : "#0f766e";
-        accommodationScopeNextDayEl.style.color = allDays ? "#334155" : "#ffffff";
+        accommodationScopeAllEl.style.backgroundColor = allDays ? "#18181b" : "#ffffff";
+        accommodationScopeAllEl.style.borderColor = allDays ? "#18181b" : "#d4d4d8";
+        accommodationScopeAllEl.style.color = allDays ? "#ffffff" : "#3f3f46";
+        accommodationScopeNextDayEl.style.backgroundColor = allDays ? "#ffffff" : "#18181b";
+        accommodationScopeNextDayEl.style.borderColor = allDays ? "#d4d4d8" : "#18181b";
+        accommodationScopeNextDayEl.style.color = allDays ? "#3f3f46" : "#ffffff";
       }
 
       function updateActiveDayFromScroll() {
