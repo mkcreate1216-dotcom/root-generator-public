@@ -22,13 +22,12 @@
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Roople</h1>
           <div class="flex flex-wrap items-center gap-2">
-            <select id="trip-switcher" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-800 outline-none"></select>
-            <button id="trip-new-btn" type="button" class="rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800">新しい旅程を作成</button>
-            <button id="trip-delete-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">現在の旅程を削除</button>
+            <button id="trip-new-btn" type="button" class="rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-xs transition hover:bg-slate-800">新しい旅行を作成</button>
+            <button id="trip-delete-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">現在の旅行を削除</button>
             <button id="trip-clear-btn" type="button" class="rounded-lg bg-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-300 hover:text-slate-900">ALLクリア</button>
             <button id="line-copy-btn" type="button" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900">
               <i data-lucide="share-2" class="h-3.5 w-3.5"></i>
-              LINE用テキストをコピー
+              LINE共有コピー
             </button>
           </div>
         </div>
@@ -41,12 +40,16 @@
         <form id="add-spot-form" class="sticky top-0 z-30 mr-24 mb-2 rounded-xl border border-slate-200/60 p-3 shadow-sm backdrop-blur-md sm:p-3.5" style="background-color: rgba(255, 255, 255, 0.95)">
           <div class="mb-2">
             <label class="text-xs font-medium text-slate-500" for="trip-name-input">旅行名</label>
-            <div class="min-w-0">
+            <div class="mt-0.5 flex items-center gap-2">
+              <select
+                id="trip-switcher"
+                class="shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-800 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+              ></select>
               <input
                 id="trip-name-input"
                 type="text"
                 placeholder="旅行名を入力"
-                class="mt-0.5 w-full border-b border-slate-300 bg-transparent px-0 py-0.5 text-lg font-bold text-slate-900 outline-none transition focus:border-slate-900"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-bold text-slate-900 outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
               />
             </div>
           </div>
@@ -244,7 +247,7 @@
           if (raw) {
             const parsed = JSON.parse(raw);
             trips = Array.isArray(parsed.trips) && parsed.trips.length ? parsed.trips.slice(0, MAX_TRIPS).map(sanitizeTrip) : [];
-            if (!trips.length) trips = [createTripEntry("旅程1")];
+            if (!trips.length) trips = [createTripEntry("旅行1")];
             activeTripId = trips.some((t) => t.id === parsed.activeTripId) ? parsed.activeTripId : trips[0].id;
             return;
           }
@@ -252,7 +255,7 @@
           trips = [];
         }
         const legacy = migrateLegacyTrip();
-        trips = [legacy || createTripEntry("旅程1")];
+        trips = [legacy || createTripEntry("旅行1")];
         activeTripId = trips[0].id;
       }
 
@@ -296,7 +299,7 @@
         trips.forEach((trip, index) => {
           const option = document.createElement("option");
           option.value = trip.id;
-          option.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅程${index + 1}`;
+          option.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
           tripSwitcherEl.appendChild(option);
         });
         tripSwitcherEl.value = activeTripId;
@@ -453,7 +456,7 @@
       }
 
       function generateItineraryText() {
-        const title = state.tripName.trim() ? state.tripName.trim() : "旅程";
+        const title = state.tripName.trim() ? state.tripName.trim() : "旅行";
         const lines = [`【${title}】`, ""];
         state.days.forEach((day, dayIndex) => {
           const items = getDayItems(day, dayIndex);
@@ -1181,7 +1184,9 @@
         if (state.autoArrival) {
           state.arrival = state.departure;
         }
-        tripNameInputEl.value = state.tripName;
+        if (tripNameInputEl) {
+          tripNameInputEl.value = state.tripName;
+        }
         updateStickyOffsets();
         renderTripSwitcher();
         renderTabs();
@@ -1199,15 +1204,17 @@
         addSpot();
       });
 
-      tripNameInputEl.addEventListener("input", (e) => {
-        state.tripName = e.target.value;
-        saveState();
-        const activeOption = tripSwitcherEl.querySelector(`option[value="${activeTripId}"]`);
-        if (activeOption) {
-          const index = trips.findIndex((t) => t.id === activeTripId);
-          activeOption.textContent = state.tripName.trim() ? state.tripName : `旅程${index + 1}`;
-        }
-      });
+      if (tripNameInputEl) {
+        tripNameInputEl.addEventListener("input", (e) => {
+          state.tripName = e.target.value;
+          saveState();
+          const activeOption = tripSwitcherEl.querySelector(`option[value="${activeTripId}"]`);
+          if (activeOption) {
+            const index = trips.findIndex((t) => t.id === activeTripId);
+            activeOption.textContent = state.tripName.trim() ? state.tripName : `旅行${index + 1}`;
+          }
+        });
+      }
 
       tripSwitcherEl.addEventListener("change", (e) => {
         saveTrips();
@@ -1219,11 +1226,11 @@
 
       tripNewBtnEl.addEventListener("click", () => {
         if (trips.length >= MAX_TRIPS) {
-          alert(`旅程は最大${MAX_TRIPS}件までしか作成できません。`);
+          alert(`旅行は最大${MAX_TRIPS}件までしか作成できません。`);
           return;
         }
         saveTrips();
-        const newTrip = createTripEntry(`旅程${trips.length + 1}`);
+        const newTrip = createTripEntry(`旅行${trips.length + 1}`);
         trips.push(newTrip);
         activeTripId = newTrip.id;
         applyActiveTripToState();
@@ -1233,10 +1240,10 @@
 
       tripDeleteBtnEl.addEventListener("click", () => {
         if (trips.length <= 1) {
-          alert("最後の1件の旅程は削除できません。");
+          alert("最後の1件の旅行は削除できません。");
           return;
         }
-        if (!confirm("現在の旅程を削除しますか？この操作は取り消せません。")) return;
+        if (!confirm("現在の旅行を削除しますか？この操作は取り消せません。")) return;
         const index = trips.findIndex((t) => t.id === activeTripId);
         trips.splice(index, 1);
         activeTripId = trips[Math.max(0, index - 1)].id;
