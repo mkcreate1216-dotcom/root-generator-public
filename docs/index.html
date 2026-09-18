@@ -14,10 +14,10 @@
         display: none;
       }
 
-      /* 日程タグ（day-tabs）と白い背景カードの重なり防止 */
+      /* 日程タグ（day-tabs）との配置調整: スマホ時はカード全幅＋タイムライン側でTAGを吸収 */
       #app-wrapper {
         padding-left: 0.75rem;
-        padding-right: 4.875rem; /* スマホ時に白い背景が縮んで日程タグ用の余白を確保 */
+        padding-right: 0.75rem;
         padding-top: 1rem;
         padding-bottom: 1rem;
       }
@@ -68,18 +68,59 @@
         border: 4px solid transparent;
         pointer-events: none;
       }
+
+      /* 日程詳細（details）の開閉 chevron アイコンの回転アニメーション */
+      details summary .day-chevron {
+        transition: transform 200ms ease;
+        transform: rotate(-90deg);
+        transform-origin: center;
+      }
+      details[open] summary .day-chevron {
+        transform: rotate(0deg);
+      }
     </style>
   </head>
   <body class="min-h-screen bg-slate-50 text-slate-900">
     <div id="app-wrapper" class="mx-auto w-full max-w-5xl">
       <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <header class="p-5 pb-0">
-        <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">たびおり</h1>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h1 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">たびおり</h1>
+          <div class="flex items-center gap-2" id="header-map-selector-container">
+            <div
+              id="map-selector-group"
+              class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white p-1 text-xs font-medium text-slate-700 shadow-xs"
+              role="radiogroup"
+              aria-label="地図アプリ選択"
+            >
+              <span class="flex items-center gap-1 pl-1.5 pr-0.5 text-slate-500 select-none" title="地図アプリ選択">
+                <i data-lucide="map" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>
+                <span class="text-xs font-medium text-slate-600">マップ</span>
+              </span>
+              <div class="inline-flex items-center rounded-md bg-slate-100 p-0.5">
+                <label
+                  class="map-type-label flex cursor-pointer items-center rounded px-2 py-1 text-xs font-medium transition-all select-none"
+                  data-map-type="google"
+                >
+                  <input type="radio" name="map-type-radio" value="google" class="sr-only" />
+                  <span>Google</span>
+                </label>
+                <label
+                  class="map-type-label flex cursor-pointer items-center rounded px-2 py-1 text-xs font-medium transition-all select-none"
+                  data-map-type="apple"
+                >
+                  <input type="radio" name="map-type-radio" value="apple" class="sr-only" />
+                  <span>Apple</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
         <p class="mt-2 text-sm text-slate-600">予定を縦糸に、想い出を横糸に。旅を織る。</p>
       </header>
 
       <section class="p-4 pt-2 sm:p-6 sm:pt-2">
-        <div class="fixed right-1 sm:right-4 top-1/2 z-40 flex max-h-[85vh] flex-col items-center gap-2 overflow-y-auto p-3" id="day-tabs" style="transform: translateY(-50%)"></div>
+        <div class="fixed right-1.5 sm:right-6 top-1/2 z-40 flex max-h-[85vh] flex-col items-center gap-2 overflow-y-auto p-1.5 sm:p-3" id="day-tabs" style="transform: translateY(-50%)"></div>
 
         <form id="add-spot-form" class="sticky top-0 z-30 mb-2 rounded-xl border border-slate-200/60 p-3 shadow-sm backdrop-blur-md sm:p-3.5" style="background-color: rgba(255, 255, 255, 0.95)">
           <div class="relative mb-2" id="trip-combobox-container">
@@ -119,7 +160,7 @@
             <select
               id="add-location-type-select"
               aria-label="追加する地点の種類"
-              class="shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 outline-none transition-colors duration-75 focus:border-slate-900 focus:ring-2 focus:ring-slate-200 sm:text-sm cursor-pointer"
+              class="shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-2 text-xs font-medium text-slate-700 outline-none transition-colors duration-75 focus:border-slate-900 focus:ring-2 focus:ring-slate-200 sm:px-2.5 sm:text-sm cursor-pointer"
             >
               <option value="spot">スポット</option>
               <option value="departure">出発地点/到着地点</option>
@@ -128,7 +169,7 @@
             <button
               id="add-spot-btn"
               type="submit"
-              class="shrink-0 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors duration-75 hover:bg-slate-800"
+              class="shrink-0 rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white transition-colors duration-75 hover:bg-slate-800 sm:px-4"
             >
               追加
             </button>
@@ -141,7 +182,7 @@
           </div>
         </form>
 
-        <div id="timeline" class="space-y-0 pb-[70vh]"></div>
+        <div id="timeline" class="space-y-0 pb-[70vh] pr-[3.75rem] sm:pr-0"></div>
 
         <div id="endpoint-section" class="hidden mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
           <div id="departure-field">
@@ -546,30 +587,23 @@
 
       function updateMapTypeUI() {
         const isApple = state.mapType === "apple";
-        const currentMapName = isApple ? "Apple マップ" : "Google マップ";
-        const nextMapName = isApple ? "Google マップ" : "Apple マップ";
+        const currentMapName = isApple ? "Apple" : "Google";
 
-        const mapToggleButton = document.getElementById("map-toggle-btn");
-        if (mapToggleButton) {
-          mapToggleButton.setAttribute("aria-label", `地図アプリ切り替え（現在: ${currentMapName} / クリックで${nextMapName}に切り替え）`);
-          mapToggleButton.setAttribute("data-tooltip", `${nextMapName}に切り替え`);
-          mapToggleButton.setAttribute("data-tooltip-pos", "left");
-          mapToggleButton.removeAttribute("title");
-          if (isApple) {
-            mapToggleButton.innerHTML = `
-              <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12.5 2c.4 2.2 2.1 3.8 4.5 3.8 0-2.4-1.8-4.2-4.5-3.8z"/>
-                <path d="M12 6.8c-1.5-1-4-1.6-5.8-.3C3.8 8.2 2.8 11.5 3.2 15c.4 3.5 2.8 7 6.3 7 1.3 0 2-.8 2.5-.8s1.2.8 2.5.8c3.5 0 5.9-3.5 6.3-7 .4-3.5-.6-6.8-3-8.5-1.8-1.3-4.3-.7-5.8.3z"/>
-              </svg>
-            `;
+        const radios = document.querySelectorAll('input[name="map-type-radio"]');
+        radios.forEach((radio) => {
+          radio.checked = radio.value === state.mapType;
+        });
+
+        document.querySelectorAll(".map-type-label").forEach((label) => {
+          const isSelected = label.dataset.mapType === state.mapType;
+          if (isSelected) {
+            label.className =
+              "map-type-label flex cursor-pointer items-center rounded px-2 py-1 text-xs font-medium transition-all select-none bg-slate-900 text-white shadow-xs";
           } else {
-            mapToggleButton.innerHTML = `
-              <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
-              </svg>
-            `;
+            label.className =
+              "map-type-label flex cursor-pointer items-center rounded px-2 py-1 text-xs font-medium transition-all select-none text-slate-600 hover:text-slate-900 hover:bg-slate-200/60";
           }
-        }
+        });
 
         document.querySelectorAll("[data-route-btn]").forEach((btn) => {
           btn.setAttribute("data-tooltip", `${currentMapName}でルートを開く`);
@@ -601,7 +635,7 @@
         saveState();
         updateMapTypeUI();
         if (!silent) {
-          showToast(type === "apple" ? "Apple マップに切り替えました" : "Google マップに切り替えました");
+          showToast(type === "apple" ? "Apple Mapに切り替えました" : "Google Mapsに切り替えました");
         }
       }
 
@@ -1154,43 +1188,6 @@
         });
         dayTabsEl.appendChild(shareButton);
 
-        // 地図アプリ切り替えボタン（共有マークボタンの下に同じく丸いボタンで配置・クリックで交互に切り替え）
-        const mapToggleButton = document.createElement("button");
-        mapToggleButton.type = "button";
-        mapToggleButton.id = "map-toggle-btn";
-        mapToggleButton.className =
-          "flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border border-slate-300 bg-white p-0 text-slate-700 shadow-xs transition-all duration-75 hover:scale-105 hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:shadow-md active:scale-90 cursor-pointer";
-
-        const isApple = state.mapType === "apple";
-        const currentMapName = isApple ? "Apple マップ" : "Google マップ";
-        const nextMapName = isApple ? "Google マップ" : "Apple マップ";
-        mapToggleButton.setAttribute("aria-label", `地図アプリ切り替え（現在: ${currentMapName} / クリックで${nextMapName}に切り替え）`);
-        mapToggleButton.setAttribute("data-tooltip", `${nextMapName}に切り替え`);
-        mapToggleButton.setAttribute("data-tooltip-pos", "left");
-
-        if (isApple) {
-          // 齧られていないリンゴアイコン（Googleアイコンと同じフラット・ソリッドテイスト）
-          mapToggleButton.innerHTML = `
-            <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12.5 2c.4 2.2 2.1 3.8 4.5 3.8 0-2.4-1.8-4.2-4.5-3.8z"/>
-              <path d="M12 6.8c-1.5-1-4-1.6-5.8-.3C3.8 8.2 2.8 11.5 3.2 15c.4 3.5 2.8 7 6.3 7 1.3 0 2-.8 2.5-.8s1.2.8 2.5.8c3.5 0 5.9-3.5 6.3-7 .4-3.5-.6-6.8-3-8.5-1.8-1.3-4.3-.7-5.8.3z"/>
-            </svg>
-          `;
-        } else {
-          // Google Gアイコン
-          mapToggleButton.innerHTML = `
-            <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
-            </svg>
-          `;
-        }
-
-        mapToggleButton.addEventListener("click", () => {
-          const nextType = state.mapType === "apple" ? "google" : "apple";
-          setMapType(nextType);
-        });
-        dayTabsEl.appendChild(mapToggleButton);
-
         if (window.lucide) {
           lucide.createIcons({ root: dayTabsEl });
         }
@@ -1530,7 +1527,7 @@
 
       function createRouteConnector(from, to, routeIndex, dayIndex = state.activeDayIndex) {
         const wrap = document.createElement("div");
-        wrap.className = "relative z-30 flex flex-col items-center py-3";
+        wrap.className = "relative z-0 flex flex-col items-center py-3";
 
         const line = document.createElement("div");
         line.className = "pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 border-l-2 border-dashed border-slate-200";
@@ -1538,7 +1535,7 @@
         const btn = document.createElement("button");
         btn.type = "button";
         btn.setAttribute("data-route-btn", "true");
-        const mapLabel = state.mapType === "apple" ? "Apple マップ" : "Google マップ";
+        const mapLabel = state.mapType === "apple" ? "Apple" : "Google";
         btn.className =
           "relative z-10 inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-xs transition-all duration-75 hover:scale-105 hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:shadow-md cursor-pointer active:scale-95 select-none";
         btn.innerHTML = '<i data-lucide="route" class="h-3.5 w-3.5"></i>ルート';
@@ -1599,9 +1596,7 @@
 
         const chevron = document.createElement("i");
         chevron.setAttribute("data-lucide", "chevron-down");
-        chevron.className = "h-4 w-4 shrink-0 text-slate-400";
-        chevron.style.transition = "transform 200ms";
-        chevron.style.transform = details.open ? "rotate(0deg)" : "rotate(-90deg)";
+        chevron.className = "h-4 w-4 shrink-0 text-slate-400 day-chevron";
 
         chevronWrap.appendChild(chevron);
 
@@ -1627,7 +1622,7 @@
         heading.textContent = day.name;
 
         if (items.length >= 2) {
-          const mapLabel = state.mapType === "apple" ? "Apple マップ" : "Google マップ";
+          const mapLabel = state.mapType === "apple" ? "Apple" : "Google";
           heading.href = getDayRouteUrl(items.map((item) => item.value));
           heading.target = "_blank";
           heading.rel = "noopener noreferrer";
@@ -1647,7 +1642,6 @@
           } else {
             collapsedDays.add(dayIndex);
           }
-          chevron.style.transform = details.open ? "rotate(0deg)" : "rotate(-90deg)";
           routeSummary.classList.toggle("hidden", details.open);
         });
 
@@ -1838,6 +1832,7 @@
         renderTimeline();
         renderEndpoints();
         renderAccommodation();
+        updateMapTypeUI();
         if (window.lucide) {
           lucide.createIcons();
         }
@@ -2150,6 +2145,14 @@
 
       document.addEventListener("click", () => {
         hideGlobalTooltip();
+      });
+
+      document.querySelectorAll('input[name="map-type-radio"]').forEach((radio) => {
+        radio.addEventListener("change", (e) => {
+          if (e.target.checked) {
+            setMapType(e.target.value);
+          }
+        });
       });
 
       loadState();

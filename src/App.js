@@ -5,6 +5,7 @@ const App = () => {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [waypoints, setWaypoints] = useState([]);
+  const [mapType, setMapType] = useState("google");
 
   // Google Maps URL生成
   const generateGoogleMapsUrl = () => {
@@ -125,41 +126,61 @@ const App = () => {
           ＋寄り道追加
         </button>
       </div>
-      <button
-        onClick={() =>
-          origin && destination
-            ? openUrl(generateGoogleMapsUrl())
-            : alert("出発地と目的地を入力してください")
-        }
+      <div
         style={{
           marginTop: "16px",
-          backgroundColor: "#4285F4",
-          color: "white",
-          border: "none",
           padding: "12px",
-          cursor: "pointer",
-          width: "100%"
+          border: "1px solid #e2e8f0",
+          borderRadius: "8px",
+          backgroundColor: "#f8fafc"
         }}
       >
-        Google Mapsで開く
-      </button>
+        <div style={{ marginBottom: "8px" }}>
+          <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}>
+            <input
+              type="radio"
+              name="mapType"
+              value="google"
+              checked={mapType === "google"}
+              onChange={(e) => setMapType(e.target.value)}
+            />
+            Google Maps
+          </label>
+        </div>
+        <div>
+          <label style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}>
+            <input
+              type="radio"
+              name="mapType"
+              value="apple"
+              checked={mapType === "apple"}
+              onChange={(e) => setMapType(e.target.value)}
+            />
+            Apple Map
+          </label>
+        </div>
+      </div>
       <button
-        onClick={() =>
-          origin && destination
-            ? openUrl(generateAppleMapsUrl())
-            : alert("出発地と目的地を入力してください")
-        }
+        onClick={() => {
+          if (!origin || !destination) {
+            alert("出発地と目的地を入力してください");
+            return;
+          }
+          openUrl(mapType === "apple" ? generateAppleMapsUrl() : generateGoogleMapsUrl());
+        }}
         style={{
-          marginTop: "8px",
-          backgroundColor: "#000",
+          marginTop: "12px",
+          backgroundColor: "#18181b",
           color: "white",
           border: "none",
           padding: "12px",
           cursor: "pointer",
-          width: "100%"
+          width: "100%",
+          borderRadius: "6px",
+          fontWeight: "bold"
         }}
       >
-        Apple Mapsで開く
+        {mapType === "apple" ? "Apple Mapで開く" : "Google Mapsで開く"}
       </button>
     </div>
   );
