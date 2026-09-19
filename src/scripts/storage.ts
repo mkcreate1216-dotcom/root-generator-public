@@ -16,8 +16,9 @@ export function getStoredMapType(): MapType {
 export function createDay(dayNumber: number, prevAccommodation = ''): Day {
   return {
     name: `Day ${dayNumber}`,
-    spots: dayNumber === 1 ? [] : prevAccommodation ? [prevAccommodation] : [],
+    spots: dayNumber === 1 ? [] : prevAccommodation ? [{ name: prevAccommodation, memo: '' }] : [],
     accommodation: dayNumber === 1 ? '' : prevAccommodation,
+    accommodationMemo: '',
     autoAccommodation: dayNumber !== 1,
     autoStart: dayNumber !== 1,
     autoStartSlot: dayNumber !== 1 && !!prevAccommodation,
@@ -36,7 +37,9 @@ export function createTripEntry(tripName: string): Trip {
     days: [createDay(1)],
     activeDayIndex: 0,
     departure: '',
+    departureMemo: '',
     arrival: '',
+    arrivalMemo: '',
     autoArrival: true,
     mapType: getStoredMapType(),
   };
@@ -52,8 +55,22 @@ export function sanitizeTrip(trip: any): Trip {
   for (let i = 0; i < sanitized.days.length; i++) {
     const day = sanitized.days[i] || {};
     day.name = day.name || `Day ${i + 1}`;
-    day.spots = Array.isArray(day.spots) ? day.spots : [];
+    day.spots = Array.isArray(day.spots)
+      ? day.spots.map((spot: any) => {
+          if (typeof spot === 'string') {
+            return { name: spot, memo: '' };
+          }
+          if (spot && typeof spot === 'object') {
+            return {
+              name: typeof spot.name === 'string' ? spot.name : '',
+              memo: typeof spot.memo === 'string' ? spot.memo : '',
+            };
+          }
+          return { name: '', memo: '' };
+        })
+      : [];
     day.accommodation = typeof day.accommodation === 'string' ? day.accommodation : '';
+    day.accommodationMemo = typeof day.accommodationMemo === 'string' ? day.accommodationMemo : '';
     day.autoAccommodation = typeof day.autoAccommodation === 'boolean' ? day.autoAccommodation : i !== 0;
     day.autoStart = typeof day.autoStart === 'boolean' ? day.autoStart : i !== 0;
     day.autoStartSlot =
@@ -62,7 +79,7 @@ export function sanitizeTrip(trip: any): Trip {
       typeof day.autoStartValue === 'string'
         ? day.autoStartValue
         : day.autoStartSlot
-          ? day.spots[0] || ''
+          ? day.spots[0]?.name || ''
           : '';
     sanitized.days[i] = day;
   }
@@ -73,7 +90,9 @@ export function sanitizeTrip(trip: any): Trip {
       ? sanitized.activeDayIndex
       : 0;
   sanitized.departure = typeof sanitized.departure === 'string' ? sanitized.departure : '';
+  sanitized.departureMemo = typeof sanitized.departureMemo === 'string' ? sanitized.departureMemo : '';
   sanitized.arrival = typeof sanitized.arrival === 'string' ? sanitized.arrival : '';
+  sanitized.arrivalMemo = typeof sanitized.arrivalMemo === 'string' ? sanitized.arrivalMemo : '';
   sanitized.autoArrival =
     typeof sanitized.autoArrival === 'boolean'
       ? sanitized.autoArrival
@@ -129,7 +148,9 @@ export class TripStore {
     state.activeDayIndex = trip.activeDayIndex;
     state.tripName = trip.tripName;
     state.departure = trip.departure;
+    state.departureMemo = trip.departureMemo || '';
     state.arrival = trip.arrival;
+    state.arrivalMemo = trip.arrivalMemo || '';
     state.autoArrival = trip.autoArrival;
     state.mapType = trip.mapType || getStoredMapType();
     state.openRouteMenuIndex = null;
@@ -145,7 +166,9 @@ export class TripStore {
     trip.activeDayIndex = state.activeDayIndex;
     trip.tripName = state.tripName;
     trip.departure = state.departure;
+    trip.departureMemo = state.departureMemo || '';
     trip.arrival = state.arrival;
+    trip.arrivalMemo = state.arrivalMemo || '';
     trip.autoArrival = state.autoArrival;
     trip.mapType = state.mapType;
   }

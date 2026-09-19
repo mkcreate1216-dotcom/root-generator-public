@@ -2,6 +2,7 @@ import {
   createIcons,
   Map as MapIcon,
   ChevronDown,
+  ChevronUp,
   Plus,
   X,
   Check,
@@ -10,6 +11,9 @@ import {
   Route,
   ExternalLink,
   Share2,
+  Pencil,
+  Clock,
+  FileText,
 } from 'lucide';
 import type { AppState, Day, MapType } from './types';
 import {
@@ -28,6 +32,7 @@ function refreshIcons(_root?: HTMLElement): void {
     icons: {
       Map: MapIcon,
       ChevronDown,
+      ChevronUp,
       Plus,
       X,
       Check,
@@ -36,6 +41,9 @@ function refreshIcons(_root?: HTMLElement): void {
       Route,
       ExternalLink,
       Share2,
+      Pencil,
+      Clock,
+      FileText,
     },
   });
 }
@@ -48,7 +56,9 @@ const state: AppState = {
   openRouteMenuIndex: null,
   accommodationUpdateScope: 'all',
   departure: '',
+  departureMemo: '',
   arrival: '',
+  arrivalMemo: '',
   autoArrival: true,
   tripName: '',
   addLocationType: 'spot',
@@ -118,11 +128,11 @@ function syncAutoStarts(): void {
       if (previousAccommodation) {
         if (day.autoStartSlot) {
           if (day.spots.length === 0) {
-            day.spots.unshift(previousAccommodation);
+            day.spots.unshift({ name: previousAccommodation, memo: '' });
             day.autoStartSlot = true;
             day.autoStartValue = previousAccommodation;
           } else {
-            const currentFirst = (day.spots[0] || '').trim();
+            const currentFirst = (day.spots[0]?.name || '').trim();
             const managedValue = (day.autoStartValue || '').trim();
             if (managedValue && currentFirst !== managedValue) {
               day.autoStart = false;
@@ -133,12 +143,12 @@ function syncAutoStarts(): void {
               day.autoStartSlot = false;
               day.autoStartValue = '';
             } else {
-              day.spots[0] = previousAccommodation;
+              day.spots[0] = { name: previousAccommodation, memo: day.spots[0]?.memo || '' };
               day.autoStartValue = previousAccommodation;
             }
           }
         } else {
-          day.spots.unshift(previousAccommodation);
+          day.spots.unshift({ name: previousAccommodation, memo: '' });
           day.autoStartSlot = true;
           day.autoStartValue = previousAccommodation;
         }
@@ -147,7 +157,7 @@ function syncAutoStarts(): void {
         if (
           day.autoStartSlot &&
           day.spots.length > 0 &&
-          ((day.spots[0] || '').trim() === managedValue || !managedValue)
+          ((day.spots[0]?.name || '').trim() === managedValue || !managedValue)
         ) {
           day.spots.shift();
         }
@@ -536,7 +546,7 @@ function addSpot(): void {
     }
     syncAutoStarts();
   } else {
-    day.spots.push(value);
+    day.spots.push({ name: value, memo: '' });
   }
   newSpotInputEl.value = '';
   state.addLocationType = 'spot';
@@ -596,7 +606,7 @@ function deleteActiveDay(): void {
     if (
       index === 0 &&
       day.autoStartSlot &&
-      (day.spots[0] || '').trim() === (day.autoStartValue || '').trim()
+      (day.spots[0]?.name || '').trim() === (day.autoStartValue || '').trim()
     ) {
       day.spots.shift();
       day.autoStart = false;
@@ -720,11 +730,215 @@ function renderTabs(): void {
   refreshIcons(dayTabsEl);
 }
 
+function parseMemo(memo: string): {
+  firstLine: string;
+  restLines: string[];
+  hasRest: boolean;
+} {
+  const normalized = (memo || '').replace(/\r\n/g, '\n');
+  const lines = normalized.split('\n');
+  const firstLine = lines[0] || '';
+  const restLines = lines.slice(1);
+  const hasRest = restLines.some((l) => l.trim().length > 0);
+  return { firstLine, restLines, hasRest };
+}
+
+function createMemoComponent(options: {
+  memo: string;
+  onSave: (newMemo: string) => void;
+}): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'mt-1.5 w-full';
+
+  let currentMemo = options.memo || '';
+  let isEditing = false;
+  let isExpanded = false;
+
+  const renderContent = () => {
+    wrap.innerHTML = '';
+
+    if (isEditing) {
+      const editBox = document.createElement('div');
+      editBox.className =
+        'rounded-lg border border-slate-300 bg-white p-2 shadow-xs transition-all focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200';
+
+      const textarea = document.createElement('textarea');
+      textarea.value = currentMemo;
+      textarea.placeholder = '1行目: 時間や短い見出し（例: 10:00〜）\n2行目以降: 住所、持ち物、詳細メモなど';
+      textarea.rows = Math.max(3, currentMemo.split('\n').length);
+      textarea.className =
+        'w-full resize-y bg-transparent text-xs text-slate-800 outline-none leading-relaxed placeholder:text-slate-400';
+
+      const actionRow = document.createElement('div');
+      actionRow.className = 'mt-1.5 flex items-center justify-between gap-2 border-t border-slate-100 pt-1.5';
+
+      const hintText = document.createElement('span');
+      hintText.className = 'text-[10px] text-slate-400 select-none';
+      hintText.textContent = '1行目は一覧で常時表示されます';
+
+      const finishBtn = document.createElement('button');
+      finishBtn.type = 'button';
+      finishBtn.className =
+        'rounded bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white transition-colors duration-75 hover:bg-slate-800 cursor-pointer select-none';
+      finishBtn.textContent = '完了';
+
+      let isFinished = false;
+      const finishEditing = () => {
+        if (isFinished) return;
+        isFinished = true;
+        const val = textarea.value;
+        currentMemo = val;
+        isEditing = false;
+        options.onSave(val);
+        renderContent();
+      };
+
+      finishBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        finishEditing();
+      });
+
+      textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || ((e.metaKey || e.ctrlKey) && e.key === 'Enter')) {
+          e.preventDefault();
+          finishEditing();
+        }
+      });
+
+      textarea.addEventListener('blur', (e) => {
+        if (e.relatedTarget === finishBtn) return;
+        finishEditing();
+      });
+
+      actionRow.append(hintText, finishBtn);
+      editBox.append(textarea, actionRow);
+      wrap.appendChild(editBox);
+
+      setTimeout(() => {
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+      }, 10);
+      return;
+    }
+
+    // プレビューモード（表示モード）
+    const parsed = parseMemo(currentMemo);
+
+    if (!parsed.firstLine.trim() && !parsed.hasRest) {
+      // メモが未設定の場合
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className =
+        'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-slate-400 transition-colors duration-75 hover:bg-slate-100 hover:text-slate-700 cursor-pointer select-none';
+      addBtn.innerHTML = '<i data-lucide="file-text" class="h-3 w-3"></i><span>+ メモを追加</span>';
+      addBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isEditing = true;
+        renderContent();
+      });
+      wrap.appendChild(addBtn);
+      refreshIcons(wrap);
+      return;
+    }
+
+    // メモが存在する場合
+    const previewBox = document.createElement('div');
+    previewBox.className =
+      'group rounded-lg border border-slate-200/80 bg-slate-50/80 p-2 text-xs transition-colors duration-75 hover:border-slate-300 hover:bg-slate-50';
+
+    // 1行目表示行
+    const headerRow = document.createElement('div');
+    headerRow.className = 'flex items-center justify-between gap-2';
+
+    const firstLineContent = document.createElement('div');
+    firstLineContent.className =
+      'flex min-w-0 flex-1 items-center gap-1.5 cursor-pointer select-none';
+    firstLineContent.title = 'クリックしてメモを編集';
+    firstLineContent.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isEditing = true;
+      renderContent();
+    });
+
+    const clockIcon = document.createElement('i');
+    clockIcon.setAttribute('data-lucide', 'clock');
+    clockIcon.className = 'h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors';
+
+    const firstLineSpan = document.createElement('span');
+    firstLineSpan.className = 'truncate font-medium text-slate-800';
+    firstLineSpan.textContent = parsed.firstLine || '(メモ)';
+
+    firstLineContent.append(clockIcon, firstLineSpan);
+
+    const btnGroup = document.createElement('div');
+    btnGroup.className = 'flex shrink-0 items-center gap-1';
+
+    // 2行目以降がある場合のみアコーディオン展開ボタンを表示（要件3, 4）
+    if (parsed.hasRest) {
+      const toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.className =
+        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 transition-colors duration-75 hover:bg-slate-200/70 hover:text-slate-800 cursor-pointer select-none';
+      toggleBtn.innerHTML = isExpanded
+        ? '<span>閉じる</span><i data-lucide="chevron-up" class="h-3 w-3"></i>'
+        : '<span>詳細</span><i data-lucide="chevron-down" class="h-3 w-3"></i>';
+      toggleBtn.setAttribute('aria-expanded', String(isExpanded));
+      toggleBtn.setAttribute('data-tooltip', isExpanded ? 'メモを折りたたむ' : 'メモの全容を表示');
+      toggleBtn.setAttribute('data-tooltip-pos', 'top');
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isExpanded = !isExpanded;
+        renderContent();
+      });
+      btnGroup.appendChild(toggleBtn);
+    }
+
+    // 編集ボタン（鉛筆アイコン）
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className =
+      'rounded p-1 text-slate-400 opacity-60 transition-all duration-75 hover:bg-slate-200/70 hover:text-slate-700 hover:opacity-100 group-hover:opacity-100 cursor-pointer';
+    editBtn.title = 'メモを編集';
+    editBtn.innerHTML = '<i data-lucide="pencil" class="h-3 w-3"></i>';
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isEditing = true;
+      renderContent();
+    });
+    btnGroup.appendChild(editBtn);
+
+    headerRow.append(firstLineContent, btnGroup);
+    previewBox.appendChild(headerRow);
+
+    // 展開時の2行目以降（全行）の表示
+    if (parsed.hasRest && isExpanded) {
+      const restBox = document.createElement('div');
+      restBox.className =
+        'mt-2 border-t border-slate-200/80 pt-1.5 whitespace-pre-wrap leading-relaxed text-slate-600 text-[11px] cursor-pointer selection:bg-slate-200';
+      restBox.title = 'クリックしてメモを編集';
+      restBox.textContent = parsed.restLines.join('\n');
+      restBox.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isEditing = true;
+        renderContent();
+      });
+      previewBox.appendChild(restBox);
+    }
+
+    wrap.appendChild(previewBox);
+    refreshIcons(wrap);
+  };
+
+  renderContent();
+  return wrap;
+}
+
 function createSpotCard(
   spotValue: string,
   index: number,
   markerIndex = index,
-  dayIndex = state.activeDayIndex
+  dayIndex = state.activeDayIndex,
+  spotMemo = ''
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
@@ -791,16 +1005,29 @@ function createSpotCard(
     'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors duration-75 focus:border-slate-900 focus:ring-2 focus:ring-slate-200';
   input.addEventListener('input', (e) => {
     const day = state.days[dayIndex];
-    day.spots[index] = (e.target as HTMLInputElement).value;
-    if (dayIndex > 0 && index === 0 && day.autoStartSlot) {
-      const previousAccommodation = (state.days[dayIndex - 1].accommodation || '').trim();
-      const currentValue = (e.target as HTMLInputElement).value.trim();
-      const shouldKeepAuto = currentValue === previousAccommodation;
-      day.autoStart = shouldKeepAuto;
-      day.autoStartSlot = shouldKeepAuto && !!previousAccommodation;
-      day.autoStartValue = shouldKeepAuto ? previousAccommodation : '';
+    if (day && day.spots[index]) {
+      day.spots[index].name = (e.target as HTMLInputElement).value;
+      if (dayIndex > 0 && index === 0 && day.autoStartSlot) {
+        const previousAccommodation = (state.days[dayIndex - 1].accommodation || '').trim();
+        const currentValue = (e.target as HTMLInputElement).value.trim();
+        const shouldKeepAuto = currentValue === previousAccommodation;
+        day.autoStart = shouldKeepAuto;
+        day.autoStartSlot = shouldKeepAuto && !!previousAccommodation;
+        day.autoStartValue = shouldKeepAuto ? previousAccommodation : '';
+      }
+      saveState();
     }
-    saveState();
+  });
+
+  const memoComponent = createMemoComponent({
+    memo: spotMemo,
+    onSave: (newMemo) => {
+      const day = state.days[dayIndex];
+      if (day && day.spots[index]) {
+        day.spots[index].memo = newMemo;
+        saveState();
+      }
+    },
   });
 
   const controls = document.createElement('div');
@@ -860,7 +1087,7 @@ function createSpotCard(
   });
 
   controls.append(moveGroup, hint, removeBtn);
-  content.append(input, controls);
+  content.append(input, memoComponent, controls);
   row.append(handle, marker, content);
   card.appendChild(row);
   return card;
@@ -869,7 +1096,8 @@ function createSpotCard(
 function createAccommodationCard(
   accommodation: string,
   index: number,
-  dayIndex = state.activeDayIndex
+  dayIndex = state.activeDayIndex,
+  accommodationMemo = ''
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
@@ -930,6 +1158,17 @@ function createAccommodationCard(
     render();
   });
 
+  const memoComponent = createMemoComponent({
+    memo: accommodationMemo,
+    onSave: (newMemo) => {
+      const day = state.days[dayIndex];
+      if (day) {
+        day.accommodationMemo = newMemo;
+        saveState();
+      }
+    },
+  });
+
   const controls = document.createElement('div');
   controls.className = 'mt-2 flex items-center justify-between gap-2';
 
@@ -952,6 +1191,7 @@ function createAccommodationCard(
     const day = state.days[dayIndex];
     if (day) {
       day.accommodation = '';
+      day.accommodationMemo = '';
       day.autoAccommodation = false;
       syncAutoStarts();
     }
@@ -961,7 +1201,7 @@ function createAccommodationCard(
   });
 
   controls.append(badge, hint, removeBtn);
-  content.append(input, controls);
+  content.append(input, memoComponent, controls);
   row.append(spacer, marker, content);
   card.appendChild(row);
   return card;
@@ -971,7 +1211,8 @@ function createEndpointCard(
   location: string,
   index: number,
   label: '出発地点' | '到着地点',
-  dayIndex = state.activeDayIndex
+  dayIndex = state.activeDayIndex,
+  endpointMemo = ''
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
@@ -1034,6 +1275,18 @@ function createEndpointCard(
     render();
   });
 
+  const memoComponent = createMemoComponent({
+    memo: endpointMemo,
+    onSave: (newMemo) => {
+      if (label === '出発地点') {
+        state.departureMemo = newMemo;
+      } else if (label === '到着地点') {
+        state.arrivalMemo = newMemo;
+      }
+      saveState();
+    },
+  });
+
   const controls = document.createElement('div');
   controls.className = 'mt-2 flex items-center justify-between gap-2';
 
@@ -1056,12 +1309,15 @@ function createEndpointCard(
     if (label === '出発地点') {
       if (state.autoArrival) {
         state.arrival = state.departure;
+        state.arrivalMemo = state.departureMemo || '';
         state.autoArrival = false;
       }
       state.departure = '';
+      state.departureMemo = '';
       if (departureInputEl) departureInputEl.value = '';
     } else if (label === '到着地点') {
       state.arrival = '';
+      state.arrivalMemo = '';
       state.autoArrival = false;
     }
     state.openRouteMenuIndex = null;
@@ -1070,7 +1326,7 @@ function createEndpointCard(
   });
 
   controls.append(badge, hint, removeBtn);
-  content.append(input, controls);
+  content.append(input, memoComponent, controls);
   row.append(spacer, marker, content);
   card.appendChild(row);
   return card;
@@ -1247,11 +1503,11 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
 
   items.forEach((item, index) => {
     if (item.type === 'spot') {
-      body.appendChild(createSpotCard(item.value, item.spotIndex, index, dayIndex));
+      body.appendChild(createSpotCard(item.value, item.spotIndex, index, dayIndex, item.memo));
     } else if (item.type === 'accommodation') {
-      body.appendChild(createAccommodationCard(item.value, index, dayIndex));
+      body.appendChild(createAccommodationCard(item.value, index, dayIndex, item.memo));
     } else {
-      body.appendChild(createEndpointCard(item.value, index, item.label, dayIndex));
+      body.appendChild(createEndpointCard(item.value, index, item.label, dayIndex, item.memo));
     }
     if (index < items.length - 1) {
       body.appendChild(createRouteConnector(item.value, items[index + 1].value, index, dayIndex));

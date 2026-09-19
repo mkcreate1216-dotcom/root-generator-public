@@ -47,21 +47,26 @@ export function getDayItems(day: Day, dayIndex: number, state: AppState): DayIte
   const isFirstDay = dayIndex === 0;
   const isLastDay = dayIndex === state.days.length - 1;
   const departure = isFirstDay ? state.departure.trim() : '';
+  const departureMemo = isFirstDay ? (state.departureMemo || '').trim() : '';
   const arrival = isLastDay ? state.arrival.trim() : '';
+  const arrivalMemo = isLastDay ? (state.arrivalMemo || '').trim() : '';
   const accommodation = day.accommodation.trim();
+  const accommodationMemo = (day.accommodationMemo || '').trim();
   const items: DayItem[] = [];
 
   if (departure) {
-    items.push({ type: 'endpoint', value: departure, label: '出発地点' });
+    items.push({ type: 'endpoint', value: departure, memo: departureMemo, label: '出発地点' });
   }
   day.spots.forEach((spot, index) => {
-    items.push({ type: 'spot', value: spot, spotIndex: index });
+    const spotName = typeof spot === 'string' ? spot : spot.name;
+    const spotMemo = typeof spot === 'string' ? '' : spot.memo || '';
+    items.push({ type: 'spot', value: spotName, memo: spotMemo, spotIndex: index });
   });
   if (accommodation && !isLastDay) {
-    items.push({ type: 'accommodation', value: accommodation });
+    items.push({ type: 'accommodation', value: accommodation, memo: accommodationMemo });
   }
   if (arrival) {
-    items.push({ type: 'endpoint', value: arrival, label: '到着地点' });
+    items.push({ type: 'endpoint', value: arrival, memo: arrivalMemo, label: '到着地点' });
   }
   return items;
 }
@@ -78,6 +83,12 @@ export function generateItineraryText(state: AppState): string {
       } else {
         const suffix = item.type === 'endpoint' ? (item.label === '出発地点' ? ' (出発)' : ' (到着)') : '';
         lines.push(`・${item.value}${suffix}`);
+      }
+      if (item.memo && item.memo.trim()) {
+        const memoLines = item.memo.trim().split('\n');
+        memoLines.forEach((mLine) => {
+          lines.push(`  ${mLine.trim()}`);
+        });
       }
       const nextItem = items[index + 1];
       if (nextItem) {
