@@ -73,6 +73,7 @@ let scrollTimeoutId: ReturnType<typeof setTimeout> | null = null;
 let isTripMenuOpen = false;
 let accommodationDebounceId: ReturnType<typeof setTimeout> | null = null;
 let pendingAccommodationSync: { dayIndex: number; value: string } | null = null;
+let isTripConfirmed = false;
 const dayUndoStack: Array<{ index: number; day: Day }> = [];
 
 // DOM要素参照
@@ -82,6 +83,8 @@ const tripNameInputEl = document.getElementById('trip-name-input') as HTMLInputE
 const tripComboboxContainerEl = document.getElementById('trip-combobox-container');
 const tripComboboxToggleEl = document.getElementById('trip-combobox-toggle');
 const tripComboboxMenuEl = document.getElementById('trip-combobox-menu') as HTMLUListElement | null;
+const tripConfirmContainerEl = document.getElementById('trip-confirm-container') as HTMLDivElement | null;
+const tripConfirmBtnEl = document.getElementById('trip-confirm-btn') as HTMLButtonElement | null;
 const tripSwitcherEl = document.getElementById('trip-switcher') as HTMLSelectElement | null;
 const tripNewBtnEl = document.getElementById('trip-new-btn');
 const tripDeleteBtnEl = document.getElementById('trip-delete-btn') as HTMLButtonElement | null;
@@ -92,6 +95,14 @@ const addTypeNoteEl = document.getElementById('add-type-note') as HTMLParagraphE
 const addAccommodationScopeEl = document.getElementById('add-accommodation-scope') as HTMLDivElement;
 const addAccommodationScopeAllEl = document.getElementById('add-accommodation-scope-all') as HTMLButtonElement;
 const addAccommodationScopeTodayEl = document.getElementById('add-accommodation-scope-today') as HTMLButtonElement;
+const itinerarySectionEl = document.getElementById('itinerary-section') as HTMLDivElement | null;
+const headerMapSelectorEl = document.getElementById('header-map-selector-container') as HTMLDivElement | null;
+const mainCardEl = document.getElementById('main-card') as HTMLDivElement | null;
+const appHeaderContainerEl = document.getElementById('app-header-container') as HTMLDivElement | null;
+const lpHeroSectionEl = document.getElementById('lp-hero-section') as HTMLDivElement | null;
+const lpFeaturesSectionEl = document.getElementById('lp-features-section') as HTMLDivElement | null;
+const lpSamplesSectionEl = document.getElementById('lp-samples-section') as HTMLDivElement | null;
+const lpSlotWrapperEl = document.getElementById('lp-slot-wrapper') as HTMLDivElement | null;
 const endpointSectionEl = document.getElementById('endpoint-section') as HTMLDivElement;
 const departureFieldEl = document.getElementById('departure-field') as HTMLDivElement;
 const departureInputEl = document.getElementById('departure-input') as HTMLInputElement;
@@ -279,7 +290,7 @@ function createNewTrip(): void {
   saveState();
   const newTrip = {
     id: `trip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    tripName: `旅行${tripStore.trips.length + 1}`,
+    tripName: '',
     days: [createDay(1)],
     activeDayIndex: 0,
     departure: '',
@@ -290,6 +301,7 @@ function createNewTrip(): void {
   tripStore.trips.push(newTrip);
   tripStore.activeTripId = newTrip.id;
   tripStore.applyActiveTripToState(state);
+  isTripConfirmed = false;
   saveState();
   render();
   if (tripNameInputEl) {
@@ -306,7 +318,8 @@ function deleteTrip(tripId: string): void {
   const index = tripStore.trips.findIndex((t) => t.id === tripId);
   if (index === -1) return;
   const targetTrip = tripStore.trips[index];
-  const displayName = targetTrip.tripName && targetTrip.tripName.trim() ? targetTrip.tripName : `旅行${index + 1}`;
+  const displayName =
+    targetTrip.tripName && targetTrip.tripName.trim() ? targetTrip.tripName : `旅行${index + 1}（名称未設定）`;
   if (!confirm(`「${displayName}」を削除しますか？この操作は取り消せません。`)) {
     return;
   }
@@ -314,6 +327,7 @@ function deleteTrip(tripId: string): void {
   if (tripId === tripStore.activeTripId) {
     tripStore.activeTripId = tripStore.trips[Math.max(0, index - 1)].id;
     tripStore.applyActiveTripToState(state);
+    isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
   }
   saveState();
   render();
@@ -345,16 +359,17 @@ function renderTripComboboxMenu(): void {
       labelArea.appendChild(spacer);
     }
 
+    const displayName =
+      trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}（名称未設定）`;
     const label = document.createElement('span');
     label.className = 'truncate';
-    label.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
+    label.textContent = displayName;
     labelArea.appendChild(label);
 
     item.appendChild(labelArea);
 
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
-    const displayName = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
     deleteBtn.setAttribute('aria-label', `${displayName}を削除`);
     const singleTrip = tripStore.trips.length <= 1;
     if (singleTrip) {
@@ -379,8 +394,12 @@ function renderTripComboboxMenu(): void {
         saveState();
         tripStore.activeTripId = trip.id;
         tripStore.applyActiveTripToState(state);
+        isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
         saveState();
         render();
+      } else if (state.tripName && state.tripName.trim().length > 0) {
+        isTripConfirmed = true;
+        updateItineraryVisibility();
       }
       toggleTripMenu(false);
     });
@@ -425,7 +444,8 @@ function renderTripSwitcher(): void {
     tripStore.trips.forEach((trip, index) => {
       const option = document.createElement('option');
       option.value = trip.id;
-      option.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
+      option.textContent =
+        trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}（名称未設定）`;
       tripSwitcherEl.appendChild(option);
     });
     tripSwitcherEl.value = tripStore.activeTripId;
@@ -1610,6 +1630,62 @@ function updateActiveDayFromScroll(): void {
   }
 }
 
+function updateItineraryVisibility(): void {
+  const showItinerary = isTripConfirmed;
+
+  // LP要素の表示・非表示
+  if (lpHeroSectionEl) {
+    lpHeroSectionEl.classList.toggle('hidden', showItinerary);
+  }
+  if (lpFeaturesSectionEl) {
+    lpFeaturesSectionEl.classList.toggle('hidden', showItinerary);
+  }
+  if (lpSamplesSectionEl) {
+    lpSamplesSectionEl.classList.toggle('hidden', showItinerary);
+  }
+  if (tripConfirmContainerEl) {
+    tripConfirmContainerEl.classList.toggle('hidden', showItinerary);
+  }
+  if (appHeaderContainerEl) {
+    appHeaderContainerEl.classList.toggle('hidden', !showItinerary);
+  }
+
+  // メインカードのレイアウト（LP時は人間工学的中央、アプリ時は通常カード）
+  if (mainCardEl) {
+    if (showItinerary) {
+      mainCardEl.className =
+        'rounded-2xl border border-slate-200 bg-white shadow-sm block p-0 transition-all duration-300';
+    } else {
+      mainCardEl.className =
+        'rounded-3xl border border-slate-200/80 bg-white shadow-xs min-h-[82vh] flex flex-col items-center justify-center p-5 pb-20 sm:p-10 sm:pb-28 transition-all duration-300';
+    }
+  }
+
+  // 入力バーのラッパーのスタイル調整
+  if (lpSlotWrapperEl) {
+    if (showItinerary) {
+      lpSlotWrapperEl.className = 'w-full border-b border-slate-100 p-4 sm:p-5 bg-slate-50/40';
+    } else {
+      lpSlotWrapperEl.className = 'w-full max-w-xl mx-auto my-1';
+    }
+  }
+
+  // 日程セクションと固定日程タブ・マップセレクター
+  if (itinerarySectionEl) {
+    itinerarySectionEl.classList.toggle('hidden', !showItinerary);
+  }
+  if (dayTabsEl) {
+    dayTabsEl.classList.toggle('hidden', !showItinerary);
+    dayTabsEl.classList.toggle('flex', showItinerary);
+  }
+  if (headerMapSelectorEl) {
+    headerMapSelectorEl.classList.toggle('hidden', !showItinerary);
+    headerMapSelectorEl.classList.toggle('flex', showItinerary);
+  }
+
+  updateStickyOffsets();
+}
+
 function render(): void {
   ensureValidState();
   syncAutoStarts();
@@ -1619,6 +1695,7 @@ function render(): void {
   if (tripNameInputEl) {
     tripNameInputEl.value = state.tripName;
   }
+  updateItineraryVisibility();
   updateStickyOffsets();
   renderTripSwitcher();
   renderTabs();
@@ -1767,6 +1844,28 @@ function hideGlobalTooltip(): void {
   activeTooltipTarget = null;
 }
 
+function confirmTrip(): void {
+  const inputVal = (tripNameInputEl?.value || state.tripName || '').trim();
+  if (!inputVal) {
+    if (tripNameInputEl) {
+      tripNameInputEl.focus();
+    }
+    return;
+  }
+  state.tripName = inputVal;
+  isTripConfirmed = true;
+  saveState();
+  if (tripSwitcherEl) {
+    const activeOption = tripSwitcherEl.querySelector(`option[value="${tripStore.activeTripId}"]`);
+    if (activeOption) {
+      const index = tripStore.trips.findIndex((t) => t.id === tripStore.activeTripId);
+      activeOption.textContent = state.tripName;
+    }
+  }
+  updateItineraryVisibility();
+  render();
+}
+
 // イベントリスナー設定
 function setupEventListeners(): void {
   addSpotFormEl?.addEventListener('submit', (e) => {
@@ -1778,11 +1877,14 @@ function setupEventListeners(): void {
     tripNameInputEl.addEventListener('input', (e) => {
       state.tripName = (e.target as HTMLInputElement).value;
       saveState();
-      if (tripSwitcherEl) {
-        const activeOption = tripSwitcherEl.querySelector(`option[value="${tripStore.activeTripId}"]`);
-        if (activeOption) {
-          const index = tripStore.trips.findIndex((t) => t.id === tripStore.activeTripId);
-          activeOption.textContent = state.tripName.trim() ? state.tripName : `旅行${index + 1}`;
+      // 入力中は updateItineraryVisibility() を呼ばず画面遷移を防ぐ
+      if (isTripConfirmed) {
+        if (tripSwitcherEl) {
+          const activeOption = tripSwitcherEl.querySelector(`option[value="${tripStore.activeTripId}"]`);
+          if (activeOption) {
+            const index = tripStore.trips.findIndex((t) => t.id === tripStore.activeTripId);
+            activeOption.textContent = state.tripName.trim() ? state.tripName : `旅行${index + 1}（名称未設定）`;
+          }
         }
       }
       if (isTripMenuOpen) {
@@ -1792,9 +1894,40 @@ function setupEventListeners(): void {
     tripNameInputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         toggleTripMenu(false);
+      } else if (e.key === 'Enter' && !e.isComposing) {
+        e.preventDefault();
+        confirmTrip();
       }
     });
   }
+
+  tripConfirmBtnEl?.addEventListener('click', () => {
+    confirmTrip();
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('.sample-trip-tag').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const sampleTrip = btn.dataset.sampleTrip || btn.textContent?.trim();
+      if (sampleTrip && tripNameInputEl) {
+        tripNameInputEl.value = sampleTrip;
+        state.tripName = sampleTrip;
+        isTripConfirmed = true;
+        saveState();
+        if (tripSwitcherEl) {
+          const activeOption = tripSwitcherEl.querySelector(`option[value="${tripStore.activeTripId}"]`);
+          if (activeOption) {
+            const index = tripStore.trips.findIndex((t) => t.id === tripStore.activeTripId);
+            activeOption.textContent = sampleTrip;
+          }
+        }
+        if (isTripMenuOpen) {
+          renderTripComboboxMenu();
+        }
+        updateItineraryVisibility();
+        render();
+      }
+    });
+  });
 
   if (tripComboboxToggleEl) {
     tripComboboxToggleEl.addEventListener('click', (e) => {
@@ -1815,6 +1948,7 @@ function setupEventListeners(): void {
       saveState();
       tripStore.activeTripId = (e.target as HTMLSelectElement).value;
       tripStore.applyActiveTripToState(state);
+      isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
       saveState();
       render();
     });
@@ -1963,6 +2097,7 @@ function setupEventListeners(): void {
 export function init(): void {
   tripStore.load();
   tripStore.applyActiveTripToState(state);
+  isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
   ensureValidState();
   syncAutoStarts();
   saveState();

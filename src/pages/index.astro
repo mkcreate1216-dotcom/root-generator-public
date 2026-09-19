@@ -1,17 +1,31 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
+import LpHero from '../components/LpHero.astro';
+import TripCombobox from '../components/TripCombobox.astro';
 import SpotAddForm from '../components/SpotAddForm.astro';
 import DayTabs from '../components/DayTabs.astro';
 import Tooltip from '../components/Tooltip.astro';
 ---
 
 <Layout>
-  <div id="app-wrapper" class="mx-auto w-full max-w-5xl">
-    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <Header />
+  <div id="app-wrapper" class="mx-auto w-full max-w-5xl transition-all duration-300">
+    <div
+      id="main-card"
+      class="rounded-3xl border border-slate-200/80 bg-white shadow-xs min-h-[82vh] flex flex-col items-center justify-center p-5 pb-20 sm:p-10 sm:pb-28 transition-all duration-300"
+    >
+      <!-- アプリ用ヘッダー（旅行名入力後に上部に表示） -->
+      <div id="app-header-container" class="hidden w-full">
+        <Header />
+      </div>
 
-      <section class="p-4 pt-2 sm:p-6 sm:pt-2">
+      <!-- LPヒーロー + 旅行タイトル入力コンボボックス（視覚的中心に配置） -->
+      <LpHero>
+        <TripCombobox />
+      </LpHero>
+
+      <!-- 日程セクション（旅行名入力後に展開） -->
+      <section id="itinerary-section" class="hidden w-full p-4 pt-2 sm:p-6 sm:pt-2">
         <DayTabs />
         <SpotAddForm />
 
@@ -57,4 +71,3 @@ import Tooltip from '../components/Tooltip.astro';
     import '../scripts/app';
   </script>
 </Layout>
-

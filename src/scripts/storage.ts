@@ -30,7 +30,7 @@ export function generateTripId(): string {
   return `trip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function createTripEntry(tripName: string): Trip {
+export function createTripEntry(tripName = ''): Trip {
   return {
     id: generateTripId(),
     tripName: tripName || '',
@@ -123,7 +123,7 @@ export class TripStore {
           Array.isArray(parsed.trips) && parsed.trips.length
             ? parsed.trips.slice(0, MAX_TRIPS).map(sanitizeTrip)
             : [];
-        if (!this.trips.length) this.trips = [createTripEntry('旅行1')];
+        if (!this.trips.length) this.trips = [createTripEntry('')];
         this.activeTripId = this.trips.some((t) => t.id === parsed.activeTripId)
           ? parsed.activeTripId
           : this.trips[0].id;
@@ -133,7 +133,7 @@ export class TripStore {
       this.trips = [];
     }
     const legacy = migrateLegacyTrip();
-    this.trips = [legacy || createTripEntry('旅行1')];
+    this.trips = [legacy || createTripEntry('')];
     this.activeTripId = this.trips[0].id;
   }
 
