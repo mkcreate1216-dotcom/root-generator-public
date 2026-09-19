@@ -24,7 +24,7 @@ import {
   getStoredMapType,
 } from './storage';
 import { getDayRouteUrl, openRoute } from './maps';
-import { copyShareItinerary, getDayItems, showToast } from './share';
+import { copyShareItinerary, extractDataFromUrl, parseShareUrlData, getDayItems, showToast } from './share';
 import { animateSpotReorder } from './flip';
 
 function refreshIcons(_root?: HTMLElement): void {
@@ -733,13 +733,14 @@ function renderTabs(): void {
   divider.setAttribute('role', 'separator');
   dayTabsEl.appendChild(divider);
 
+
   const shareButton = document.createElement('button');
   shareButton.type = 'button';
   shareButton.id = 'share-btn';
   shareButton.className =
     'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border border-slate-300 bg-white p-0 text-slate-700 shadow-xs transition-all duration-75 hover:scale-105 hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:shadow-md active:scale-90 cursor-pointer';
-  shareButton.setAttribute('aria-label', 'LINE共有用に旅程をコピー');
-  shareButton.setAttribute('data-tooltip', 'LINE共有用に旅程をコピー');
+  shareButton.setAttribute('aria-label', 'URL共有');
+  shareButton.setAttribute('data-tooltip', 'URL共有');
   shareButton.setAttribute('data-tooltip-pos', 'left');
   shareButton.innerHTML = '<i data-lucide="share-2" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
   shareButton.addEventListener('click', () => {
@@ -1905,29 +1906,6 @@ function setupEventListeners(): void {
     confirmTrip();
   });
 
-  document.querySelectorAll<HTMLButtonElement>('.sample-trip-tag').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const sampleTrip = btn.dataset.sampleTrip || btn.textContent?.trim();
-      if (sampleTrip && tripNameInputEl) {
-        tripNameInputEl.value = sampleTrip;
-        state.tripName = sampleTrip;
-        isTripConfirmed = true;
-        saveState();
-        if (tripSwitcherEl) {
-          const activeOption = tripSwitcherEl.querySelector(`option[value="${tripStore.activeTripId}"]`);
-          if (activeOption) {
-            const index = tripStore.trips.findIndex((t) => t.id === tripStore.activeTripId);
-            activeOption.textContent = sampleTrip;
-          }
-        }
-        if (isTripMenuOpen) {
-          renderTripComboboxMenu();
-        }
-        updateItineraryVisibility();
-        render();
-      }
-    });
-  });
 
   if (tripComboboxToggleEl) {
     tripComboboxToggleEl.addEventListener('click', (e) => {
@@ -2095,9 +2073,30 @@ function setupEventListeners(): void {
 
 // アプリ初期化
 export function init(): void {
+  const rawShareData = extractDataFromUrl();
+  const sharedTrip = rawShareData ? parseShareUrlData(rawShareData) : null;
+
   tripStore.load();
-  tripStore.applyActiveTripToState(state);
-  isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
+
+  if (sharedTrip) {
+    const existingIndex = tripStore.trips.findIndex((t) => t.id === sharedTrip.id);
+    if (existingIndex >= 0) {
+      tripStore.trips[existingIndex] = sharedTrip;
+    } else {
+      tripStore.trips.unshift(sharedTrip);
+      if (tripStore.trips.length > MAX_TRIPS) {
+        tripStore.trips = tripStore.trips.slice(0, MAX_TRIPS);
+      }
+    }
+    tripStore.activeTripId = sharedTrip.id;
+    tripStore.applyActiveTripToState(state);
+    isTripConfirmed = true;
+    showToast('共有された旅行プランを読み込みました！');
+  } else {
+    tripStore.applyActiveTripToState(state);
+    isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
+  }
+
   ensureValidState();
   syncAutoStarts();
   saveState();

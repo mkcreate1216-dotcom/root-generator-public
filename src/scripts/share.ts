@@ -1,5 +1,7 @@
-import type { AppState, Day, DayItem, MapType } from './types';
+import LZString from 'lz-string';
+import type { AppState, Day, DayItem, MapType, Trip } from './types';
 import { getRouteUrl } from './maps';
+import { sanitizeTrip } from './storage';
 
 let currentToastEl: HTMLElement | null = null;
 let toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -104,6 +106,16 @@ export function generateItineraryText(state: AppState): string {
     lines.push('');
   });
 
+  try {
+    const shareUrl = createShareUrl(state);
+    if (shareUrl) {
+      lines.push('▼ Webでしおりを開く');
+      lines.push(shareUrl);
+    }
+  } catch (err) {
+    console.warn('Failed to append share URL to itinerary text:', err);
+  }
+
   return lines.join('\n').trim();
 }
 
@@ -124,4 +136,106 @@ export async function copyShareItinerary(triggerBtn: HTMLElement | null, state: 
     showToast('コピーに失敗しました');
   }
 }
+
+export interface SharePayload {
+  tripName: string;
+  days: Day[];
+  departure: string;
+  departureMemo?: string;
+  arrival: string;
+  arrivalMemo?: string;
+  autoArrival: boolean;
+  mapType: MapType;
+}
+
+export function createShareUrl(state: AppState): string {
+  const payload: SharePayload = {
+    tripName: state.tripName || '',
+    days: state.days,
+    departure: state.departure || '',
+    departureMemo: state.departureMemo || '',
+    arrival: state.arrival || '',
+    arrivalMemo: state.arrivalMemo || '',
+    autoArrival: state.autoArrival,
+    mapType: state.mapType,
+  };
+  const jsonStr = JSON.stringify(payload);
+  const compressed = LZString.compressToEncodedURIComponent(jsonStr);
+  const url = new URL(window.location.href);
+  url.searchParams.set('data', compressed);
+  url.hash = '';
+  return url.toString();
+}
+
+export function extractDataFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const dataFromQuery = urlParams.get('data');
+    if (dataFromQuery) return dataFromQuery;
+
+    const hash = window.location.hash.replace(/^#/, '');
+    if (hash) {
+      if (hash.startsWith('data=')) {
+        return hash.slice(5);
+      }
+      const hashParams = new URLSearchParams(hash);
+      const dataFromHash = hashParams.get('data');
+      if (dataFromHash) return dataFromHash;
+    }
+  } catch (e) {
+    console.warn('URL parsing error:', e);
+  }
+  return null;
+}
+
+export function parseShareUrlData(encodedData: string): Trip | null {
+  try {
+    if (!encodedData || typeof encodedData !== 'string') return null;
+    let jsonStr = LZString.decompressFromEncodedURIComponent(encodedData);
+    if (!jsonStr) {
+      // フォールバック: 通常のBase64デコードを試みる
+      try {
+        jsonStr = decodeURIComponent(escape(atob(encodedData)));
+      } catch {}
+    }
+    if (!jsonStr) return null;
+    const parsed = JSON.parse(jsonStr);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return sanitizeTrip(parsed);
+  } catch (err) {
+    console.warn('Failed to parse share URL data:', err);
+    return null;
+  }
+}
+
+export async function copyShareUrl(triggerBtn: HTMLElement | null, state: AppState): Promise<void> {
+  try {
+    const url = createShareUrl(state);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(url);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    showToast('URLをコピーしました！');
+
+    if (triggerBtn) {
+      triggerBtn.classList.add('!text-emerald-600', '!border-emerald-600');
+      setTimeout(() => {
+        triggerBtn.classList.remove('!text-emerald-600', '!border-emerald-600');
+      }, 1500);
+    }
+  } catch (err) {
+    console.error('Failed to copy share URL:', err);
+    showToast('URLのコピーに失敗しました');
+  }
+}
+
 
