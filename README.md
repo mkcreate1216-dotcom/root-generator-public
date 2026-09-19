@@ -10,7 +10,7 @@
 「たびおり」は、旅行の計画・整理から当日の移動経路確認、同行者への共有までをシンプルに行えるWebアプリケーションです。  
 シングルページかつサーバーレスな構成（Vanilla JS + Tailwind CSS）を採用しており、ブラウザのローカルストレージを活用して手軽に動作します。
 
-- **GitHub Pages**: [https://muniru111213-cpu.github.io/root-generator-public/](https://muniru111213-cpu.github.io/root-generator-public/)
+- **GitHub Pages**: [https://mkcreate1216-dotcom.github.io/root-generator-public/](https://mkcreate1216-dotcom.github.io/root-generator-public/)
 
 ---
 
