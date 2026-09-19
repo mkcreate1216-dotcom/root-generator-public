@@ -1,0 +1,60 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import SpotAddForm from '../components/SpotAddForm.astro';
+import DayTabs from '../components/DayTabs.astro';
+import Tooltip from '../components/Tooltip.astro';
+---
+
+<Layout>
+  <div id="app-wrapper" class="mx-auto w-full max-w-5xl">
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <Header />
+
+      <section class="p-4 pt-2 sm:p-6 sm:pt-2">
+        <DayTabs />
+        <SpotAddForm />
+
+        <div id="timeline" class="space-y-0 pb-[70vh] pr-[3.75rem] sm:pr-0"></div>
+
+        <div id="endpoint-section" class="hidden mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+          <div id="departure-field">
+            <label class="mb-2 block text-sm font-medium text-slate-700" for="departure-input">出発地点</label>
+            <input
+              id="departure-input"
+              type="text"
+              placeholder="例: 東京駅"
+              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+            />
+          </div>
+        </div>
+
+        <div id="accommodation-section" class="hidden mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+          <label class="mb-2 block text-sm font-medium text-slate-700" for="accommodation-input">宿泊地</label>
+          <div class="mb-3 flex gap-2" role="group" aria-label="宿泊地の変更範囲">
+            <button id="accommodation-scope-all" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer">
+              以降すべて
+            </button>
+            <button id="accommodation-scope-next-day" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer">
+              当日・翌日だけ
+            </button>
+          </div>
+          <input
+            id="accommodation-input"
+            type="text"
+            placeholder="例: 京都駅周辺"
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+          />
+          <p class="mt-2 text-xs text-slate-500">入力すると翌日の出発地点（先頭）にデフォルトで反映されます。</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <Tooltip />
+
+  <script>
+    import '../scripts/app';
+  </script>
+</Layout>
+

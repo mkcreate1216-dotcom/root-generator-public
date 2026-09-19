@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+summary {
+  list-style: none;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 日程タグ（day-tabs）との配置調整: スマホ時はカード全幅＋タイムライン側でTAGを吸収 */
+#app-wrapper {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+@media (min-width: 640px) {
+  #app-wrapper {
+    padding-left: 1.5rem;
+    /* デスクトップで十分な余白があるときは中央配置、狭くなって日程タグと重なりそうになったら右側が縮む */
+    padding-right: max(1.5rem, calc(6.5rem - max(0px, (100vw - 64rem) / 2)));
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+  }
+}
+
+#day-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+#day-tabs {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* グローバル・ホバーメッセージ（ツールチップ: グレー背景に黒文字） */
+#app-tooltip {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 75ms ease;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.375rem;
+  background-color: #e2e8f0; /* グレー背景 (slate-200) */
+  color: #0f172a; /* 黒文字 (slate-900) */
+  border: 1px solid #cbd5e1; /* 境界線 (slate-300) */
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  top: -9999px;
+  left: -9999px;
+}
+
+#app-tooltip.is-visible {
+  opacity: 1;
+}
+
+#app-tooltip-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 4px solid transparent;
+  pointer-events: none;
+}
+
+/* 日程詳細（details）の開閉 chevron アイコンの回転アニメーション */
+details summary .day-chevron {
+  transition: transform 200ms ease;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+
+details[open] summary .day-chevron {
+  transform: rotate(0deg);
+}
+

@@ -1,0 +1,28 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = 'たびおり - 旅のしおり・ルート作成ツール',
+  description = '予定を縦糸に、想い出を横糸に。スポットや宿泊地をタイムラインに追加するだけで、旅程の作成からルート確認・LINE共有まで完結する旅のしおり作成ツール。',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-900">
+    <slot />
+  </body>
+</html>
+

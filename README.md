@@ -8,9 +8,7 @@
 ## 概要
 
 「たびおり」は、旅行の計画・整理から当日の移動経路確認、同行者への共有までをシンプルに行えるWebアプリケーションです。  
-シングルページかつサーバーレスな構成（Vanilla JS + Tailwind CSS）を採用しており、ブラウザのローカルストレージを活用して手軽に動作します。
-
-- **GitHub Pages**: [https://mkcreate1216-dotcom.github.io/root-generator-public/](https://mkcreate1216-dotcom.github.io/root-generator-public/)
+**Astro** と **Tailwind CSS**、**TypeScript** によるモダンな静的サイトアーキテクチャを採用しており、高速・軽量な動作と保守性を両立しています。データはブラウザのLocalStorageを活用して手軽に永続化されます。
 
 ---
 
@@ -23,14 +21,14 @@
   - スポット名のインライン編集対応。
 
 - **地図アプリ連携（ルート案内）**
-  - ヘッダー右上のマップ選択UI（マップアイコン付き）から、Google MapsとApple Mapを切り替え可能。選択したマップがルート案内やLINE共有テキストに反映されます。
+  - ヘッダー右上のマップ選択UI（マップアイコン付き）から、Google MapsとApple Mapsをワンクリック切り替え可能。
   - 区間の「ルート」ボタンを押すだけで、選択中のマップで直接ルート案内を開くワンクリック起動。
   - 1日の見出しをクリックして、選択中のマップで全地点を経由地に含めたまとめルートを一括表示。
 
 - **複数日程（Day）の管理**
   - 画面端のフローティングタブから各日程へスムーズスクロール。
   - 閲覧中の日程に応じたタブのアクティブ追従。
-  - 誤操作を防ぐ日程削除のアンドゥ（元に戻す）機能。
+  - 誤操作を防ぐ日程削除のアンドゥ（元に戻す、Ctrl+Z / ⌘+Z ショートカット対応）。
 
 - **複数旅行の保存と切り替え**
   - ブラウザのLocalStorageに最大3つの旅行プランを保存。
@@ -44,40 +42,17 @@
 
 ---
 
-## 使い方
-
-```text
-1. 旅行名の入力
-   └─ 例:「京都・奈良 2泊3日」
-
-2. 地点の追加
-   ├─ 種別の選択（スポット / 発着地点 / 宿泊地）
-   └─ 地点名を入力して追加
-
-3. ルートと順序の整理
-   ├─ ドラッグまたは上下ボタンで巡る順序を調整
-   └─ 区間コネクタから地図アプリで経路を確認
-
-4. 日程の追加と連動
-   ├─ 宿泊地を入力すると翌日の出発地に自動連携
-   └─「＋ 日程を追加」から複数日の旅程を作成
-
-5. 同行者への共有
-   └─ 右側の共有ボタンからテキストをコピーして共有
-```
-
----
-
 ## 技術スタック
 
 | 分類 | 技術 / ツール | 役割 |
 | :--- | :--- | :--- |
-| フロントエンド | HTML5 / CSS3 / Vanilla JavaScript | 高速・軽量なシングルページ実装 |
-| スタイリング | Tailwind CSS (CDN) | モノトーン基調のUIデザイン |
-| アイコン | Lucide Icons (CDN) | ベクターアイコン表示 |
+| フレームワーク | [Astro](https://astro.build/) (v4) | 高速な静的サイト生成 (SSG) & アイランドアーキテクチャ |
+| スタイリング | [Tailwind CSS](https://tailwindcss.com/) (v3) | モノトーン基調のユーティリティファーストUIデザイン |
+| 言語 | TypeScript | 型安全なアプリケーションロジック |
+| アイコン | [Lucide Icons](https://lucide.dev/) | 軽量ベクターアイコン |
 | データ永続化 | LocalStorage API | ブラウザ内でのデータ保持 |
 | 地図連携 | Google Maps / Apple Maps URL Scheme | 経路案内・経由地指定ルート生成 |
-| デプロイ | GitHub Pages / GitHub Actions | 静的ホスティング |
+| デプロイ基盤 | [Cloudflare Pages](https://pages.cloudflare.com/) / GitHub Actions | 超高速なエッジネットワーク配信 |
 
 ---
 
@@ -87,31 +62,99 @@
 root-generator-public/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml       # GitHub Pages 自動デプロイワークフロー
-├── docs/
-│   └── index.html           # 「たびおり」アプリケーション本体
+│       └── deploy.yml            # GitHub Actions (ビルド & Cloudflare Pagesデプロイ)
+├── public/
+│   └── favicon.svg               # アプリケーションファビコン
 ├── src/
-│   └── App.js               # ルート生成コンポーネント（Reactプロトタイプ）
-└── README.md                # プロジェクトドキュメント
+│   ├── components/               # Astro UIコンポーネント
+│   │   ├── Header.astro          # ヘッダー・地図セレクター
+│   │   ├── SpotAddForm.astro     # スポット追加・旅行名コンボボックス
+│   │   ├── DayTabs.astro         # 右側フローティング日程タブ
+│   │   └── Tooltip.astro         # グローバルツールチップ
+│   ├── layouts/
+│   │   └── Layout.astro          # 共通HTMLレイアウト・メタデータ
+│   ├── pages/
+│   │   └── index.astro           # メインページ
+│   ├── scripts/                  # TypeScript アプリケーションロジック
+│   │   ├── types.ts              # 型定義 (Trip, Day, MapType 等)
+│   │   ├── storage.ts            # LocalStorage 永続化・旅行データ管理
+│   │   ├── maps.ts               # Google / Apple Maps ルートURL生成
+│   │   ├── share.ts              # LINE共有テキスト生成・トースト通知
+│   │   ├── flip.ts               # FLIP並び替えアニメーション
+│   │   └── app.ts                # メインコントローラー・イベント制御
+│   └── styles/
+│       └── global.css            # グローバルCSS & カスタムユーティリティ
+├── astro.config.mjs              # Astro 設定ファイル
+├── tailwind.config.mjs           # Tailwind CSS 設定ファイル
+├── tsconfig.json                 # TypeScript 設定ファイル
+├── wrangler.toml                 # Cloudflare Pages 設定ファイル
+└── package.json
 ```
 
 ---
 
-## ローカルでの実行方法
+## ローカルでの開発・実行方法
 
-ビルド環境の構築やパッケージのインストールは不要です。
+### 動作要件
+- Node.js 18.20+ または 20+ (Node.js 20 LTS 推奨)
+- npm 10+
 
-### ブラウザで直接開く場合
-`docs/index.html` をブラウザにドラッグ＆ドロップして開きます。
-
-### ローカルサーバーを起動する場合
+### 1. 依存パッケージのインストール
 ```bash
-# Python 3を使用する場合
-python3 -m http.server 8000 --directory docs
-
-# アクセスURL:
-# http://localhost:8000
+npm install
 ```
+
+### 2. 開発サーバーの起動
+```bash
+npm run dev
+# アクセスURL: http://localhost:4321
+```
+
+### 3. プロダクションビルド
+```bash
+npm run build
+```
+
+ビルド成果物は `dist/` ディレクトリに出力されます。
+
+### 4. ビルド成果物のローカルプレビュー
+```bash
+npm run preview
+```
+
+---
+
+## Cloudflare Pages へのデプロイ方法
+
+以下のいずれかの方法でデプロイできます。
+
+### 方法 1: Cloudflare ダッシュボードから直接連携（推奨）
+
+最も簡単で設定不要な方法です。
+
+1. [Cloudflare ダッシュボード](https://dash.cloudflare.com/) にログイン
+2. **Workers & Pages** > **Create application** > **Pages** > **Connect to Git** を選択
+3. GitHub アカウントを認証し、`root-generator-public` リポジトリを選択
+4. ビルド設定を入力：
+   - **Framework preset**: `Astro`
+   - **Build command**: `npm run build`
+   - **Build output directory**: `dist`
+   - **Environment variables** (環境変数):
+     - 変数名: `NODE_VERSION`
+     - 値: `20`
+5. **Save and Deploy** をクリック
+
+以降は `main` ブランチにプッシュするだけで、Cloudflare 側で自動ビルドと全世界エッジへの即時デプロイが行われます。
+
+### 方法 2: GitHub Actions による自動デプロイ
+
+リポジトリ内の `.github/workflows/deploy.yml` により、GitHub Actions 経由でデプロイすることも可能です。
+
+1. Cloudflare ダッシュボードの **My Profile** > **API Tokens** で「Cloudflare Pages 編集権限」を持つ API トークンを発行
+2. GitHub リポジトリの **Settings** > **Secrets and variables** > **Actions** に以下を登録：
+   - `CLOUDFLARE_API_TOKEN`: 発行したAPIトークン
+   - `CLOUDFLARE_ACCOUNT_ID`: CloudflareのアカウントID
+3. `main` ブランチにプッシュすると、GitHub Actions がビルド成果物を Cloudflare Pages に自動デプロイします。
 
 ---
 
