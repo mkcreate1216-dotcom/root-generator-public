@@ -992,6 +992,7 @@
         const note =
           state.addLocationType === "departure"
             ? "到着地点は後から上書きできます。"
+            ? "後から上書きできます。"
             : "";
         addTypeNoteEl.textContent = note;
         addTypeNoteEl.classList.toggle("hidden", !note);

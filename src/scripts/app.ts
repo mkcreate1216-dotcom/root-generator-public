@@ -500,7 +500,7 @@ function renderAddSpotOptions(): void {
     addLocationTypeSelectEl.value = state.addLocationType;
   }
   addAccommodationScopeEl.classList.toggle('hidden', state.addLocationType !== 'accommodation');
-  const note = state.addLocationType === 'departure' ? '到着地点は後から上書きできます。' : '';
+  const note = state.addLocationType === 'departure' ? '後から上書きできます。' : '';
   addTypeNoteEl.textContent = note;
   addTypeNoteEl.classList.toggle('hidden', !note);
   setTagStyle(addAccommodationScopeAllEl, state.addAccommodationScope === 'all');
