@@ -14,6 +14,7 @@ import {
   Pencil,
   Clock,
   FileText,
+  MapPin,
 } from 'lucide';
 import type { AppState, Day, MapType } from './types';
 import {
@@ -44,6 +45,7 @@ function refreshIcons(_root?: HTMLElement): void {
       Pencil,
       Clock,
       FileText,
+      MapPin,
     },
   });
 }
@@ -91,7 +93,8 @@ const tripNewBtnEl = document.getElementById('trip-new-btn');
 const tripDeleteBtnEl = document.getElementById('trip-delete-btn') as HTMLButtonElement | null;
 const newSpotInputEl = document.getElementById('new-spot-input') as HTMLInputElement;
 const addSpotFormEl = document.getElementById('add-spot-form') as HTMLFormElement;
-const addLocationTypeSelectEl = document.getElementById('add-location-type-select') as HTMLSelectElement;
+const addTypeDepartureEl = document.getElementById('add-type-departure') as HTMLInputElement | null;
+const addTypeAccommodationEl = document.getElementById('add-type-accommodation') as HTMLInputElement | null;
 const addTypeNoteEl = document.getElementById('add-type-note') as HTMLParagraphElement;
 const addAccommodationScopeEl = document.getElementById('add-accommodation-scope') as HTMLDivElement;
 const addAccommodationScopeAllEl = document.getElementById('add-accommodation-scope-all') as HTMLButtonElement;
@@ -535,8 +538,11 @@ function setTagStyle(button: HTMLButtonElement, selected: boolean): void {
 }
 
 function renderAddSpotOptions(): void {
-  if (addLocationTypeSelectEl) {
-    addLocationTypeSelectEl.value = state.addLocationType;
+  if (addTypeDepartureEl) {
+    addTypeDepartureEl.checked = state.addLocationType === 'departure';
+  }
+  if (addTypeAccommodationEl) {
+    addTypeAccommodationEl.checked = state.addLocationType === 'accommodation';
   }
   addAccommodationScopeEl.classList.toggle('hidden', state.addLocationType !== 'accommodation');
   const note = state.addLocationType === 'departure' ? '後から上書きできます。' : '';
@@ -2026,12 +2032,17 @@ function setupEventListeners(): void {
     });
   }
 
-  if (addLocationTypeSelectEl) {
-    addLocationTypeSelectEl.addEventListener('change', (e) => {
-      state.addLocationType = (e.target as HTMLSelectElement).value as any;
-      renderAddSpotOptions();
-    });
-  }
+  addTypeDepartureEl?.addEventListener('change', (e) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    state.addLocationType = checked ? 'departure' : 'spot';
+    renderAddSpotOptions();
+  });
+
+  addTypeAccommodationEl?.addEventListener('change', (e) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    state.addLocationType = checked ? 'accommodation' : 'spot';
+    renderAddSpotOptions();
+  });
 
   addAccommodationScopeAllEl?.addEventListener('click', () => {
     state.addAccommodationScope = 'all';

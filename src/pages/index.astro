@@ -1,6 +1,5 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import Header from '../components/Header.astro';
 import LpHero from '../components/LpHero.astro';
 import TripCombobox from '../components/TripCombobox.astro';
 import SpotAddForm from '../components/SpotAddForm.astro';
@@ -14,10 +13,7 @@ import Tooltip from '../components/Tooltip.astro';
       id="main-card"
       class="rounded-3xl border border-slate-200/80 bg-white shadow-xs min-h-[82vh] flex flex-col items-center justify-center p-5 pb-20 sm:p-10 sm:pb-28 transition-all duration-300"
     >
-      <!-- アプリ用ヘッダー（旅行名入力後に上部に表示） -->
-      <div id="app-header-container" class="hidden w-full">
-        <Header />
-      </div>
+      <div id="app-header-container" class="hidden"></div>
 
       <!-- LPヒーロー（タイトル・特徴） -->
       <LpHero />
