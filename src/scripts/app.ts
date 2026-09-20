@@ -15,6 +15,8 @@ import {
   Clock,
   FileText,
   MapPin,
+  CloudUpload,
+  RefreshCw,
 } from 'lucide';
 import type { AppState, Day, MapType } from './types';
 import {
@@ -27,6 +29,7 @@ import {
 import { getDayRouteUrl, openRoute } from './maps';
 import { copyShareItinerary, extractDataFromUrl, parseShareUrlData, getDayItems, showToast } from './share';
 import { animateSpotReorder } from './flip';
+import { collabManager } from './collab';
 
 function refreshIcons(_root?: HTMLElement): void {
   createIcons({
@@ -46,6 +49,8 @@ function refreshIcons(_root?: HTMLElement): void {
       Clock,
       FileText,
       MapPin,
+      CloudUpload,
+      RefreshCw,
     },
   });
 }
@@ -95,7 +100,8 @@ const newSpotInputEl = document.getElementById('new-spot-input') as HTMLInputEle
 const addSpotFormEl = document.getElementById('add-spot-form') as HTMLFormElement;
 const addTypeDepartureEl = document.getElementById('add-type-departure') as HTMLInputElement | null;
 const addTypeAccommodationEl = document.getElementById('add-type-accommodation') as HTMLInputElement | null;
-const addTypeNoteEl = document.getElementById('add-type-note') as HTMLParagraphElement;
+const addTypeNoteEl = document.getElementById('add-type-note') as HTMLSpanElement | null;
+const addTypeDefaultHintEl = document.getElementById('add-type-default-hint') as HTMLSpanElement | null;
 const addAccommodationScopeEl = document.getElementById('add-accommodation-scope') as HTMLDivElement;
 const addAccommodationScopeAllEl = document.getElementById('add-accommodation-scope-all') as HTMLButtonElement;
 const addAccommodationScopeTodayEl = document.getElementById('add-accommodation-scope-today') as HTMLButtonElement;
@@ -130,6 +136,7 @@ function ensureValidState(): void {
 
 function saveState(): void {
   tripStore.save(state);
+  collabManager.markUnsaved();
 }
 
 function syncAutoStarts(): void {
@@ -203,7 +210,7 @@ function scrollToDay(index: number): void {
   updateStickyOffsets();
   const totalOffset = lpSlotWrapperEl ? Math.round(lpSlotWrapperEl.getBoundingClientRect().height) : 115;
   const sectionTop = section.getBoundingClientRect().top + window.scrollY;
-  const targetScrollY = Math.max(0, sectionTop - totalOffset + 2);
+  const targetScrollY = Math.max(0, sectionTop - totalOffset - 8);
   window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
 }
 
@@ -544,16 +551,34 @@ function renderAddSpotOptions(): void {
   if (addTypeAccommodationEl) {
     addTypeAccommodationEl.checked = state.addLocationType === 'accommodation';
   }
-  addAccommodationScopeEl.classList.toggle('hidden', state.addLocationType !== 'accommodation');
-  const note = state.addLocationType === 'departure' ? '後から上書きできます。' : '';
-  addTypeNoteEl.textContent = note;
-  addTypeNoteEl.classList.toggle('hidden', !note);
+
+  const isAccommodation = state.addLocationType === 'accommodation';
+  const isDeparture = state.addLocationType === 'departure';
+
+  // 宿泊地オプション: 同じ行内に inline-flex で表示
+  if (addAccommodationScopeEl) {
+    addAccommodationScopeEl.classList.toggle('hidden', !isAccommodation);
+    addAccommodationScopeEl.classList.toggle('inline-flex', isAccommodation);
+  }
+
+  // 発着地点オプション: 同じ行内に表示
+  const note = isDeparture ? '後から上書きできます。' : '';
+  if (addTypeNoteEl) {
+    addTypeNoteEl.textContent = note;
+    addTypeNoteEl.classList.toggle('hidden', !note);
+  }
+
+  // 未選択時のみ「（未選択時はスポット）」を表示
+  if (addTypeDefaultHintEl) {
+    addTypeDefaultHintEl.classList.toggle('hidden', isAccommodation || isDeparture);
+  }
+
   setTagStyle(addAccommodationScopeAllEl, state.addAccommodationScope === 'all');
   setTagStyle(addAccommodationScopeTodayEl, state.addAccommodationScope === 'today');
   newSpotInputEl.placeholder =
-    state.addLocationType === 'departure'
+    isDeparture
       ? '例: 東京駅'
-      : state.addLocationType === 'accommodation'
+      : isAccommodation
         ? '例: 京都駅周辺'
         : '例: 浅草寺';
   updateStickyOffsets();
@@ -589,16 +614,36 @@ function addSpot(): void {
   render();
 }
 
+let isAnimatingDayTabs = false;
+
 function addDay(): void {
+  if (isAnimatingDayTabs) return;
+  isAnimatingDayTabs = true;
+  isScrollingToTab = true;
+
+  const newDayIndex = state.days.length;
   const prevAccommodation = (state.days[state.days.length - 1].accommodation || '').trim();
-  state.days.push(createDay(state.days.length + 1, prevAccommodation));
-  state.activeDayIndex = state.days.length - 1;
+  state.days.push(createDay(newDayIndex + 1, prevAccommodation));
+  state.activeDayIndex = newDayIndex;
   saveState();
   render();
-  document.getElementById(`day-section-${state.activeDayIndex}`)?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start',
-  });
+
+  // ＋ボタンと既存DayTagの間に隙間ができ、そこに右から追加されたDaysTagがスライドアニメーションで表示
+  const newTagBtn = dayTabsEl?.querySelector<HTMLElement>(`[data-day-index="${newDayIndex}"]`);
+  if (newTagBtn) {
+    newTagBtn.classList.add('day-tag-inserting');
+    setTimeout(() => {
+      newTagBtn.classList.remove('day-tag-inserting');
+    }, 550);
+  }
+
+  // スポットカード側はアニメーションさせず、新日程へ自然にスクロール
+  scrollToDay(newDayIndex);
+
+  setTimeout(() => {
+    isAnimatingDayTabs = false;
+    isScrollingToTab = false;
+  }, 600);
 }
 
 function undoDeleteDay(): boolean {
@@ -620,13 +665,7 @@ function undoDeleteDay(): boolean {
   return true;
 }
 
-function deleteActiveDay(): void {
-  if (state.days.length <= 1) {
-    alert('日程は最低1日必要です。');
-    return;
-  }
-
-  const targetIndex = state.activeDayIndex;
+function executeDeleteDay(targetIndex: number): void {
   const targetDay = state.days[targetIndex];
   const targetName = targetDay?.name || `Day ${targetIndex + 1}`;
 
@@ -663,6 +702,36 @@ function deleteActiveDay(): void {
   });
 }
 
+function deleteActiveDay(): void {
+  if (isAnimatingDayTabs) return;
+  if (state.days.length <= 1) {
+    alert('日程は最低1日必要です。');
+    return;
+  }
+
+  const targetIndex = state.activeDayIndex;
+  const targetTagBtn = dayTabsEl?.querySelector<HTMLElement>(`[data-day-index="${targetIndex}"]`);
+
+  if (!targetTagBtn) {
+    executeDeleteDay(targetIndex);
+    return;
+  }
+
+  isAnimatingDayTabs = true;
+  isScrollingToTab = true;
+
+  // 削除時は逆再生（右へスライドアウトし隙間が閉じる）
+  targetTagBtn.classList.add('day-tag-removing');
+
+  setTimeout(() => {
+    executeDeleteDay(targetIndex);
+    isAnimatingDayTabs = false;
+    setTimeout(() => {
+      isScrollingToTab = false;
+    }, 200);
+  }, 480);
+}
+
 function renderTabs(): void {
   dayTabsEl.innerHTML = '';
   state.days.forEach((day, index) => {
@@ -679,6 +748,7 @@ function renderTabs(): void {
       button.style.color = '#ffffff';
     }
     button.textContent = day.name;
+    button.dataset.dayIndex = String(index);
     button.addEventListener('click', () => {
       state.activeDayIndex = index;
       state.openRouteMenuIndex = null;
@@ -749,19 +819,94 @@ function renderTabs(): void {
   dayTabsEl.appendChild(divider);
 
 
+  const collabState = collabManager.getState();
+
   const shareButton = document.createElement('button');
   shareButton.type = 'button';
   shareButton.id = 'share-btn';
   shareButton.className =
     'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border border-slate-300 bg-white p-0 text-slate-700 shadow-xs transition-all duration-75 hover:scale-105 hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:shadow-md active:scale-90 cursor-pointer';
-  shareButton.setAttribute('aria-label', 'URL共有');
-  shareButton.setAttribute('data-tooltip', 'URL共有');
+  const shareTooltip = collabState.planId ? '共有URLをコピー' : '共有リンクを発行';
+  shareButton.setAttribute('aria-label', shareTooltip);
+  shareButton.setAttribute('data-tooltip', shareTooltip);
   shareButton.setAttribute('data-tooltip-pos', 'left');
   shareButton.innerHTML = '<i data-lucide="share-2" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
-  shareButton.addEventListener('click', () => {
-    copyShareItinerary(shareButton, state);
+  shareButton.addEventListener('click', async () => {
+    await collabManager.createShareLink(state.tripName, state, shareButton);
+    renderTabs();
   });
   dayTabsEl.appendChild(shareButton);
+
+  if (collabState.planId) {
+    // クラウド保存ボタン（楽観的ロック）
+    const saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.id = 'collab-save-btn';
+    const isUnsaved = collabState.hasUnsavedChanges;
+    saveButton.className = `relative flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border p-0 shadow-xs transition-all duration-75 hover:scale-105 hover:shadow-md active:scale-90 cursor-pointer ${
+      isUnsaved
+        ? 'border-amber-500 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-600'
+        : 'border-slate-300 bg-white text-slate-700 hover:border-slate-900 hover:bg-slate-900 hover:text-white'
+    }`;
+    const saveTooltip = isUnsaved ? 'クラウドに保存（未保存の変更あり）' : 'クラウドに保存済み';
+    saveButton.setAttribute('aria-label', saveTooltip);
+    saveButton.setAttribute('data-tooltip', saveTooltip);
+    saveButton.setAttribute('data-tooltip-pos', 'left');
+    saveButton.innerHTML = `<i data-lucide="cloud-upload" class="h-3.5 w-3.5 sm:h-4 sm:w-4 ${isUnsaved ? 'text-amber-600' : ''}"></i>`;
+    if (isUnsaved) {
+      const dot = document.createElement('span');
+      dot.className = 'absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white';
+      saveButton.appendChild(dot);
+    }
+    saveButton.addEventListener('click', async () => {
+      await collabManager.savePlan(state.tripName, state, {
+        onConflict: () => {
+          showToast(
+            '⚠️ 他の人が更新しました。最新版を読み直してください',
+            async () => {
+              const latest = await collabManager.fetchLatest();
+              if (latest && latest.data) {
+                Object.assign(state, latest.data);
+                if (latest.title) state.tripName = latest.title;
+                ensureValidState();
+                saveState();
+                render();
+                showToast('最新データを反映しました！');
+              }
+            },
+            '最新版を読込'
+          );
+        },
+      });
+      renderTabs();
+    });
+    dayTabsEl.appendChild(saveButton);
+
+    // 最新化リロードボタン
+    const reloadButton = document.createElement('button');
+    reloadButton.type = 'button';
+    reloadButton.id = 'collab-reload-btn';
+    reloadButton.className =
+      'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border border-slate-300 bg-white p-0 text-slate-700 shadow-xs transition-all duration-75 hover:scale-105 hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:shadow-md active:scale-90 cursor-pointer';
+    reloadButton.setAttribute('aria-label', '最新の旅程を再読込');
+    reloadButton.setAttribute('data-tooltip', '最新の旅程を再読込');
+    reloadButton.setAttribute('data-tooltip-pos', 'left');
+    reloadButton.innerHTML = '<i data-lucide="refresh-cw" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
+    reloadButton.addEventListener('click', async () => {
+      reloadButton.classList.add('animate-spin');
+      const latest = await collabManager.fetchLatest();
+      reloadButton.classList.remove('animate-spin');
+      if (latest && latest.data) {
+        Object.assign(state, latest.data);
+        if (latest.title) state.tripName = latest.title;
+        ensureValidState();
+        saveState();
+        render();
+        showToast('最新データを反映しました！');
+      }
+    });
+    dayTabsEl.appendChild(reloadButton);
+  }
 
   refreshIcons(dayTabsEl);
 }
@@ -1427,17 +1572,20 @@ function createRouteConnector(
 }
 
 function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
+  const isLastDay = dayIndex === state.days.length - 1;
   const details = document.createElement('details');
   details.id = `day-section-${dayIndex}`;
   details.dataset.dayIndex = String(dayIndex);
-  details.className = 'border-t border-slate-200 py-2 first:border-t-0 first:pt-0';
-  details.style.scrollMarginTop = 'var(--total-sticky-height, 150px)';
+  details.className = `border-t border-slate-200 py-2 first:border-t-0 first:pt-0 ${
+    isLastDay ? 'min-h-[calc(100vh-var(--total-sticky-height,150px)-2rem)]' : ''
+  }`;
+  details.style.scrollMarginTop = 'calc(var(--total-sticky-height, 150px) + 8px)';
   details.open = !collapsedDays.has(dayIndex);
 
   const summary = document.createElement('summary');
   summary.className =
     'sticky z-20 flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-white/95 px-3 py-2.5 backdrop-blur-sm shadow-xs transition-colors duration-75 hover:bg-slate-50';
-  summary.style.top = 'var(--total-sticky-height, 150px)';
+  summary.style.top = 'calc(var(--total-sticky-height, 150px) + 8px)';
   summary.style.listStyle = 'none';
 
   const chevronWrap = document.createElement('div');
@@ -1529,7 +1677,7 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
   details.appendChild(summary);
 
   const body = document.createElement('div');
-  body.className = 'pt-2';
+  body.className = `pt-2 ${isLastDay ? 'pb-20' : ''}`;
 
   if (items.length === 0) {
     const empty = document.createElement('div');
@@ -2259,28 +2407,72 @@ function setupEventListeners(): void {
 
 // アプリ初期化
 export function init(): void {
-  const rawShareData = extractDataFromUrl();
-  const sharedTrip = rawShareData ? parseShareUrlData(rawShareData) : null;
+  // 1. SSRで注入された初期プランデータ（/p/[planId] アクセス時）
+  const initialPlan = typeof window !== 'undefined' ? (window as any).__INITIAL_PLAN__ : null;
 
-  tripStore.load();
-
-  if (sharedTrip) {
-    const existingIndex = tripStore.trips.findIndex((t) => t.id === sharedTrip.id);
-    if (existingIndex >= 0) {
-      tripStore.trips[existingIndex] = sharedTrip;
-    } else {
-      tripStore.trips.unshift(sharedTrip);
-      if (tripStore.trips.length > MAX_TRIPS) {
-        tripStore.trips = tripStore.trips.slice(0, MAX_TRIPS);
+  if (initialPlan) {
+    collabManager.initFromPlan(initialPlan);
+    if (initialPlan.data) {
+      Object.assign(state, initialPlan.data);
+      if (initialPlan.title) {
+        state.tripName = initialPlan.title;
       }
     }
-    tripStore.activeTripId = sharedTrip.id;
-    tripStore.applyActiveTripToState(state);
     isTripConfirmed = true;
-    showToast('共有された旅行プランを読み込みました！');
+    showToast(`「${initialPlan.title || '共有プラン'}」を開きました（共同編集可能）`);
   } else {
-    tripStore.applyActiveTripToState(state);
-    isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
+    // 2. URLパスが /p/[id] の場合のクライアントサイドフェッチ
+    const pathMatch = typeof window !== 'undefined' ? window.location.pathname.match(/^\/p\/([^/]+)/) : null;
+    if (pathMatch && pathMatch[1]) {
+      const planId = pathMatch[1];
+      collabManager.initFromPlan({
+        id: planId,
+        title: '',
+        data: state,
+        version: 1,
+        createdAt: '',
+        updatedAt: '',
+      });
+      collabManager.fetchLatest().then((plan) => {
+        if (plan) {
+          collabManager.initFromPlan(plan);
+          if (plan.data) {
+            Object.assign(state, plan.data);
+            if (plan.title) state.tripName = plan.title;
+          }
+          isTripConfirmed = true;
+          ensureValidState();
+          syncAutoStarts();
+          render();
+          showToast(`「${plan.title || '共有プラン'}」を開きました`);
+        }
+      });
+    } else {
+      // 3. 従来のクエリ/ハッシュ（?data=...）共有URL
+      const rawShareData = extractDataFromUrl();
+      const sharedTrip = rawShareData ? parseShareUrlData(rawShareData) : null;
+
+      tripStore.load();
+
+      if (sharedTrip) {
+        const existingIndex = tripStore.trips.findIndex((t) => t.id === sharedTrip.id);
+        if (existingIndex >= 0) {
+          tripStore.trips[existingIndex] = sharedTrip;
+        } else {
+          tripStore.trips.unshift(sharedTrip);
+          if (tripStore.trips.length > MAX_TRIPS) {
+            tripStore.trips = tripStore.trips.slice(0, MAX_TRIPS);
+          }
+        }
+        tripStore.activeTripId = sharedTrip.id;
+        tripStore.applyActiveTripToState(state);
+        isTripConfirmed = true;
+        showToast('共有された旅行プランを読み込みました！');
+      } else {
+        tripStore.applyActiveTripToState(state);
+        isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
+      }
+    }
   }
 
   ensureValidState();

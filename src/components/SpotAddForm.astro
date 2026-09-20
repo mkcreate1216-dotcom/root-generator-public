@@ -63,8 +63,8 @@
     </button>
   </div>
 
-  <div class="mt-2 flex flex-wrap items-center gap-3 sm:gap-4">
-    <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-600 hover:text-slate-900 select-none">
+  <div class="mt-2 flex items-center gap-x-3 sm:gap-x-4 min-h-[28px] overflow-x-auto">
+    <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-600 hover:text-slate-900 select-none shrink-0 h-5">
       <input
         type="checkbox"
         id="add-type-departure"
@@ -72,7 +72,7 @@
       />
       <span>発着地点</span>
     </label>
-    <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-600 hover:text-slate-900 select-none">
+    <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-600 hover:text-slate-900 select-none shrink-0 h-5">
       <input
         type="checkbox"
         id="add-type-accommodation"
@@ -80,13 +80,30 @@
       />
       <span>宿泊地</span>
     </label>
-    <span class="text-[11px] text-slate-400 select-none">（未選択時はスポット）</span>
-  </div>
-  <p id="add-type-note" class="mt-2 hidden text-xs text-slate-500"></p>
-  <div id="add-accommodation-scope" class="mt-2 hidden flex flex-wrap items-center gap-2" role="group" aria-label="宿泊地の反映範囲">
-    <span class="text-xs text-slate-500">反映範囲:</span>
-    <button id="add-accommodation-scope-all" type="button" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 cursor-pointer">以降すべて</button>
-    <button id="add-accommodation-scope-today" type="button" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 cursor-pointer">当日のみ</button>
+
+    <span id="add-type-default-hint" class="text-[11px] text-slate-400 select-none shrink-0">（未選択時はスポット）</span>
+
+    <!-- 発着地点クリック時の追加UI: 同じ行の右側に表示 -->
+    <span id="add-type-note" class="hidden text-[11px] text-slate-500 select-none shrink-0">後から上書きできます。</span>
+
+    <!-- 宿泊地クリック時の追加UI: 同じ行の右側にコンパクトに表示（カードの高さ変動を防止） -->
+    <div id="add-accommodation-scope" class="hidden items-center gap-1.5 shrink-0" role="group" aria-label="宿泊地の反映範囲">
+      <span class="text-[11px] text-slate-500 select-none">反映範囲:</span>
+      <button
+        id="add-accommodation-scope-all"
+        type="button"
+        class="inline-flex items-center justify-center h-[22px] rounded border border-slate-300 bg-white px-1.5 text-[11px] font-medium leading-none text-slate-700 cursor-pointer transition-colors hover:bg-slate-50"
+      >
+        以降すべて
+      </button>
+      <button
+        id="add-accommodation-scope-today"
+        type="button"
+        class="inline-flex items-center justify-center h-[22px] rounded border border-slate-300 bg-white px-1.5 text-[11px] font-medium leading-none text-slate-700 cursor-pointer transition-colors hover:bg-slate-50"
+      >
+        当日のみ
+      </button>
+    </div>
   </div>
 </form>
 

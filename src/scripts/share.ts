@@ -6,7 +6,7 @@ import { sanitizeTrip } from './storage';
 let currentToastEl: HTMLElement | null = null;
 let toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-export function showToast(message: string, onUndo?: () => void): void {
+export function showToast(message: string, onAction?: () => void, actionText = '元に戻す'): void {
   if (currentToastEl) {
     currentToastEl.remove();
     if (toastTimeoutId) clearTimeout(toastTimeoutId);
@@ -20,18 +20,18 @@ export function showToast(message: string, onUndo?: () => void): void {
   textSpan.textContent = message;
   toast.appendChild(textSpan);
 
-  if (typeof onUndo === 'function') {
-    const undoBtn = document.createElement('button');
-    undoBtn.type = 'button';
-    undoBtn.className =
-      'shrink-0 font-bold text-sky-400 underline decoration-sky-400/60 underline-offset-2 transition hover:text-sky-300';
-    undoBtn.textContent = '元に戻す';
-    undoBtn.addEventListener('click', () => {
+  if (typeof onAction === 'function') {
+    const actionBtn = document.createElement('button');
+    actionBtn.type = 'button';
+    actionBtn.className =
+      'shrink-0 font-bold text-sky-400 underline decoration-sky-400/60 underline-offset-2 transition hover:text-sky-300 cursor-pointer';
+    actionBtn.textContent = actionText;
+    actionBtn.addEventListener('click', () => {
       toast.remove();
       if (toastTimeoutId) clearTimeout(toastTimeoutId);
-      onUndo();
+      onAction();
     });
-    toast.appendChild(undoBtn);
+    toast.appendChild(actionBtn);
   }
 
   document.body.appendChild(toast);
@@ -41,7 +41,7 @@ export function showToast(message: string, onUndo?: () => void): void {
       toast.remove();
       if (currentToastEl === toast) currentToastEl = null;
     },
-    onUndo ? 6000 : 2500
+    onAction ? 6000 : 2500
   );
 }
 

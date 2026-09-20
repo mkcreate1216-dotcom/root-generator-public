@@ -101,10 +101,11 @@ summary::-webkit-details-marker {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(226, 232, 240, 0.9);
-  transition: box-shadow 150ms ease;
+  transition: box-shadow 150ms ease, background-color 150ms ease;
 }
 
 #lp-slot-wrapper.is-sticky.scrolled {
+  background-color: #ffffff;
   box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
 }
 
@@ -200,4 +201,95 @@ details summary .day-chevron {
 details[open] summary .day-chevron {
   transform: rotate(0deg);
 }
+
+/* 新規日程タグ（DaysTag）追加アニメーション:
+   1. ＋ボタンとの間に隙間がスッと広がる (0%〜40%)
+   2. その隙間に右からDaysTagがスライドアニメーションで現れる (40%〜100%)
+   LPのdayTagPopと同じイージング cubic-bezier(0.25, 1, 0.35, 1) を適用 */
+@keyframes dayTagInsertWithGap {
+  0% {
+    opacity: 0;
+    max-height: 0px;
+    margin-top: -8px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+    transform: translateX(54px) scale(0.92);
+  }
+  40% {
+    opacity: 0;
+    max-height: 44px;
+    margin-top: 0px;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    transform: translateX(40px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    max-height: 44px;
+    margin-top: 0px;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* 日程タグ（DaysTag）削除アニメーション（逆再生）:
+   1. DaysTagが右へスッとスライドアウトして消える (0%〜60%)
+   2. 隙間がスッと閉じて＋ボタンが上に詰まる (60%〜100%) */
+@keyframes dayTagRemoveWithGap {
+  0% {
+    opacity: 1;
+    max-height: 44px;
+    margin-top: 0px;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    transform: translateX(0) scale(1);
+  }
+  60% {
+    opacity: 0;
+    max-height: 44px;
+    margin-top: 0px;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    transform: translateX(54px) scale(0.92);
+  }
+  100% {
+    opacity: 0;
+    max-height: 0px;
+    margin-top: -8px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+    transform: translateX(54px) scale(0.92);
+  }
+}
+
+#day-tabs button.day-tag-inserting {
+  animation: dayTagInsertWithGap 500ms cubic-bezier(0.25, 1, 0.35, 1) both !important;
+  transition: none !important;
+  overflow: hidden !important;
+  will-change: transform, opacity, max-height, margin-top;
+}
+
+#day-tabs button.day-tag-removing {
+  animation: dayTagRemoveWithGap 500ms cubic-bezier(0.25, 1, 0.35, 1) both !important;
+  transition: none !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  will-change: transform, opacity, max-height, margin-top;
+}
+
+
+
 
