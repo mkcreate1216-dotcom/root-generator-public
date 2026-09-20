@@ -2,11 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --trip-header-height: 0px;
+  --sticky-form-height: 0px;
+  --total-sticky-height: 0px;
+}
+
 summary {
   list-style: none;
 }
 summary::-webkit-details-marker {
   display: none;
+}
+
+/* LPからアプリへの遷移アニメーション */
+.lp-leaving {
+  opacity: 0 !important;
+  transform: translateY(-16px) scale(0.97) !important;
+  pointer-events: none !important;
+  transition: opacity 240ms cubic-bezier(0.4, 0, 0.2, 1), transform 240ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+@keyframes appSlideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.app-entering {
+  animation: appSlideUpFade 360ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes headerFadeDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.header-entering {
+  animation: headerFadeDown 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 旅行名バー固定時のスタイル */
+#lp-slot-wrapper.is-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 35;
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  transition: box-shadow 150ms ease;
+}
+
+#lp-slot-wrapper.is-sticky.scrolled {
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+}
+
+/* 旅行名入力コンテナ: アプリ表示時の左寄せモード */
+#trip-combobox-container.app-mode {
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+#trip-combobox-container.app-mode #trip-name-line {
+  border-bottom: 1px solid transparent;
+  box-shadow: none;
+  padding-bottom: 0.25rem;
+}
+
+#trip-combobox-container.app-mode #trip-name-line:hover {
+  border-bottom-color: #cbd5e1;
+}
+
+#trip-combobox-container.app-mode #trip-name-line:focus-within {
+  border-bottom-color: #0f172a;
+  box-shadow: 0 2px 4px -1px rgba(15, 23, 42, 0.08);
 }
 
 /* 日程タグ（day-tabs）との配置調整: スマホ時はカード全幅＋タイムライン側でTAGを吸収 */

@@ -2,6 +2,7 @@ import {
   createIcons,
   Map as MapIcon,
   ChevronDown,
+  ChevronUp,
   Plus,
   X,
   Check,
@@ -10,6 +11,10 @@ import {
   Route,
   ExternalLink,
   Share2,
+  Pencil,
+  Clock,
+  FileText,
+  MapPin,
 } from 'lucide';
 import type { AppState, Day, MapType } from './types';
 import {
@@ -20,7 +25,7 @@ import {
   getStoredMapType,
 } from './storage';
 import { getDayRouteUrl, openRoute } from './maps';
-import { copyShareItinerary, getDayItems, showToast } from './share';
+import { copyShareItinerary, extractDataFromUrl, parseShareUrlData, getDayItems, showToast } from './share';
 import { animateSpotReorder } from './flip';
 
 function refreshIcons(_root?: HTMLElement): void {
@@ -28,6 +33,7 @@ function refreshIcons(_root?: HTMLElement): void {
     icons: {
       Map: MapIcon,
       ChevronDown,
+      ChevronUp,
       Plus,
       X,
       Check,
@@ -36,6 +42,10 @@ function refreshIcons(_root?: HTMLElement): void {
       Route,
       ExternalLink,
       Share2,
+      Pencil,
+      Clock,
+      FileText,
+      MapPin,
     },
   });
 }
@@ -48,7 +58,9 @@ const state: AppState = {
   openRouteMenuIndex: null,
   accommodationUpdateScope: 'all',
   departure: '',
+  departureMemo: '',
   arrival: '',
+  arrivalMemo: '',
   autoArrival: true,
   tripName: '',
   addLocationType: 'spot',
@@ -63,6 +75,8 @@ let scrollTimeoutId: ReturnType<typeof setTimeout> | null = null;
 let isTripMenuOpen = false;
 let accommodationDebounceId: ReturnType<typeof setTimeout> | null = null;
 let pendingAccommodationSync: { dayIndex: number; value: string } | null = null;
+let isTripConfirmed = false;
+let isTransitioningToApp = false;
 const dayUndoStack: Array<{ index: number; day: Day }> = [];
 
 // DOM要素参照
@@ -72,16 +86,27 @@ const tripNameInputEl = document.getElementById('trip-name-input') as HTMLInputE
 const tripComboboxContainerEl = document.getElementById('trip-combobox-container');
 const tripComboboxToggleEl = document.getElementById('trip-combobox-toggle');
 const tripComboboxMenuEl = document.getElementById('trip-combobox-menu') as HTMLUListElement | null;
+const tripConfirmContainerEl = document.getElementById('trip-confirm-container') as HTMLDivElement | null;
+const tripConfirmBtnEl = document.getElementById('trip-confirm-btn') as HTMLButtonElement | null;
 const tripSwitcherEl = document.getElementById('trip-switcher') as HTMLSelectElement | null;
 const tripNewBtnEl = document.getElementById('trip-new-btn');
 const tripDeleteBtnEl = document.getElementById('trip-delete-btn') as HTMLButtonElement | null;
 const newSpotInputEl = document.getElementById('new-spot-input') as HTMLInputElement;
 const addSpotFormEl = document.getElementById('add-spot-form') as HTMLFormElement;
-const addLocationTypeSelectEl = document.getElementById('add-location-type-select') as HTMLSelectElement;
+const addTypeDepartureEl = document.getElementById('add-type-departure') as HTMLInputElement | null;
+const addTypeAccommodationEl = document.getElementById('add-type-accommodation') as HTMLInputElement | null;
 const addTypeNoteEl = document.getElementById('add-type-note') as HTMLParagraphElement;
 const addAccommodationScopeEl = document.getElementById('add-accommodation-scope') as HTMLDivElement;
 const addAccommodationScopeAllEl = document.getElementById('add-accommodation-scope-all') as HTMLButtonElement;
 const addAccommodationScopeTodayEl = document.getElementById('add-accommodation-scope-today') as HTMLButtonElement;
+const itinerarySectionEl = document.getElementById('itinerary-section') as HTMLDivElement | null;
+const headerMapSelectorEl = document.getElementById('header-map-selector-container') as HTMLDivElement | null;
+const mainCardEl = document.getElementById('main-card') as HTMLDivElement | null;
+const appHeaderContainerEl = document.getElementById('app-header-container') as HTMLDivElement | null;
+const lpHeroSectionEl = document.getElementById('lp-hero-section') as HTMLDivElement | null;
+const lpFeaturesSectionEl = document.getElementById('lp-features-section') as HTMLDivElement | null;
+const lpSamplesSectionEl = document.getElementById('lp-samples-section') as HTMLDivElement | null;
+const lpSlotWrapperEl = document.getElementById('lp-slot-wrapper') as HTMLDivElement | null;
 const endpointSectionEl = document.getElementById('endpoint-section') as HTMLDivElement;
 const departureFieldEl = document.getElementById('departure-field') as HTMLDivElement;
 const departureInputEl = document.getElementById('departure-input') as HTMLInputElement;
@@ -118,11 +143,11 @@ function syncAutoStarts(): void {
       if (previousAccommodation) {
         if (day.autoStartSlot) {
           if (day.spots.length === 0) {
-            day.spots.unshift(previousAccommodation);
+            day.spots.unshift({ name: previousAccommodation, memo: '' });
             day.autoStartSlot = true;
             day.autoStartValue = previousAccommodation;
           } else {
-            const currentFirst = (day.spots[0] || '').trim();
+            const currentFirst = (day.spots[0]?.name || '').trim();
             const managedValue = (day.autoStartValue || '').trim();
             if (managedValue && currentFirst !== managedValue) {
               day.autoStart = false;
@@ -133,12 +158,12 @@ function syncAutoStarts(): void {
               day.autoStartSlot = false;
               day.autoStartValue = '';
             } else {
-              day.spots[0] = previousAccommodation;
+              day.spots[0] = { name: previousAccommodation, memo: day.spots[0]?.memo || '' };
               day.autoStartValue = previousAccommodation;
             }
           }
         } else {
-          day.spots.unshift(previousAccommodation);
+          day.spots.unshift({ name: previousAccommodation, memo: '' });
           day.autoStartSlot = true;
           day.autoStartValue = previousAccommodation;
         }
@@ -147,7 +172,7 @@ function syncAutoStarts(): void {
         if (
           day.autoStartSlot &&
           day.spots.length > 0 &&
-          ((day.spots[0] || '').trim() === managedValue || !managedValue)
+          ((day.spots[0]?.name || '').trim() === managedValue || !managedValue)
         ) {
           day.spots.shift();
         }
@@ -159,19 +184,26 @@ function syncAutoStarts(): void {
 }
 
 function updateStickyOffsets(): void {
-  if (addSpotFormEl) {
-    const height = Math.round(addSpotFormEl.getBoundingClientRect().height);
-    document.documentElement.style.setProperty('--sticky-form-height', `${height}px`);
+  if (!isTripConfirmed) {
+    document.documentElement.style.setProperty('--trip-header-height', '0px');
+    document.documentElement.style.setProperty('--sticky-form-height', '0px');
+    document.documentElement.style.setProperty('--total-sticky-height', '0px');
+    return;
   }
+
+  const panelHeight = lpSlotWrapperEl ? Math.round(lpSlotWrapperEl.getBoundingClientRect().height) : 115;
+  document.documentElement.style.setProperty('--trip-header-height', `${panelHeight}px`);
+  document.documentElement.style.setProperty('--sticky-form-height', `${panelHeight}px`);
+  document.documentElement.style.setProperty('--total-sticky-height', `${panelHeight}px`);
 }
 
 function scrollToDay(index: number): void {
   const section = document.getElementById(`day-section-${index}`);
   if (!section) return;
   updateStickyOffsets();
-  const formHeight = addSpotFormEl ? Math.round(addSpotFormEl.getBoundingClientRect().height) : 135;
+  const totalOffset = lpSlotWrapperEl ? Math.round(lpSlotWrapperEl.getBoundingClientRect().height) : 115;
   const sectionTop = section.getBoundingClientRect().top + window.scrollY;
-  const targetScrollY = Math.max(0, sectionTop - formHeight + 2);
+  const targetScrollY = Math.max(0, sectionTop - totalOffset + 2);
   window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
 }
 
@@ -269,7 +301,7 @@ function createNewTrip(): void {
   saveState();
   const newTrip = {
     id: `trip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    tripName: `旅行${tripStore.trips.length + 1}`,
+    tripName: '',
     days: [createDay(1)],
     activeDayIndex: 0,
     departure: '',
@@ -280,6 +312,8 @@ function createNewTrip(): void {
   tripStore.trips.push(newTrip);
   tripStore.activeTripId = newTrip.id;
   tripStore.applyActiveTripToState(state);
+  isTripConfirmed = false;
+  isTransitioningToApp = false;
   saveState();
   render();
   if (tripNameInputEl) {
@@ -296,7 +330,8 @@ function deleteTrip(tripId: string): void {
   const index = tripStore.trips.findIndex((t) => t.id === tripId);
   if (index === -1) return;
   const targetTrip = tripStore.trips[index];
-  const displayName = targetTrip.tripName && targetTrip.tripName.trim() ? targetTrip.tripName : `旅行${index + 1}`;
+  const displayName =
+    targetTrip.tripName && targetTrip.tripName.trim() ? targetTrip.tripName : `旅行${index + 1}（名称未設定）`;
   if (!confirm(`「${displayName}」を削除しますか？この操作は取り消せません。`)) {
     return;
   }
@@ -304,6 +339,7 @@ function deleteTrip(tripId: string): void {
   if (tripId === tripStore.activeTripId) {
     tripStore.activeTripId = tripStore.trips[Math.max(0, index - 1)].id;
     tripStore.applyActiveTripToState(state);
+    isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
   }
   saveState();
   render();
@@ -335,16 +371,17 @@ function renderTripComboboxMenu(): void {
       labelArea.appendChild(spacer);
     }
 
+    const displayName =
+      trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}（名称未設定）`;
     const label = document.createElement('span');
     label.className = 'truncate';
-    label.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
+    label.textContent = displayName;
     labelArea.appendChild(label);
 
     item.appendChild(labelArea);
 
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
-    const displayName = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
     deleteBtn.setAttribute('aria-label', `${displayName}を削除`);
     const singleTrip = tripStore.trips.length <= 1;
     if (singleTrip) {
@@ -369,8 +406,12 @@ function renderTripComboboxMenu(): void {
         saveState();
         tripStore.activeTripId = trip.id;
         tripStore.applyActiveTripToState(state);
+        isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
         saveState();
         render();
+      } else if (state.tripName && state.tripName.trim().length > 0) {
+        isTripConfirmed = true;
+        updateItineraryVisibility();
       }
       toggleTripMenu(false);
     });
@@ -415,7 +456,8 @@ function renderTripSwitcher(): void {
     tripStore.trips.forEach((trip, index) => {
       const option = document.createElement('option');
       option.value = trip.id;
-      option.textContent = trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}`;
+      option.textContent =
+        trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}（名称未設定）`;
       tripSwitcherEl.appendChild(option);
     });
     tripSwitcherEl.value = tripStore.activeTripId;
@@ -496,8 +538,11 @@ function setTagStyle(button: HTMLButtonElement, selected: boolean): void {
 }
 
 function renderAddSpotOptions(): void {
-  if (addLocationTypeSelectEl) {
-    addLocationTypeSelectEl.value = state.addLocationType;
+  if (addTypeDepartureEl) {
+    addTypeDepartureEl.checked = state.addLocationType === 'departure';
+  }
+  if (addTypeAccommodationEl) {
+    addTypeAccommodationEl.checked = state.addLocationType === 'accommodation';
   }
   addAccommodationScopeEl.classList.toggle('hidden', state.addLocationType !== 'accommodation');
   const note = state.addLocationType === 'departure' ? '後から上書きできます。' : '';
@@ -536,7 +581,7 @@ function addSpot(): void {
     }
     syncAutoStarts();
   } else {
-    day.spots.push(value);
+    day.spots.push({ name: value, memo: '' });
   }
   newSpotInputEl.value = '';
   state.addLocationType = 'spot';
@@ -596,7 +641,7 @@ function deleteActiveDay(): void {
     if (
       index === 0 &&
       day.autoStartSlot &&
-      (day.spots[0] || '').trim() === (day.autoStartValue || '').trim()
+      (day.spots[0]?.name || '').trim() === (day.autoStartValue || '').trim()
     ) {
       day.spots.shift();
       day.autoStart = false;
@@ -703,13 +748,14 @@ function renderTabs(): void {
   divider.setAttribute('role', 'separator');
   dayTabsEl.appendChild(divider);
 
+
   const shareButton = document.createElement('button');
   shareButton.type = 'button';
   shareButton.id = 'share-btn';
   shareButton.className =
     'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border border-slate-300 bg-white p-0 text-slate-700 shadow-xs transition-all duration-75 hover:scale-105 hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:shadow-md active:scale-90 cursor-pointer';
-  shareButton.setAttribute('aria-label', 'LINE共有用に旅程をコピー');
-  shareButton.setAttribute('data-tooltip', 'LINE共有用に旅程をコピー');
+  shareButton.setAttribute('aria-label', 'URL共有');
+  shareButton.setAttribute('data-tooltip', 'URL共有');
   shareButton.setAttribute('data-tooltip-pos', 'left');
   shareButton.innerHTML = '<i data-lucide="share-2" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
   shareButton.addEventListener('click', () => {
@@ -720,11 +766,215 @@ function renderTabs(): void {
   refreshIcons(dayTabsEl);
 }
 
+function parseMemo(memo: string): {
+  firstLine: string;
+  restLines: string[];
+  hasRest: boolean;
+} {
+  const normalized = (memo || '').replace(/\r\n/g, '\n');
+  const lines = normalized.split('\n');
+  const firstLine = lines[0] || '';
+  const restLines = lines.slice(1);
+  const hasRest = restLines.some((l) => l.trim().length > 0);
+  return { firstLine, restLines, hasRest };
+}
+
+function createMemoComponent(options: {
+  memo: string;
+  onSave: (newMemo: string) => void;
+}): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'mt-1.5 w-full';
+
+  let currentMemo = options.memo || '';
+  let isEditing = false;
+  let isExpanded = false;
+
+  const renderContent = () => {
+    wrap.innerHTML = '';
+
+    if (isEditing) {
+      const editBox = document.createElement('div');
+      editBox.className =
+        'rounded-lg border border-slate-300 bg-white p-2 shadow-xs transition-all focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200';
+
+      const textarea = document.createElement('textarea');
+      textarea.value = currentMemo;
+      textarea.placeholder = '1行目: 時間や短い見出し（例: 10:00〜）\n2行目以降: 住所、持ち物、詳細メモなど';
+      textarea.rows = Math.max(3, currentMemo.split('\n').length);
+      textarea.className =
+        'w-full resize-y bg-transparent text-xs text-slate-800 outline-none leading-relaxed placeholder:text-slate-400';
+
+      const actionRow = document.createElement('div');
+      actionRow.className = 'mt-1.5 flex items-center justify-between gap-2 border-t border-slate-100 pt-1.5';
+
+      const hintText = document.createElement('span');
+      hintText.className = 'text-[10px] text-slate-400 select-none';
+      hintText.textContent = '1行目は一覧で常時表示されます';
+
+      const finishBtn = document.createElement('button');
+      finishBtn.type = 'button';
+      finishBtn.className =
+        'rounded bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white transition-colors duration-75 hover:bg-slate-800 cursor-pointer select-none';
+      finishBtn.textContent = '完了';
+
+      let isFinished = false;
+      const finishEditing = () => {
+        if (isFinished) return;
+        isFinished = true;
+        const val = textarea.value;
+        currentMemo = val;
+        isEditing = false;
+        options.onSave(val);
+        renderContent();
+      };
+
+      finishBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        finishEditing();
+      });
+
+      textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' || ((e.metaKey || e.ctrlKey) && e.key === 'Enter')) {
+          e.preventDefault();
+          finishEditing();
+        }
+      });
+
+      textarea.addEventListener('blur', (e) => {
+        if (e.relatedTarget === finishBtn) return;
+        finishEditing();
+      });
+
+      actionRow.append(hintText, finishBtn);
+      editBox.append(textarea, actionRow);
+      wrap.appendChild(editBox);
+
+      setTimeout(() => {
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+      }, 10);
+      return;
+    }
+
+    // プレビューモード（表示モード）
+    const parsed = parseMemo(currentMemo);
+
+    if (!parsed.firstLine.trim() && !parsed.hasRest) {
+      // メモが未設定の場合
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className =
+        'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-slate-400 transition-colors duration-75 hover:bg-slate-100 hover:text-slate-700 cursor-pointer select-none';
+      addBtn.innerHTML = '<i data-lucide="file-text" class="h-3 w-3"></i><span>+ メモを追加</span>';
+      addBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isEditing = true;
+        renderContent();
+      });
+      wrap.appendChild(addBtn);
+      refreshIcons(wrap);
+      return;
+    }
+
+    // メモが存在する場合
+    const previewBox = document.createElement('div');
+    previewBox.className =
+      'group rounded-lg border border-slate-200/80 bg-slate-50/80 p-2 text-xs transition-colors duration-75 hover:border-slate-300 hover:bg-slate-50';
+
+    // 1行目表示行
+    const headerRow = document.createElement('div');
+    headerRow.className = 'flex items-center justify-between gap-2';
+
+    const firstLineContent = document.createElement('div');
+    firstLineContent.className =
+      'flex min-w-0 flex-1 items-center gap-1.5 cursor-pointer select-none';
+    firstLineContent.title = 'クリックしてメモを編集';
+    firstLineContent.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isEditing = true;
+      renderContent();
+    });
+
+    const clockIcon = document.createElement('i');
+    clockIcon.setAttribute('data-lucide', 'clock');
+    clockIcon.className = 'h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors';
+
+    const firstLineSpan = document.createElement('span');
+    firstLineSpan.className = 'truncate font-medium text-slate-800';
+    firstLineSpan.textContent = parsed.firstLine || '(メモ)';
+
+    firstLineContent.append(clockIcon, firstLineSpan);
+
+    const btnGroup = document.createElement('div');
+    btnGroup.className = 'flex shrink-0 items-center gap-1';
+
+    // 2行目以降がある場合のみアコーディオン展開ボタンを表示（要件3, 4）
+    if (parsed.hasRest) {
+      const toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.className =
+        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 transition-colors duration-75 hover:bg-slate-200/70 hover:text-slate-800 cursor-pointer select-none';
+      toggleBtn.innerHTML = isExpanded
+        ? '<span>閉じる</span><i data-lucide="chevron-up" class="h-3 w-3"></i>'
+        : '<span>詳細</span><i data-lucide="chevron-down" class="h-3 w-3"></i>';
+      toggleBtn.setAttribute('aria-expanded', String(isExpanded));
+      toggleBtn.setAttribute('data-tooltip', isExpanded ? 'メモを折りたたむ' : 'メモの全容を表示');
+      toggleBtn.setAttribute('data-tooltip-pos', 'top');
+      toggleBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isExpanded = !isExpanded;
+        renderContent();
+      });
+      btnGroup.appendChild(toggleBtn);
+    }
+
+    // 編集ボタン（鉛筆アイコン）
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className =
+      'rounded p-1 text-slate-400 opacity-60 transition-all duration-75 hover:bg-slate-200/70 hover:text-slate-700 hover:opacity-100 group-hover:opacity-100 cursor-pointer';
+    editBtn.title = 'メモを編集';
+    editBtn.innerHTML = '<i data-lucide="pencil" class="h-3 w-3"></i>';
+    editBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isEditing = true;
+      renderContent();
+    });
+    btnGroup.appendChild(editBtn);
+
+    headerRow.append(firstLineContent, btnGroup);
+    previewBox.appendChild(headerRow);
+
+    // 展開時の2行目以降（全行）の表示
+    if (parsed.hasRest && isExpanded) {
+      const restBox = document.createElement('div');
+      restBox.className =
+        'mt-2 border-t border-slate-200/80 pt-1.5 whitespace-pre-wrap leading-relaxed text-slate-600 text-[11px] cursor-pointer selection:bg-slate-200';
+      restBox.title = 'クリックしてメモを編集';
+      restBox.textContent = parsed.restLines.join('\n');
+      restBox.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isEditing = true;
+        renderContent();
+      });
+      previewBox.appendChild(restBox);
+    }
+
+    wrap.appendChild(previewBox);
+    refreshIcons(wrap);
+  };
+
+  renderContent();
+  return wrap;
+}
+
 function createSpotCard(
   spotValue: string,
   index: number,
   markerIndex = index,
-  dayIndex = state.activeDayIndex
+  dayIndex = state.activeDayIndex,
+  spotMemo = ''
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
@@ -791,16 +1041,29 @@ function createSpotCard(
     'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors duration-75 focus:border-slate-900 focus:ring-2 focus:ring-slate-200';
   input.addEventListener('input', (e) => {
     const day = state.days[dayIndex];
-    day.spots[index] = (e.target as HTMLInputElement).value;
-    if (dayIndex > 0 && index === 0 && day.autoStartSlot) {
-      const previousAccommodation = (state.days[dayIndex - 1].accommodation || '').trim();
-      const currentValue = (e.target as HTMLInputElement).value.trim();
-      const shouldKeepAuto = currentValue === previousAccommodation;
-      day.autoStart = shouldKeepAuto;
-      day.autoStartSlot = shouldKeepAuto && !!previousAccommodation;
-      day.autoStartValue = shouldKeepAuto ? previousAccommodation : '';
+    if (day && day.spots[index]) {
+      day.spots[index].name = (e.target as HTMLInputElement).value;
+      if (dayIndex > 0 && index === 0 && day.autoStartSlot) {
+        const previousAccommodation = (state.days[dayIndex - 1].accommodation || '').trim();
+        const currentValue = (e.target as HTMLInputElement).value.trim();
+        const shouldKeepAuto = currentValue === previousAccommodation;
+        day.autoStart = shouldKeepAuto;
+        day.autoStartSlot = shouldKeepAuto && !!previousAccommodation;
+        day.autoStartValue = shouldKeepAuto ? previousAccommodation : '';
+      }
+      saveState();
     }
-    saveState();
+  });
+
+  const memoComponent = createMemoComponent({
+    memo: spotMemo,
+    onSave: (newMemo) => {
+      const day = state.days[dayIndex];
+      if (day && day.spots[index]) {
+        day.spots[index].memo = newMemo;
+        saveState();
+      }
+    },
   });
 
   const controls = document.createElement('div');
@@ -860,7 +1123,7 @@ function createSpotCard(
   });
 
   controls.append(moveGroup, hint, removeBtn);
-  content.append(input, controls);
+  content.append(input, memoComponent, controls);
   row.append(handle, marker, content);
   card.appendChild(row);
   return card;
@@ -869,7 +1132,8 @@ function createSpotCard(
 function createAccommodationCard(
   accommodation: string,
   index: number,
-  dayIndex = state.activeDayIndex
+  dayIndex = state.activeDayIndex,
+  accommodationMemo = ''
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
@@ -930,6 +1194,17 @@ function createAccommodationCard(
     render();
   });
 
+  const memoComponent = createMemoComponent({
+    memo: accommodationMemo,
+    onSave: (newMemo) => {
+      const day = state.days[dayIndex];
+      if (day) {
+        day.accommodationMemo = newMemo;
+        saveState();
+      }
+    },
+  });
+
   const controls = document.createElement('div');
   controls.className = 'mt-2 flex items-center justify-between gap-2';
 
@@ -952,6 +1227,7 @@ function createAccommodationCard(
     const day = state.days[dayIndex];
     if (day) {
       day.accommodation = '';
+      day.accommodationMemo = '';
       day.autoAccommodation = false;
       syncAutoStarts();
     }
@@ -961,7 +1237,7 @@ function createAccommodationCard(
   });
 
   controls.append(badge, hint, removeBtn);
-  content.append(input, controls);
+  content.append(input, memoComponent, controls);
   row.append(spacer, marker, content);
   card.appendChild(row);
   return card;
@@ -971,7 +1247,8 @@ function createEndpointCard(
   location: string,
   index: number,
   label: '出発地点' | '到着地点',
-  dayIndex = state.activeDayIndex
+  dayIndex = state.activeDayIndex,
+  endpointMemo = ''
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
@@ -1034,6 +1311,18 @@ function createEndpointCard(
     render();
   });
 
+  const memoComponent = createMemoComponent({
+    memo: endpointMemo,
+    onSave: (newMemo) => {
+      if (label === '出発地点') {
+        state.departureMemo = newMemo;
+      } else if (label === '到着地点') {
+        state.arrivalMemo = newMemo;
+      }
+      saveState();
+    },
+  });
+
   const controls = document.createElement('div');
   controls.className = 'mt-2 flex items-center justify-between gap-2';
 
@@ -1056,12 +1345,15 @@ function createEndpointCard(
     if (label === '出発地点') {
       if (state.autoArrival) {
         state.arrival = state.departure;
+        state.arrivalMemo = state.departureMemo || '';
         state.autoArrival = false;
       }
       state.departure = '';
+      state.departureMemo = '';
       if (departureInputEl) departureInputEl.value = '';
     } else if (label === '到着地点') {
       state.arrival = '';
+      state.arrivalMemo = '';
       state.autoArrival = false;
     }
     state.openRouteMenuIndex = null;
@@ -1070,7 +1362,7 @@ function createEndpointCard(
   });
 
   controls.append(badge, hint, removeBtn);
-  content.append(input, controls);
+  content.append(input, memoComponent, controls);
   row.append(spacer, marker, content);
   card.appendChild(row);
   return card;
@@ -1116,13 +1408,13 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
   details.id = `day-section-${dayIndex}`;
   details.dataset.dayIndex = String(dayIndex);
   details.className = 'border-t border-slate-200 py-2 first:border-t-0 first:pt-0';
-  details.style.scrollMarginTop = 'var(--sticky-form-height, 135px)';
+  details.style.scrollMarginTop = 'var(--total-sticky-height, 150px)';
   details.open = !collapsedDays.has(dayIndex);
 
   const summary = document.createElement('summary');
   summary.className =
     'sticky z-20 flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-white/95 px-3 py-2.5 backdrop-blur-sm shadow-xs transition-colors duration-75 hover:bg-slate-50';
-  summary.style.top = 'var(--sticky-form-height, 135px)';
+  summary.style.top = 'var(--total-sticky-height, 150px)';
   summary.style.listStyle = 'none';
 
   const chevronWrap = document.createElement('div');
@@ -1247,11 +1539,11 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
 
   items.forEach((item, index) => {
     if (item.type === 'spot') {
-      body.appendChild(createSpotCard(item.value, item.spotIndex, index, dayIndex));
+      body.appendChild(createSpotCard(item.value, item.spotIndex, index, dayIndex, item.memo));
     } else if (item.type === 'accommodation') {
-      body.appendChild(createAccommodationCard(item.value, index, dayIndex));
+      body.appendChild(createAccommodationCard(item.value, index, dayIndex, item.memo));
     } else {
-      body.appendChild(createEndpointCard(item.value, index, item.label, dayIndex));
+      body.appendChild(createEndpointCard(item.value, index, item.label, dayIndex, item.memo));
     }
     if (index < items.length - 1) {
       body.appendChild(createRouteConnector(item.value, items[index + 1].value, index, dayIndex));
@@ -1326,8 +1618,8 @@ function updateActiveDayFromScroll(): void {
   const sections = [...document.querySelectorAll<HTMLElement>('[data-day-index]')];
   if (sections.length === 0) return;
 
-  const formRect = addSpotFormEl ? addSpotFormEl.getBoundingClientRect() : null;
-  const targetY = formRect ? Math.round(formRect.bottom + 16) : 140;
+  const panelRect = lpSlotWrapperEl ? lpSlotWrapperEl.getBoundingClientRect() : null;
+  const targetY = panelRect ? Math.round(panelRect.bottom + 16) : 140;
   let currentSection: HTMLElement | null = null;
 
   for (const section of sections) {
@@ -1354,6 +1646,72 @@ function updateActiveDayFromScroll(): void {
   }
 }
 
+function updateItineraryVisibility(): void {
+  const showItinerary = isTripConfirmed;
+
+  // LP要素の表示・非表示
+  const lpElements = [lpHeroSectionEl, lpFeaturesSectionEl, lpSamplesSectionEl, tripConfirmContainerEl].filter(
+    Boolean
+  ) as HTMLElement[];
+
+  lpElements.forEach((el) => {
+    el.classList.toggle('hidden', showItinerary);
+    if (!showItinerary) {
+      el.classList.remove('lp-leaving');
+    }
+  });
+
+  if (appHeaderContainerEl) {
+    appHeaderContainerEl.classList.toggle('hidden', !showItinerary);
+  }
+
+  // メインカードのレイアウト（LP時は人間工学的中央、アプリ時は通常カード）
+  if (mainCardEl) {
+    if (showItinerary) {
+      mainCardEl.className =
+        'rounded-2xl border border-slate-200 bg-white shadow-sm block p-0 transition-all duration-300';
+    } else {
+      mainCardEl.className =
+        'rounded-3xl border border-slate-200/80 bg-white shadow-xs min-h-[82vh] flex flex-col items-center justify-center p-5 pb-20 sm:p-10 sm:pb-28 transition-all duration-300';
+    }
+  }
+
+  // 一体型スマートパネルのスタイル調整（アプリ時はstickyかつ左寄せ）
+  if (lpSlotWrapperEl) {
+    if (showItinerary) {
+      lpSlotWrapperEl.className = 'w-full p-3.5 sm:px-6 sm:py-4 is-sticky transition-all duration-300';
+    } else {
+      lpSlotWrapperEl.className = 'w-full max-w-xl mx-auto my-1 transition-all duration-300';
+      lpSlotWrapperEl.classList.remove('scrolled');
+    }
+  }
+
+  // 旅行名コンテナ（アプリ表示時は左寄せ app-mode クラスを付与）
+  if (tripComboboxContainerEl) {
+    tripComboboxContainerEl.classList.toggle('app-mode', showItinerary);
+  }
+
+  // 一体型パネル内のスポット追加フォームの表示・非表示
+  if (addSpotFormEl) {
+    addSpotFormEl.classList.toggle('hidden', !showItinerary);
+  }
+
+  // 日程セクションと固定日程タブ・マップセレクター
+  if (itinerarySectionEl) {
+    itinerarySectionEl.classList.toggle('hidden', !showItinerary);
+  }
+  if (dayTabsEl) {
+    dayTabsEl.classList.toggle('hidden', !showItinerary);
+    dayTabsEl.classList.toggle('flex', showItinerary);
+  }
+  if (headerMapSelectorEl) {
+    headerMapSelectorEl.classList.toggle('hidden', !showItinerary);
+    headerMapSelectorEl.classList.toggle('flex', showItinerary);
+  }
+
+  updateStickyOffsets();
+}
+
 function render(): void {
   ensureValidState();
   syncAutoStarts();
@@ -1363,6 +1721,7 @@ function render(): void {
   if (tripNameInputEl) {
     tripNameInputEl.value = state.tripName;
   }
+  updateItineraryVisibility();
   updateStickyOffsets();
   renderTripSwitcher();
   renderTabs();
@@ -1511,6 +1870,93 @@ function hideGlobalTooltip(): void {
   activeTooltipTarget = null;
 }
 
+function transitionToApp(onComplete: () => void): void {
+  const lpElements = [lpHeroSectionEl, lpFeaturesSectionEl, lpSamplesSectionEl, tripConfirmContainerEl].filter(
+    Boolean
+  ) as HTMLElement[];
+
+  // Phase 1: LP要素を軽やかにフェードアウト＆上へ縮小
+  lpElements.forEach((el) => el.classList.add('lp-leaving'));
+
+  // タイトルバーを左寄せモードへ切り替え
+  if (tripComboboxContainerEl) {
+    tripComboboxContainerEl.classList.add('app-mode');
+  }
+
+  // Phase 2: メインカード形状のスムーズな変化
+  if (mainCardEl) {
+    mainCardEl.className =
+      'rounded-2xl border border-slate-200 bg-white shadow-sm block p-0 transition-all duration-300';
+  }
+  if (lpSlotWrapperEl) {
+    lpSlotWrapperEl.className = 'w-full p-3.5 sm:px-6 sm:py-4 is-sticky transition-all duration-300';
+  }
+
+  // LP退場アニメーション完了後 (240ms) にアプリ要素を表示
+  setTimeout(() => {
+    onComplete();
+
+    // Phase 3: アプリ要素の入場アニメーション
+    if (appHeaderContainerEl) {
+      appHeaderContainerEl.classList.add('header-entering');
+    }
+    if (itinerarySectionEl) {
+      itinerarySectionEl.classList.add('app-entering');
+    }
+    if (addSpotFormEl) {
+      addSpotFormEl.classList.add('app-entering');
+    }
+
+    // アニメーション完了後のクリーンアップ (400ms)
+    setTimeout(() => {
+      appHeaderContainerEl?.classList.remove('header-entering');
+      itinerarySectionEl?.classList.remove('app-entering');
+      addSpotFormEl?.classList.remove('app-entering');
+      lpElements.forEach((el) => el.classList.remove('lp-leaving'));
+      isTransitioningToApp = false;
+      updateStickyOffsets();
+    }, 400);
+  }, 240);
+}
+
+function confirmTrip(): void {
+  if (isTransitioningToApp) return;
+
+  const inputVal = (tripNameInputEl?.value || state.tripName || '').trim();
+  if (!inputVal) {
+    if (tripNameInputEl) {
+      tripNameInputEl.focus();
+    }
+    return;
+  }
+
+  state.tripName = inputVal;
+  saveState();
+
+  if (tripSwitcherEl) {
+    const activeOption = tripSwitcherEl.querySelector(`option[value="${tripStore.activeTripId}"]`);
+    if (activeOption) {
+      const index = tripStore.trips.findIndex((t) => t.id === tripStore.activeTripId);
+      activeOption.textContent = state.tripName;
+    }
+  }
+
+  // LPからの初回遷移時はアニメーションを適用
+  if (!isTripConfirmed) {
+    isTransitioningToApp = true;
+    transitionToApp(() => {
+      isTripConfirmed = true;
+      saveState();
+      updateItineraryVisibility();
+      render();
+    });
+  } else {
+    // すでにアプリモードでの編集時は即時反映
+    updateItineraryVisibility();
+    render();
+  }
+}
+
 // イベントリスナー設定
 function setupEventListeners(): void {
   addSpotFormEl?.addEventListener('submit', (e) => {
@@ -1522,11 +1968,14 @@ function setupEventListeners(): void {
     tripNameInputEl.addEventListener('input', (e) => {
       state.tripName = (e.target as HTMLInputElement).value;
       saveState();
-      if (tripSwitcherEl) {
-        const activeOption = tripSwitcherEl.querySelector(`option[value="${tripStore.activeTripId}"]`);
-        if (activeOption) {
-          const index = tripStore.trips.findIndex((t) => t.id === tripStore.activeTripId);
-          activeOption.textContent = state.tripName.trim() ? state.tripName : `旅行${index + 1}`;
+      // 入力中は updateItineraryVisibility() を呼ばず画面遷移を防ぐ
+      if (isTripConfirmed) {
+        if (tripSwitcherEl) {
+          const activeOption = tripSwitcherEl.querySelector(`option[value="${tripStore.activeTripId}"]`);
+          if (activeOption) {
+            const index = tripStore.trips.findIndex((t) => t.id === tripStore.activeTripId);
+            activeOption.textContent = state.tripName.trim() ? state.tripName : `旅行${index + 1}（名称未設定）`;
+          }
         }
       }
       if (isTripMenuOpen) {
@@ -1536,9 +1985,17 @@ function setupEventListeners(): void {
     tripNameInputEl.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         toggleTripMenu(false);
+      } else if (e.key === 'Enter' && !e.isComposing) {
+        e.preventDefault();
+        confirmTrip();
       }
     });
   }
+
+  tripConfirmBtnEl?.addEventListener('click', () => {
+    confirmTrip();
+  });
+
 
   if (tripComboboxToggleEl) {
     tripComboboxToggleEl.addEventListener('click', (e) => {
@@ -1559,6 +2016,7 @@ function setupEventListeners(): void {
       saveState();
       tripStore.activeTripId = (e.target as HTMLSelectElement).value;
       tripStore.applyActiveTripToState(state);
+      isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
       saveState();
       render();
     });
@@ -1574,12 +2032,17 @@ function setupEventListeners(): void {
     });
   }
 
-  if (addLocationTypeSelectEl) {
-    addLocationTypeSelectEl.addEventListener('change', (e) => {
-      state.addLocationType = (e.target as HTMLSelectElement).value as any;
-      renderAddSpotOptions();
-    });
-  }
+  addTypeDepartureEl?.addEventListener('change', (e) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    state.addLocationType = checked ? 'departure' : 'spot';
+    renderAddSpotOptions();
+  });
+
+  addTypeAccommodationEl?.addEventListener('change', (e) => {
+    const checked = (e.target as HTMLInputElement).checked;
+    state.addLocationType = checked ? 'accommodation' : 'spot';
+    renderAddSpotOptions();
+  });
 
   addAccommodationScopeAllEl?.addEventListener('click', () => {
     state.addAccommodationScope = 'all';
@@ -1640,7 +2103,15 @@ function setupEventListeners(): void {
     flushAccommodationSync(true, state.activeDayIndex, accommodationInputEl.value);
   });
 
-  window.addEventListener('scroll', updateActiveDayFromScroll, { passive: true });
+  function handleScroll(): void {
+    updateActiveDayFromScroll();
+    if (lpSlotWrapperEl && isTripConfirmed) {
+      const isScrolled = window.scrollY > 15;
+      lpSlotWrapperEl.classList.toggle('scrolled', isScrolled);
+    }
+  }
+
+  window.addEventListener('scroll', handleScroll, { passive: true });
   window.addEventListener('resize', updateStickyOffsets, { passive: true });
   window.addEventListener('keydown', (e) => {
     const isZ = e.key === 'z' || e.key === 'Z';
@@ -1705,8 +2176,30 @@ function setupEventListeners(): void {
 
 // アプリ初期化
 export function init(): void {
+  const rawShareData = extractDataFromUrl();
+  const sharedTrip = rawShareData ? parseShareUrlData(rawShareData) : null;
+
   tripStore.load();
-  tripStore.applyActiveTripToState(state);
+
+  if (sharedTrip) {
+    const existingIndex = tripStore.trips.findIndex((t) => t.id === sharedTrip.id);
+    if (existingIndex >= 0) {
+      tripStore.trips[existingIndex] = sharedTrip;
+    } else {
+      tripStore.trips.unshift(sharedTrip);
+      if (tripStore.trips.length > MAX_TRIPS) {
+        tripStore.trips = tripStore.trips.slice(0, MAX_TRIPS);
+      }
+    }
+    tripStore.activeTripId = sharedTrip.id;
+    tripStore.applyActiveTripToState(state);
+    isTripConfirmed = true;
+    showToast('共有された旅行プランを読み込みました！');
+  } else {
+    tripStore.applyActiveTripToState(state);
+    isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
+  }
+
   ensureValidState();
   syncAutoStarts();
   saveState();

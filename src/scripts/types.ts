@@ -4,10 +4,16 @@ export type LocationType = 'spot' | 'departure' | 'accommodation';
 
 export type AccommodationScope = 'all' | 'today' | 'next-day';
 
+export interface Spot {
+  name: string;
+  memo: string;
+}
+
 export interface Day {
   name: string;
-  spots: string[];
+  spots: Spot[];
   accommodation: string;
+  accommodationMemo?: string;
   autoAccommodation: boolean;
   autoStart: boolean;
   autoStartSlot: boolean;
@@ -20,7 +26,9 @@ export interface Trip {
   days: Day[];
   activeDayIndex: number;
   departure: string;
+  departureMemo?: string;
   arrival: string;
+  arrivalMemo?: string;
   autoArrival: boolean;
   mapType: MapType;
 }
@@ -32,7 +40,9 @@ export interface AppState {
   openRouteMenuIndex: number | null;
   accommodationUpdateScope: AccommodationScope;
   departure: string;
+  departureMemo?: string;
   arrival: string;
+  arrivalMemo?: string;
   autoArrival: boolean;
   tripName: string;
   addLocationType: LocationType;
@@ -40,7 +50,8 @@ export interface AppState {
 }
 
 export type DayItem =
-  | { type: 'endpoint'; value: string; label: '出発地点' | '到着地点' }
-  | { type: 'spot'; value: string; spotIndex: number }
-  | { type: 'accommodation'; value: string };
+  | { type: 'endpoint'; value: string; memo?: string; label: '出発地点' | '到着地点' }
+  | { type: 'spot'; value: string; memo: string; spotIndex: number }
+  | { type: 'accommodation'; value: string; memo?: string };
+
 
