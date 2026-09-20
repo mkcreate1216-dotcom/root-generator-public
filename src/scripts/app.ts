@@ -766,6 +766,29 @@ function renderTabs(): void {
   refreshIcons(dayTabsEl);
 }
 
+function animateDayTabsStagger(): void {
+  if (!dayTabsEl) return;
+  const children = Array.from(dayTabsEl.children) as HTMLElement[];
+  if (children.length === 0) return;
+
+  children.forEach((child, i) => {
+    child.style.animationDelay = `${i * 320}ms`;
+    if ((child as HTMLButtonElement).disabled) {
+      child.style.setProperty('--tag-target-opacity', '0.4');
+    }
+    child.classList.add('day-tag-entering');
+  });
+
+  const totalDuration = children.length * 320 + 500;
+  setTimeout(() => {
+    children.forEach((child) => {
+      child.style.animationDelay = '';
+      child.style.removeProperty('--tag-target-opacity');
+      child.classList.remove('day-tag-entering');
+    });
+  }, totalDuration);
+}
+
 function parseMemo(memo: string): {
   firstLine: string;
   restLines: string[];
@@ -1703,6 +1726,10 @@ function updateItineraryVisibility(): void {
   if (dayTabsEl) {
     dayTabsEl.classList.toggle('hidden', !showItinerary);
     dayTabsEl.classList.toggle('flex', showItinerary);
+    if (!showItinerary) {
+      dayTabsEl.style.opacity = '';
+      dayTabsEl.style.pointerEvents = '';
+    }
   }
   if (headerMapSelectorEl) {
     headerMapSelectorEl.classList.toggle('hidden', !showItinerary);
@@ -1892,6 +1919,12 @@ function transitionToApp(onComplete: () => void): void {
     // DOM状態をアプリモードへ更新
     onComplete();
 
+    // DaysTag（日程タグ）は一番最後に表示するため、一旦非表示にしておく
+    if (dayTabsEl) {
+      dayTabsEl.style.opacity = '0';
+      dayTabsEl.style.pointerEvents = 'none';
+    }
+
     // 遷移後の旅行名バーの絶対座標を記録
     const lastRect = lpSlotWrapperEl ? lpSlotWrapperEl.getBoundingClientRect() : null;
 
@@ -1927,7 +1960,16 @@ function transitionToApp(onComplete: () => void): void {
       addSpotFormEl.classList.add('form-entering');
     }
 
-    // アニメーション完了後のクリーンアップ (1150ms)
+    // Phase 4: 画面の遷移が完全に終わり、一呼吸おいたタイミング（1300ms後）で日程タグ（DaysTag）をゆっくり順次出現
+    setTimeout(() => {
+      if (dayTabsEl) {
+        dayTabsEl.style.opacity = '';
+        dayTabsEl.style.pointerEvents = '';
+        animateDayTabsStagger();
+      }
+    }, 1300);
+
+    // アニメーション完了後のクリーンアップ (3400ms)
     setTimeout(() => {
       if (lpSlotWrapperEl) {
         lpSlotWrapperEl.style.transition = '';
@@ -1936,13 +1978,17 @@ function transitionToApp(onComplete: () => void): void {
       if (mainCardEl) {
         mainCardEl.style.minHeight = '';
       }
+      if (dayTabsEl) {
+        dayTabsEl.style.opacity = '';
+        dayTabsEl.style.pointerEvents = '';
+      }
       appHeaderContainerEl?.classList.remove('header-entering');
       itinerarySectionEl?.classList.remove('app-entering');
       addSpotFormEl?.classList.remove('form-entering');
       lpElements.forEach((el) => el.classList.remove('lp-leaving'));
       isTransitioningToApp = false;
       updateStickyOffsets();
-    }, 1150);
+    }, 3400);
   }, 320);
 }
 
