@@ -19,15 +19,34 @@ import Tooltip from '../components/Tooltip.astro';
         <Header />
       </div>
 
-      <!-- LPヒーロー + 旅行タイトル入力コンボボックス（視覚的中心に配置） -->
-      <LpHero>
+      <!-- LPヒーロー（タイトル・特徴） -->
+      <LpHero />
+
+      <!-- 一体型スマートパネル: 旅行タイトル入力バー + スポット追加フォーム（LP時は中央、アプリ時は上部固定） -->
+      <div id="lp-slot-wrapper" class="w-full max-w-xl mx-auto my-1 transition-all duration-300">
         <TripCombobox />
-      </LpHero>
+        <SpotAddForm />
+      </div>
+
+      <!-- LP下部: サンプルタグ（縦に3つ並べる） -->
+      <div id="lp-samples-section" class="w-full max-w-xs mx-auto mt-6 text-center transition-all duration-200">
+        <p class="text-xs text-slate-500 mb-2.5 select-none font-medium">例:</p>
+        <div class="flex flex-col items-center gap-2 select-none">
+          <span class="w-full rounded-full border border-slate-200 bg-white py-1.5 px-4 text-xs text-slate-500 shadow-xs text-center">
+            京都 2泊3日
+          </span>
+          <span class="w-full rounded-full border border-slate-200 bg-white py-1.5 px-4 text-xs text-slate-500 shadow-xs text-center">
+            北海道ドライブ
+          </span>
+          <span class="w-full rounded-full border border-slate-200 bg-white py-1.5 px-4 text-xs text-slate-500 shadow-xs text-center">
+            金沢 週末ひとり旅
+          </span>
+        </div>
+      </div>
 
       <!-- 日程セクション（旅行名入力後に展開） -->
       <section id="itinerary-section" class="hidden w-full p-4 pt-2 sm:p-6 sm:pt-2">
         <DayTabs />
-        <SpotAddForm />
 
         <div id="timeline" class="space-y-0 pb-[70vh] pr-[3.75rem] sm:pr-0"></div>
 

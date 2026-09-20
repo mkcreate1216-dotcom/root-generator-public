@@ -1,64 +1,35 @@
 ---
 ---
 
-<div id="lp-container" class="w-full flex flex-col items-center justify-center transition-all duration-200">
-  <!-- 上部: タイトル・キャッチコピー -->
-  <div id="lp-hero-section" class="w-full text-center mb-4 sm:mb-5 transition-opacity duration-200">
-    <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-medium text-slate-600 mb-3 shadow-xs select-none">
-      <span>旅のしおり作成ツール</span>
+<!-- 上部: タイトル・キャッチコピー -->
+<div id="lp-hero-section" class="w-full text-center mb-4 sm:mb-5 transition-all duration-200">
+  <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-xs font-medium text-slate-600 mb-3 shadow-xs select-none">
+    <span>旅のしおり作成ツール</span>
+  </div>
+
+  <h1 class="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 mb-2.5 select-none">
+    たびおり
+  </h1>
+
+  <p class="text-sm sm:text-base font-medium text-slate-600 max-w-xl mx-auto leading-relaxed">
+    予定を縦糸に、想い出を横糸に。旅を織る。
+  </p>
+</div>
+
+<!-- 特徴3点（矢印なし、スポット登録、枠なし簡素表示） -->
+<div id="lp-features-section" class="w-full max-w-lg mx-auto mb-6 sm:mb-7 transition-all duration-200">
+  <div class="flex items-center justify-center gap-5 sm:gap-8 text-xs text-slate-500 select-none">
+    <div class="flex items-center gap-1.5">
+      <span class="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">1</span>
+      <span class="font-medium text-slate-700">スポット登録</span>
     </div>
-
-    <h1 class="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 mb-2.5 select-none">
-      たびおり
-    </h1>
-
-    <p class="text-sm sm:text-base font-medium text-slate-600 max-w-xl mx-auto leading-relaxed">
-      予定を縦糸に、想い出を横糸に。旅を織る。
-    </p>
-  </div>
-
-  <!-- 特徴3点（矢印なし、スポット登録、枠なし簡素表示） -->
-  <div id="lp-features-section" class="w-full max-w-lg mx-auto mb-6 sm:mb-7 transition-opacity duration-200">
-    <div class="flex items-center justify-center gap-5 sm:gap-8 text-xs text-slate-500 select-none">
-      <div class="flex items-center gap-1.5">
-        <span class="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">1</span>
-        <span class="font-medium text-slate-700">スポット登録</span>
-      </div>
-      <div class="flex items-center gap-1.5">
-        <span class="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">2</span>
-        <span class="font-medium text-slate-700">ルート案内</span>
-      </div>
-      <div class="flex items-center gap-1.5">
-        <span class="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">3</span>
-        <span class="font-medium text-slate-700">URL共有</span>
-      </div>
+    <div class="flex items-center gap-1.5">
+      <span class="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">2</span>
+      <span class="font-medium text-slate-700">ルート案内</span>
     </div>
-  </div>
-
-  <!-- スロット: ここに下線＋影の旅行タイトル入力バー（TripCombobox）が配置される -->
-  <div id="lp-slot-wrapper" class="w-full max-w-xl mx-auto my-1">
-    <slot />
-  </div>
-
-  <!-- 下部: サンプルタグ（縦に3つ並べる） -->
-  <div id="lp-samples-section" class="w-full max-w-xs mx-auto mt-6 text-center transition-opacity duration-200">
-    <p class="text-xs text-slate-500 mb-2.5 select-none font-medium">例:</p>
-    <div class="flex flex-col items-center gap-2 select-none">
-      <span
-        class="w-full rounded-full border border-slate-200 bg-white py-1.5 px-4 text-xs text-slate-500 shadow-xs text-center"
-      >
-        京都 2泊3日
-      </span>
-      <span
-        class="w-full rounded-full border border-slate-200 bg-white py-1.5 px-4 text-xs text-slate-500 shadow-xs text-center"
-      >
-        北海道ドライブ
-      </span>
-      <span
-        class="w-full rounded-full border border-slate-200 bg-white py-1.5 px-4 text-xs text-slate-500 shadow-xs text-center"
-      >
-        金沢 週末ひとり旅
-      </span>
+    <div class="flex items-center gap-1.5">
+      <span class="flex h-4 w-4 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-700">3</span>
+      <span class="font-medium text-slate-700">URL共有</span>
     </div>
   </div>
 </div>

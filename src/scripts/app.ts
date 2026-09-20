@@ -74,6 +74,7 @@ let isTripMenuOpen = false;
 let accommodationDebounceId: ReturnType<typeof setTimeout> | null = null;
 let pendingAccommodationSync: { dayIndex: number; value: string } | null = null;
 let isTripConfirmed = false;
+let isTransitioningToApp = false;
 const dayUndoStack: Array<{ index: number; day: Day }> = [];
 
 // DOM要素参照
@@ -180,19 +181,26 @@ function syncAutoStarts(): void {
 }
 
 function updateStickyOffsets(): void {
-  if (addSpotFormEl) {
-    const height = Math.round(addSpotFormEl.getBoundingClientRect().height);
-    document.documentElement.style.setProperty('--sticky-form-height', `${height}px`);
+  if (!isTripConfirmed) {
+    document.documentElement.style.setProperty('--trip-header-height', '0px');
+    document.documentElement.style.setProperty('--sticky-form-height', '0px');
+    document.documentElement.style.setProperty('--total-sticky-height', '0px');
+    return;
   }
+
+  const panelHeight = lpSlotWrapperEl ? Math.round(lpSlotWrapperEl.getBoundingClientRect().height) : 115;
+  document.documentElement.style.setProperty('--trip-header-height', `${panelHeight}px`);
+  document.documentElement.style.setProperty('--sticky-form-height', `${panelHeight}px`);
+  document.documentElement.style.setProperty('--total-sticky-height', `${panelHeight}px`);
 }
 
 function scrollToDay(index: number): void {
   const section = document.getElementById(`day-section-${index}`);
   if (!section) return;
   updateStickyOffsets();
-  const formHeight = addSpotFormEl ? Math.round(addSpotFormEl.getBoundingClientRect().height) : 135;
+  const totalOffset = lpSlotWrapperEl ? Math.round(lpSlotWrapperEl.getBoundingClientRect().height) : 115;
   const sectionTop = section.getBoundingClientRect().top + window.scrollY;
-  const targetScrollY = Math.max(0, sectionTop - formHeight + 2);
+  const targetScrollY = Math.max(0, sectionTop - totalOffset + 2);
   window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
 }
 
@@ -302,6 +310,7 @@ function createNewTrip(): void {
   tripStore.activeTripId = newTrip.id;
   tripStore.applyActiveTripToState(state);
   isTripConfirmed = false;
+  isTransitioningToApp = false;
   saveState();
   render();
   if (tripNameInputEl) {
@@ -1393,13 +1402,13 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
   details.id = `day-section-${dayIndex}`;
   details.dataset.dayIndex = String(dayIndex);
   details.className = 'border-t border-slate-200 py-2 first:border-t-0 first:pt-0';
-  details.style.scrollMarginTop = 'var(--sticky-form-height, 135px)';
+  details.style.scrollMarginTop = 'var(--total-sticky-height, 150px)';
   details.open = !collapsedDays.has(dayIndex);
 
   const summary = document.createElement('summary');
   summary.className =
     'sticky z-20 flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-white/95 px-3 py-2.5 backdrop-blur-sm shadow-xs transition-colors duration-75 hover:bg-slate-50';
-  summary.style.top = 'var(--sticky-form-height, 135px)';
+  summary.style.top = 'var(--total-sticky-height, 150px)';
   summary.style.listStyle = 'none';
 
   const chevronWrap = document.createElement('div');
@@ -1603,8 +1612,8 @@ function updateActiveDayFromScroll(): void {
   const sections = [...document.querySelectorAll<HTMLElement>('[data-day-index]')];
   if (sections.length === 0) return;
 
-  const formRect = addSpotFormEl ? addSpotFormEl.getBoundingClientRect() : null;
-  const targetY = formRect ? Math.round(formRect.bottom + 16) : 140;
+  const panelRect = lpSlotWrapperEl ? lpSlotWrapperEl.getBoundingClientRect() : null;
+  const targetY = panelRect ? Math.round(panelRect.bottom + 16) : 140;
   let currentSection: HTMLElement | null = null;
 
   for (const section of sections) {
@@ -1635,18 +1644,17 @@ function updateItineraryVisibility(): void {
   const showItinerary = isTripConfirmed;
 
   // LP要素の表示・非表示
-  if (lpHeroSectionEl) {
-    lpHeroSectionEl.classList.toggle('hidden', showItinerary);
-  }
-  if (lpFeaturesSectionEl) {
-    lpFeaturesSectionEl.classList.toggle('hidden', showItinerary);
-  }
-  if (lpSamplesSectionEl) {
-    lpSamplesSectionEl.classList.toggle('hidden', showItinerary);
-  }
-  if (tripConfirmContainerEl) {
-    tripConfirmContainerEl.classList.toggle('hidden', showItinerary);
-  }
+  const lpElements = [lpHeroSectionEl, lpFeaturesSectionEl, lpSamplesSectionEl, tripConfirmContainerEl].filter(
+    Boolean
+  ) as HTMLElement[];
+
+  lpElements.forEach((el) => {
+    el.classList.toggle('hidden', showItinerary);
+    if (!showItinerary) {
+      el.classList.remove('lp-leaving');
+    }
+  });
+
   if (appHeaderContainerEl) {
     appHeaderContainerEl.classList.toggle('hidden', !showItinerary);
   }
@@ -1662,13 +1670,24 @@ function updateItineraryVisibility(): void {
     }
   }
 
-  // 入力バーのラッパーのスタイル調整
+  // 一体型スマートパネルのスタイル調整（アプリ時はstickyかつ左寄せ）
   if (lpSlotWrapperEl) {
     if (showItinerary) {
-      lpSlotWrapperEl.className = 'w-full border-b border-slate-100 p-4 sm:p-5 bg-slate-50/40';
+      lpSlotWrapperEl.className = 'w-full p-3.5 sm:px-6 sm:py-4 is-sticky transition-all duration-300';
     } else {
-      lpSlotWrapperEl.className = 'w-full max-w-xl mx-auto my-1';
+      lpSlotWrapperEl.className = 'w-full max-w-xl mx-auto my-1 transition-all duration-300';
+      lpSlotWrapperEl.classList.remove('scrolled');
     }
+  }
+
+  // 旅行名コンテナ（アプリ表示時は左寄せ app-mode クラスを付与）
+  if (tripComboboxContainerEl) {
+    tripComboboxContainerEl.classList.toggle('app-mode', showItinerary);
+  }
+
+  // 一体型パネル内のスポット追加フォームの表示・非表示
+  if (addSpotFormEl) {
+    addSpotFormEl.classList.toggle('hidden', !showItinerary);
   }
 
   // 日程セクションと固定日程タブ・マップセレクター
@@ -1845,7 +1864,58 @@ function hideGlobalTooltip(): void {
   activeTooltipTarget = null;
 }
 
+function transitionToApp(onComplete: () => void): void {
+  const lpElements = [lpHeroSectionEl, lpFeaturesSectionEl, lpSamplesSectionEl, tripConfirmContainerEl].filter(
+    Boolean
+  ) as HTMLElement[];
+
+  // Phase 1: LP要素を軽やかにフェードアウト＆上へ縮小
+  lpElements.forEach((el) => el.classList.add('lp-leaving'));
+
+  // タイトルバーを左寄せモードへ切り替え
+  if (tripComboboxContainerEl) {
+    tripComboboxContainerEl.classList.add('app-mode');
+  }
+
+  // Phase 2: メインカード形状のスムーズな変化
+  if (mainCardEl) {
+    mainCardEl.className =
+      'rounded-2xl border border-slate-200 bg-white shadow-sm block p-0 transition-all duration-300';
+  }
+  if (lpSlotWrapperEl) {
+    lpSlotWrapperEl.className = 'w-full p-3.5 sm:px-6 sm:py-4 is-sticky transition-all duration-300';
+  }
+
+  // LP退場アニメーション完了後 (240ms) にアプリ要素を表示
+  setTimeout(() => {
+    onComplete();
+
+    // Phase 3: アプリ要素の入場アニメーション
+    if (appHeaderContainerEl) {
+      appHeaderContainerEl.classList.add('header-entering');
+    }
+    if (itinerarySectionEl) {
+      itinerarySectionEl.classList.add('app-entering');
+    }
+    if (addSpotFormEl) {
+      addSpotFormEl.classList.add('app-entering');
+    }
+
+    // アニメーション完了後のクリーンアップ (400ms)
+    setTimeout(() => {
+      appHeaderContainerEl?.classList.remove('header-entering');
+      itinerarySectionEl?.classList.remove('app-entering');
+      addSpotFormEl?.classList.remove('app-entering');
+      lpElements.forEach((el) => el.classList.remove('lp-leaving'));
+      isTransitioningToApp = false;
+      updateStickyOffsets();
+    }, 400);
+  }, 240);
+}
+
 function confirmTrip(): void {
+  if (isTransitioningToApp) return;
+
   const inputVal = (tripNameInputEl?.value || state.tripName || '').trim();
   if (!inputVal) {
     if (tripNameInputEl) {
@@ -1853,9 +1923,10 @@ function confirmTrip(): void {
     }
     return;
   }
+
   state.tripName = inputVal;
-  isTripConfirmed = true;
   saveState();
+
   if (tripSwitcherEl) {
     const activeOption = tripSwitcherEl.querySelector(`option[value="${tripStore.activeTripId}"]`);
     if (activeOption) {
@@ -1863,8 +1934,21 @@ function confirmTrip(): void {
       activeOption.textContent = state.tripName;
     }
   }
-  updateItineraryVisibility();
-  render();
+
+  // LPからの初回遷移時はアニメーションを適用
+  if (!isTripConfirmed) {
+    isTransitioningToApp = true;
+    transitionToApp(() => {
+      isTripConfirmed = true;
+      saveState();
+      updateItineraryVisibility();
+      render();
+    });
+  } else {
+    // すでにアプリモードでの編集時は即時反映
+    updateItineraryVisibility();
+    render();
+  }
 }
 
 // イベントリスナー設定
@@ -2008,7 +2092,15 @@ function setupEventListeners(): void {
     flushAccommodationSync(true, state.activeDayIndex, accommodationInputEl.value);
   });
 
-  window.addEventListener('scroll', updateActiveDayFromScroll, { passive: true });
+  function handleScroll(): void {
+    updateActiveDayFromScroll();
+    if (lpSlotWrapperEl && isTripConfirmed) {
+      const isScrolled = window.scrollY > 15;
+      lpSlotWrapperEl.classList.toggle('scrolled', isScrolled);
+    }
+  }
+
+  window.addEventListener('scroll', handleScroll, { passive: true });
   window.addEventListener('resize', updateStickyOffsets, { passive: true });
   window.addEventListener('keydown', (e) => {
     const isZ = e.key === 'z' || e.key === 'Z';
