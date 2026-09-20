@@ -1875,26 +1875,46 @@ function transitionToApp(onComplete: () => void): void {
     Boolean
   ) as HTMLElement[];
 
-  // Phase 1: LP要素を軽やかにフェードアウト＆上へ縮小
+  // Phase 1: LP要素のみをフェードアウト（親レイアウトは変えず、その場でスッと消す）
   lpElements.forEach((el) => el.classList.add('lp-leaving'));
 
-  // タイトルバーを左寄せモードへ切り替え
-  if (tripComboboxContainerEl) {
-    tripComboboxContainerEl.classList.add('app-mode');
-  }
-
-  // Phase 2: メインカード形状のスムーズな変化
-  if (mainCardEl) {
-    mainCardEl.className =
-      'rounded-2xl border border-slate-200 bg-white shadow-sm block p-0 transition-all duration-300';
-  }
-  if (lpSlotWrapperEl) {
-    lpSlotWrapperEl.className = 'w-full p-3.5 sm:px-6 sm:py-4 is-sticky transition-all duration-300';
-  }
-
-  // LP退場アニメーション完了後 (240ms) にアプリ要素を表示
+  // 320ms後にLP要素が消えたタイミングでPhase 2（DOM切り替え＆FLIPアニメーション）
   setTimeout(() => {
+    // 遷移前の旅行名バー（lpSlotWrapperEl）の絶対座標を記録
+    const firstRect = lpSlotWrapperEl ? lpSlotWrapperEl.getBoundingClientRect() : null;
+    const initialCardHeight = mainCardEl ? mainCardEl.offsetHeight : null;
+
+    // カードの急激な高さ潰れを防ぐため一時的に現在の高さをminHeightに設定
+    if (mainCardEl && initialCardHeight) {
+      mainCardEl.style.minHeight = `${initialCardHeight}px`;
+    }
+
+    // DOM状態をアプリモードへ更新
     onComplete();
+
+    // 遷移後の旅行名バーの絶対座標を記録
+    const lastRect = lpSlotWrapperEl ? lpSlotWrapperEl.getBoundingClientRect() : null;
+
+    // FLIP: Y方向の移動差分を計算して滑らかにスライド
+    if (lpSlotWrapperEl && firstRect && lastRect) {
+      const deltaY = firstRect.top - lastRect.top;
+      if (Math.abs(deltaY) > 1) {
+        lpSlotWrapperEl.style.transition = 'none';
+        lpSlotWrapperEl.style.transform = `translateY(${deltaY}px)`;
+
+        // reflow を強制して初期transformを確実にブラウザに認識させる
+        void lpSlotWrapperEl.offsetHeight;
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (lpSlotWrapperEl) {
+              lpSlotWrapperEl.style.transition = 'transform 1100ms cubic-bezier(0.45, 0.05, 0.2, 1)';
+              lpSlotWrapperEl.style.transform = '';
+            }
+          });
+        });
+      }
+    }
 
     // Phase 3: アプリ要素の入場アニメーション
     if (appHeaderContainerEl) {
@@ -1904,19 +1924,26 @@ function transitionToApp(onComplete: () => void): void {
       itinerarySectionEl.classList.add('app-entering');
     }
     if (addSpotFormEl) {
-      addSpotFormEl.classList.add('app-entering');
+      addSpotFormEl.classList.add('form-entering');
     }
 
-    // アニメーション完了後のクリーンアップ (400ms)
+    // アニメーション完了後のクリーンアップ (1150ms)
     setTimeout(() => {
+      if (lpSlotWrapperEl) {
+        lpSlotWrapperEl.style.transition = '';
+        lpSlotWrapperEl.style.transform = '';
+      }
+      if (mainCardEl) {
+        mainCardEl.style.minHeight = '';
+      }
       appHeaderContainerEl?.classList.remove('header-entering');
       itinerarySectionEl?.classList.remove('app-entering');
-      addSpotFormEl?.classList.remove('app-entering');
+      addSpotFormEl?.classList.remove('form-entering');
       lpElements.forEach((el) => el.classList.remove('lp-leaving'));
       isTransitioningToApp = false;
       updateStickyOffsets();
-    }, 400);
-  }, 240);
+    }, 1150);
+  }, 320);
 }
 
 function confirmTrip(): void {
@@ -1994,6 +2021,16 @@ function setupEventListeners(): void {
 
   tripConfirmBtnEl?.addEventListener('click', () => {
     confirmTrip();
+  });
+
+  document.querySelectorAll<HTMLElement>('[data-sample-trip]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const val = btn.dataset.sampleTrip;
+      if (val && tripNameInputEl) {
+        tripNameInputEl.value = val;
+        confirmTrip();
+      }
+    });
   });
 
 

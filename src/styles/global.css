@@ -18,15 +18,28 @@ summary::-webkit-details-marker {
 /* LPからアプリへの遷移アニメーション */
 .lp-leaving {
   opacity: 0 !important;
-  transform: translateY(-16px) scale(0.97) !important;
+  transform: translateY(-8px) scale(0.98) !important;
   pointer-events: none !important;
-  transition: opacity 240ms cubic-bezier(0.4, 0, 0.2, 1), transform 240ms cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: opacity 240ms cubic-bezier(0.25, 0.1, 0.25, 1), transform 240ms cubic-bezier(0.25, 0.1, 0.25, 1) !important;
+}
+
+@keyframes formFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.form-entering {
+  animation: formFadeIn 450ms cubic-bezier(0.22, 0.68, 0, 1) forwards;
 }
 
 @keyframes appSlideUpFade {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(28px);
   }
   to {
     opacity: 1;
@@ -35,13 +48,13 @@ summary::-webkit-details-marker {
 }
 
 .app-entering {
-  animation: appSlideUpFade 360ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: appSlideUpFade 700ms cubic-bezier(0.22, 0.68, 0, 1) forwards;
 }
 
 @keyframes headerFadeDown {
   from {
     opacity: 0;
-    transform: translateY(-12px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
@@ -50,7 +63,7 @@ summary::-webkit-details-marker {
 }
 
 .header-entering {
-  animation: headerFadeDown 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: headerFadeDown 450ms cubic-bezier(0.22, 0.68, 0, 1) forwards;
 }
 
 /* 旅行名バー固定時のスタイル */
