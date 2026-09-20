@@ -42,8 +42,6 @@ import Tooltip from '../components/Tooltip.astro';
 
       <!-- 日程セクション（旅行名入力後に展開） -->
       <section id="itinerary-section" class="hidden w-full p-4 pt-2 sm:p-6 sm:pt-2">
-        <DayTabs />
-
         <div id="timeline" class="space-y-0 pb-[70vh] pr-[3.75rem] sm:pr-0"></div>
 
         <div id="endpoint-section" class="hidden mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
@@ -80,6 +78,7 @@ import Tooltip from '../components/Tooltip.astro';
     </div>
   </div>
 
+  <DayTabs />
   <Tooltip />
 
   <script>
