@@ -17,6 +17,7 @@ import {
   MapPin,
   CloudUpload,
   RefreshCw,
+  Save,
 } from 'lucide';
 import type { AppState, Day, MapType } from './types';
 import {
@@ -24,6 +25,7 @@ import {
   MAP_TYPE_STORAGE_KEY,
   MAX_TRIPS,
   createDay,
+  createTripEntry,
   getStoredMapType,
 } from './storage';
 import { getDayRouteUrl, openRoute } from './maps';
@@ -51,6 +53,7 @@ function refreshIcons(_root?: HTMLElement): void {
       MapPin,
       CloudUpload,
       RefreshCw,
+      Save,
     },
   });
 }
@@ -134,9 +137,11 @@ function ensureValidState(): void {
   }
 }
 
-function saveState(): void {
+function saveState(markAsUnsaved = true): void {
   tripStore.save(state);
-  collabManager.markUnsaved();
+  if (markAsUnsaved) {
+    collabManager.markUnsaved();
+  }
 }
 
 function syncAutoStarts(): void {
@@ -300,25 +305,39 @@ function toggleTripMenu(force?: boolean): void {
   }
 }
 
+function syncCollabStateWithActiveTrip(): void {
+  if (state.shareId) {
+    collabManager.initFromPlan({
+      id: state.shareId,
+      title: state.tripName,
+      data: state,
+      version: 1,
+      createdAt: '',
+      updatedAt: '',
+    });
+    collabManager.fetchLatest();
+    if (typeof window !== 'undefined' && window.location.pathname !== `/p/${state.shareId}`) {
+      window.history.pushState(null, '', `/p/${state.shareId}`);
+    }
+  } else {
+    collabManager.reset();
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.pushState(null, '', '/');
+    }
+  }
+}
+
 function createNewTrip(): void {
   if (tripStore.trips.length >= MAX_TRIPS) {
     alert(`旅行は最大${MAX_TRIPS}件までしか作成できません。`);
     return;
   }
   saveState();
-  const newTrip = {
-    id: `trip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    tripName: '',
-    days: [createDay(1)],
-    activeDayIndex: 0,
-    departure: '',
-    arrival: '',
-    autoArrival: true,
-    mapType: getStoredMapType(),
-  };
+  const newTrip = createTripEntry('');
   tripStore.trips.push(newTrip);
   tripStore.activeTripId = newTrip.id;
   tripStore.applyActiveTripToState(state);
+  syncCollabStateWithActiveTrip();
   isTripConfirmed = false;
   isTransitioningToApp = false;
   saveState();
@@ -346,6 +365,7 @@ function deleteTrip(tripId: string): void {
   if (tripId === tripStore.activeTripId) {
     tripStore.activeTripId = tripStore.trips[Math.max(0, index - 1)].id;
     tripStore.applyActiveTripToState(state);
+    syncCollabStateWithActiveTrip();
     isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
   }
   saveState();
@@ -413,8 +433,9 @@ function renderTripComboboxMenu(): void {
         saveState();
         tripStore.activeTripId = trip.id;
         tripStore.applyActiveTripToState(state);
+        syncCollabStateWithActiveTrip();
         isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
-        saveState();
+        saveState(false);
         render();
       } else if (state.tripName && state.tripName.trim().length > 0) {
         isTripConfirmed = true;
@@ -821,68 +842,25 @@ function renderTabs(): void {
 
   const collabState = collabManager.getState();
 
-  const shareButton = document.createElement('button');
-  shareButton.type = 'button';
-  shareButton.id = 'share-btn';
-  shareButton.className =
-    'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border border-slate-300 bg-white p-0 text-slate-700 shadow-xs transition-all duration-75 hover:scale-105 hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:shadow-md active:scale-90 cursor-pointer';
-  const shareTooltip = collabState.planId ? '共有URLをコピー' : '共有リンクを発行';
-  shareButton.setAttribute('aria-label', shareTooltip);
-  shareButton.setAttribute('data-tooltip', shareTooltip);
-  shareButton.setAttribute('data-tooltip-pos', 'left');
-  shareButton.innerHTML = '<i data-lucide="share-2" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
-  shareButton.addEventListener('click', async () => {
-    await collabManager.createShareLink(state.tripName, state, shareButton);
-    renderTabs();
-  });
-  dayTabsEl.appendChild(shareButton);
-
   if (collabState.planId) {
-    // クラウド保存ボタン（楽観的ロック）
-    const saveButton = document.createElement('button');
-    saveButton.type = 'button';
-    saveButton.id = 'collab-save-btn';
-    const isUnsaved = collabState.hasUnsavedChanges;
-    saveButton.className = `relative flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border p-0 shadow-xs transition-all duration-75 hover:scale-105 hover:shadow-md active:scale-90 cursor-pointer ${
-      isUnsaved
-        ? 'border-amber-500 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-600'
-        : 'border-slate-300 bg-white text-slate-700 hover:border-slate-900 hover:bg-slate-900 hover:text-white'
-    }`;
-    const saveTooltip = isUnsaved ? 'クラウドに保存（未保存の変更あり）' : 'クラウドに保存済み';
-    saveButton.setAttribute('aria-label', saveTooltip);
-    saveButton.setAttribute('data-tooltip', saveTooltip);
-    saveButton.setAttribute('data-tooltip-pos', 'left');
-    saveButton.innerHTML = `<i data-lucide="cloud-upload" class="h-3.5 w-3.5 sm:h-4 sm:w-4 ${isUnsaved ? 'text-amber-600' : ''}"></i>`;
-    if (isUnsaved) {
-      const dot = document.createElement('span');
-      dot.className = 'absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white';
-      saveButton.appendChild(dot);
-    }
-    saveButton.addEventListener('click', async () => {
-      await collabManager.savePlan(state.tripName, state, {
-        onConflict: () => {
-          showToast(
-            '⚠️ 他の人が更新しました。最新版を読み直してください',
-            async () => {
-              const latest = await collabManager.fetchLatest();
-              if (latest && latest.data) {
-                Object.assign(state, latest.data);
-                if (latest.title) state.tripName = latest.title;
-                ensureValidState();
-                saveState();
-                render();
-                showToast('最新データを反映しました！');
-              }
-            },
-            '最新版を読込'
-          );
-        },
-      });
+    // 1. 共有URLコピーボタン
+    const shareButton = document.createElement('button');
+    shareButton.type = 'button';
+    shareButton.id = 'share-btn';
+    shareButton.className =
+      'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border border-slate-300 bg-white p-0 text-slate-700 shadow-xs transition-all duration-75 hover:scale-105 hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:shadow-md active:scale-90 cursor-pointer';
+    const shareTooltip = '共有URLをコピー';
+    shareButton.setAttribute('aria-label', shareTooltip);
+    shareButton.setAttribute('data-tooltip', shareTooltip);
+    shareButton.setAttribute('data-tooltip-pos', 'left');
+    shareButton.innerHTML = '<i data-lucide="share-2" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
+    shareButton.addEventListener('click', async () => {
+      await collabManager.createShareLink(state.tripName, state, shareButton);
       renderTabs();
     });
-    dayTabsEl.appendChild(saveButton);
+    dayTabsEl.appendChild(shareButton);
 
-    // 最新化リロードボタン
+    // 2. 最新化リロードボタン（更新）
     const reloadButton = document.createElement('button');
     reloadButton.type = 'button';
     reloadButton.id = 'collab-reload-btn';
@@ -900,12 +878,73 @@ function renderTabs(): void {
         Object.assign(state, latest.data);
         if (latest.title) state.tripName = latest.title;
         ensureValidState();
-        saveState();
+        saveState(false);
         render();
         showToast('最新データを反映しました！');
       }
     });
     dayTabsEl.appendChild(reloadButton);
+
+    // 3. 変更を保存ボタン（保存）
+    const saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.id = 'collab-save-btn';
+    const isUnsaved = collabState.hasUnsavedChanges;
+    saveButton.className = `relative flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border p-0 shadow-xs transition-all duration-75 hover:scale-105 hover:shadow-md active:scale-90 cursor-pointer ${
+      isUnsaved
+        ? 'border-amber-500 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-600'
+        : 'border-slate-300 bg-white text-slate-700 hover:border-slate-900 hover:bg-slate-900 hover:text-white'
+    }`;
+    const saveTooltip = isUnsaved ? '変更を保存（未保存の変更あり）' : '変更を保存済み';
+    saveButton.setAttribute('aria-label', saveTooltip);
+    saveButton.setAttribute('data-tooltip', saveTooltip);
+    saveButton.setAttribute('data-tooltip-pos', 'left');
+    saveButton.innerHTML = `<i data-lucide="save" class="h-3.5 w-3.5 sm:h-4 sm:w-4 ${isUnsaved ? 'text-amber-600' : ''}"></i>`;
+    if (isUnsaved) {
+      const dot = document.createElement('span');
+      dot.className = 'absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white';
+      saveButton.appendChild(dot);
+    }
+    saveButton.addEventListener('click', async () => {
+      await collabManager.savePlan(state.tripName, state, {
+        onConflict: () => {
+          showToast(
+            '⚠️ 他の人が更新しました。最新版を読み直してください',
+            async () => {
+              const latest = await collabManager.fetchLatest();
+              if (latest && latest.data) {
+                Object.assign(state, latest.data);
+                if (latest.title) state.tripName = latest.title;
+                ensureValidState();
+                saveState(false);
+                render();
+                showToast('最新データを反映しました！');
+              }
+            },
+            '最新版を読込'
+          );
+        },
+      });
+      renderTabs();
+    });
+    dayTabsEl.appendChild(saveButton);
+  } else {
+    // 未共有時: 共有リンク発行ボタンのみ表示
+    const shareButton = document.createElement('button');
+    shareButton.type = 'button';
+    shareButton.id = 'share-btn';
+    shareButton.className =
+      'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border border-slate-300 bg-white p-0 text-slate-700 shadow-xs transition-all duration-75 hover:scale-105 hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:shadow-md active:scale-90 cursor-pointer';
+    const shareTooltip = '共有リンクを発行';
+    shareButton.setAttribute('aria-label', shareTooltip);
+    shareButton.setAttribute('data-tooltip', shareTooltip);
+    shareButton.setAttribute('data-tooltip-pos', 'left');
+    shareButton.innerHTML = '<i data-lucide="share-2" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
+    shareButton.addEventListener('click', async () => {
+      await collabManager.createShareLink(state.tripName, state, shareButton);
+      renderTabs();
+    });
+    dayTabsEl.appendChild(shareButton);
   }
 
   refreshIcons(dayTabsEl);
@@ -2247,8 +2286,9 @@ function setupEventListeners(): void {
       saveState();
       tripStore.activeTripId = (e.target as HTMLSelectElement).value;
       tripStore.applyActiveTripToState(state);
+      syncCollabStateWithActiveTrip();
       isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
-      saveState();
+      saveState(false);
       render();
     });
   }
@@ -2407,27 +2447,46 @@ function setupEventListeners(): void {
 
 // アプリ初期化
 export function init(): void {
-  // 1. SSRで注入された初期プランデータ（/p/[planId] アクセス時）
-  const initialPlan = typeof window !== 'undefined' ? (window as any).__INITIAL_PLAN__ : null;
+  tripStore.load();
 
-  if (initialPlan) {
-    collabManager.initFromPlan(initialPlan);
-    if (initialPlan.data) {
-      Object.assign(state, initialPlan.data);
-      if (initialPlan.title) {
-        state.tripName = initialPlan.title;
+  // 1. URLパス判定（/p/[planId] アクセス時）
+  const initialPlan = typeof window !== 'undefined' ? (window as any).__INITIAL_PLAN__ : null;
+  const pathMatch = typeof window !== 'undefined' ? window.location.pathname.match(/^\/p\/([^/]+)/) : null;
+  const urlPlanId = initialPlan ? initialPlan.id : pathMatch && pathMatch[1] ? pathMatch[1] : null;
+
+  if (urlPlanId) {
+    // 共有URLから開いた場合: ローカル3件枠に紐付け・同期
+    const existingIndex = tripStore.trips.findIndex((t) => t.shareId === urlPlanId);
+    if (existingIndex >= 0) {
+      tripStore.activeTripId = tripStore.trips[existingIndex].id;
+    } else {
+      // 3件枠の先頭に新しく登録
+      const newTripEntry = createTripEntry(initialPlan?.title || '');
+      newTripEntry.shareId = urlPlanId;
+      tripStore.trips.unshift(newTripEntry);
+      if (tripStore.trips.length > MAX_TRIPS) {
+        tripStore.trips = tripStore.trips.slice(0, MAX_TRIPS);
       }
+      tripStore.activeTripId = newTripEntry.id;
     }
-    isTripConfirmed = true;
-    showToast(`「${initialPlan.title || '共有プラン'}」を開きました（共同編集可能）`);
-  } else {
-    // 2. URLパスが /p/[id] の場合のクライアントサイドフェッチ
-    const pathMatch = typeof window !== 'undefined' ? window.location.pathname.match(/^\/p\/([^/]+)/) : null;
-    if (pathMatch && pathMatch[1]) {
-      const planId = pathMatch[1];
+
+    if (initialPlan) {
+      collabManager.initFromPlan(initialPlan);
+      tripStore.applyActiveTripToState(state);
+      if (initialPlan.data) {
+        Object.assign(state, initialPlan.data);
+        if (initialPlan.title) state.tripName = initialPlan.title;
+      }
+      state.shareId = urlPlanId;
+      isTripConfirmed = true;
+      showToast(`「${initialPlan.title || '共有プラン'}」を開きました（共同編集可能）`);
+    } else {
+      // クライアントサイドフェッチ
+      tripStore.applyActiveTripToState(state);
+      state.shareId = urlPlanId;
       collabManager.initFromPlan({
-        id: planId,
-        title: '',
+        id: urlPlanId,
+        title: state.tripName,
         data: state,
         version: 1,
         createdAt: '',
@@ -2440,44 +2499,58 @@ export function init(): void {
             Object.assign(state, plan.data);
             if (plan.title) state.tripName = plan.title;
           }
+          state.shareId = urlPlanId;
           isTripConfirmed = true;
           ensureValidState();
           syncAutoStarts();
+          saveState(false);
           render();
           showToast(`「${plan.title || '共有プラン'}」を開きました`);
         }
       });
-    } else {
-      // 3. 従来のクエリ/ハッシュ（?data=...）共有URL
-      const rawShareData = extractDataFromUrl();
-      const sharedTrip = rawShareData ? parseShareUrlData(rawShareData) : null;
+    }
+  } else {
+    // トップページ（/）または従来のクエリ共有URLアクセス時
+    const rawShareData = extractDataFromUrl();
+    const sharedTrip = rawShareData ? parseShareUrlData(rawShareData) : null;
 
-      tripStore.load();
-
-      if (sharedTrip) {
-        const existingIndex = tripStore.trips.findIndex((t) => t.id === sharedTrip.id);
-        if (existingIndex >= 0) {
-          tripStore.trips[existingIndex] = sharedTrip;
-        } else {
-          tripStore.trips.unshift(sharedTrip);
-          if (tripStore.trips.length > MAX_TRIPS) {
-            tripStore.trips = tripStore.trips.slice(0, MAX_TRIPS);
-          }
-        }
-        tripStore.activeTripId = sharedTrip.id;
-        tripStore.applyActiveTripToState(state);
-        isTripConfirmed = true;
-        showToast('共有された旅行プランを読み込みました！');
+    if (sharedTrip) {
+      const existingIndex = tripStore.trips.findIndex((t) => t.id === sharedTrip.id);
+      if (existingIndex >= 0) {
+        tripStore.trips[existingIndex] = sharedTrip;
       } else {
-        tripStore.applyActiveTripToState(state);
-        isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
+        tripStore.trips.unshift(sharedTrip);
+        if (tripStore.trips.length > MAX_TRIPS) {
+          tripStore.trips = tripStore.trips.slice(0, MAX_TRIPS);
+        }
       }
+      tripStore.activeTripId = sharedTrip.id;
+      tripStore.applyActiveTripToState(state);
+      isTripConfirmed = true;
+      showToast('共有された旅行プランを読み込みました！');
+    } else {
+      tripStore.applyActiveTripToState(state);
+      isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
+    }
+
+    if (state.shareId) {
+      collabManager.initFromPlan({
+        id: state.shareId,
+        title: state.tripName,
+        data: state,
+        version: 1,
+        createdAt: '',
+        updatedAt: '',
+      });
+      collabManager.fetchLatest();
+    } else {
+      collabManager.reset();
     }
   }
 
   ensureValidState();
   syncAutoStarts();
-  saveState();
+  saveState(false);
   setupEventListeners();
   render();
 }

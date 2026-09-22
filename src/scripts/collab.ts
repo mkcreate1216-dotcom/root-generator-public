@@ -54,6 +54,15 @@ class CollabManager {
     this.notify();
   }
 
+  public reset(): void {
+    this.state.planId = null;
+    this.state.version = null;
+    this.state.updatedAt = null;
+    this.state.isSaving = false;
+    this.state.hasUnsavedChanges = false;
+    this.notify();
+  }
+
   public markUnsaved(): void {
     if (this.state.planId && !this.state.hasUnsavedChanges) {
       this.state.hasUnsavedChanges = true;
@@ -103,6 +112,7 @@ class CollabManager {
       this.state.planId = res.id;
       this.state.version = res.version;
       this.state.hasUnsavedChanges = false;
+      appState.shareId = res.id;
       this.notify();
 
       const shareUrl = `${window.location.origin}${res.url}`;
@@ -180,7 +190,7 @@ class CollabManager {
       this.state.hasUnsavedChanges = false;
       this.notify();
 
-      showToast('クラウドに保存しました！');
+      showToast('変更を保存しました！');
       if (options?.onSuccess) {
         options.onSuccess();
       }

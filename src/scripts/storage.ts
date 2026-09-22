@@ -33,6 +33,7 @@ export function generateTripId(): string {
 export function createTripEntry(tripName = ''): Trip {
   return {
     id: generateTripId(),
+    shareId: undefined,
     tripName: tripName || '',
     days: [createDay(1)],
     activeDayIndex: 0,
@@ -48,6 +49,7 @@ export function createTripEntry(tripName = ''): Trip {
 export function sanitizeTrip(trip: any): Trip {
   const sanitized = trip && typeof trip === 'object' ? trip : {};
   sanitized.id = typeof sanitized.id === 'string' && sanitized.id ? sanitized.id : generateTripId();
+  sanitized.shareId = typeof sanitized.shareId === 'string' && sanitized.shareId ? sanitized.shareId : undefined;
   sanitized.tripName = typeof sanitized.tripName === 'string' ? sanitized.tripName : '';
   sanitized.mapType =
     sanitized.mapType === 'apple' ? 'apple' : sanitized.mapType === 'google' ? 'google' : getStoredMapType();
@@ -144,6 +146,7 @@ export class TripStore {
   applyActiveTripToState(state: AppState): void {
     const trip = this.getActiveTrip();
     this.activeTripId = trip.id;
+    state.shareId = trip.shareId;
     state.days = trip.days;
     state.activeDayIndex = trip.activeDayIndex;
     state.tripName = trip.tripName;
@@ -162,6 +165,7 @@ export class TripStore {
   persistActiveTripFromState(state: AppState): void {
     const trip = this.getActiveTrip();
     if (!trip) return;
+    trip.shareId = state.shareId;
     trip.days = state.days;
     trip.activeDayIndex = state.activeDayIndex;
     trip.tripName = state.tripName;
