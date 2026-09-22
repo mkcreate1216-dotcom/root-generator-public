@@ -2,8 +2,8 @@
 ---
 
 <div class="relative w-full max-w-xl mx-auto transition-all duration-300" id="trip-combobox-container">
-  <!-- 下側に影付きの線が1本あるだけのミニマルかつ明瞭なUI -->
-  <div id="trip-name-line" class="relative flex items-center w-full border-b-2 border-slate-300 pb-2.5 transition-all duration-200 shadow-[0_4px_6px_-2px_rgba(0,0,0,0.06)] hover:border-slate-400 hover:shadow-[0_4px_8px_-2px_rgba(0,0,0,0.1)] focus-within:border-slate-900 focus-within:shadow-[0_4px_10px_-2px_rgba(15,23,42,0.15)]">
+  <!-- 角丸ボックス型の旅行名入力UI -->
+  <div id="trip-name-line" class="relative flex items-center w-full rounded-2xl border border-slate-200/90 bg-white px-4 py-2.5 sm:px-5 sm:py-3 shadow-xs transition-all duration-200 hover:border-slate-300 hover:bg-slate-50/50 hover:shadow-sm focus-within:border-slate-900 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-900/10 focus-within:shadow-sm">
     <!-- タイトル入力欄 -->
     <input
       id="trip-name-input"
@@ -20,7 +20,7 @@
       aria-label="旅行一覧を表示"
       aria-haspopup="listbox"
       aria-expanded="false"
-      class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-lg p-1.5 text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 cursor-pointer shrink-0"
+      class="absolute right-2.5 sm:right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full p-1.5 text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 cursor-pointer shrink-0"
       title="保存した旅程一覧"
     >
       <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -33,7 +33,7 @@
   <ul
     id="trip-combobox-menu"
     role="listbox"
-    class="absolute left-0 right-0 z-50 mt-2 hidden max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+    class="absolute left-0 right-0 z-50 mt-2 hidden max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg space-y-0.5"
   ></ul>
 
   <!-- タイトル入力欄の下の「はじめる」ボタン -->

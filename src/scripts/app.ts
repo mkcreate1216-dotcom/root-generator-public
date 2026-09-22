@@ -378,7 +378,7 @@ function renderTripComboboxMenu(): void {
   tripStore.trips.forEach((trip, index) => {
     const item = document.createElement('li');
     const isSelected = trip.id === tripStore.activeTripId;
-    item.className = `flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-sm transition-colors duration-75 hover:bg-slate-100 ${
+    item.className = `flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm transition-colors duration-75 hover:bg-slate-100 ${
       isSelected ? 'bg-slate-50 font-bold text-slate-900' : 'text-slate-700'
     }`;
     item.setAttribute('role', 'option');
@@ -456,7 +456,7 @@ function renderTripComboboxMenu(): void {
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   const isMaxTrips = tripStore.trips.length >= MAX_TRIPS;
-  addBtn.className = `flex w-full items-center gap-2 px-3 py-2 text-xs font-medium transition-colors duration-75 ${
+  addBtn.className = `flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium transition-colors duration-75 ${
     isMaxTrips
       ? 'cursor-not-allowed text-slate-400'
       : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer'
