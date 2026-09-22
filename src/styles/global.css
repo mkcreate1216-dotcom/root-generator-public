@@ -6,6 +6,189 @@
   --trip-header-height: 0px;
   --sticky-form-height: 0px;
   --total-sticky-height: 0px;
+
+  /* クレイモーフィズム（Claymorphism）モノトーントークン */
+  --clay-bg-page: #f1f5f9;
+  --clay-card-bg: #ffffff;
+  --clay-card-secondary: #f8fafc;
+  --clay-dark-bg: #0f172a;
+
+  /* 大カード（メインカード・外枠）用シャドウ */
+  --clay-shadow-card:
+    0 20px 40px -10px rgba(15, 23, 42, 0.08),
+    0 8px 16px -4px rgba(15, 23, 42, 0.04),
+    inset 0 3px 6px rgba(255, 255, 255, 1),
+    inset 0 -4px 8px rgba(15, 23, 42, 0.05);
+
+  /* 中カード・スポットアイテム用シャドウ */
+  --clay-shadow-item:
+    0 8px 18px -4px rgba(15, 23, 42, 0.06),
+    0 3px 6px -1px rgba(15, 23, 42, 0.03),
+    inset 0 2px 4px rgba(255, 255, 255, 1),
+    inset 0 -3px 5px rgba(15, 23, 42, 0.05);
+
+  --clay-shadow-item-hover:
+    0 12px 24px -4px rgba(15, 23, 42, 0.09),
+    0 4px 8px -2px rgba(15, 23, 42, 0.04),
+    inset 0 2px 4px rgba(255, 255, 255, 1),
+    inset 0 -3px 6px rgba(15, 23, 42, 0.07);
+
+  /* ライトボタン用シャドウ */
+  --clay-shadow-btn:
+    0 6px 14px -2px rgba(15, 23, 42, 0.08),
+    0 2px 5px -1px rgba(15, 23, 42, 0.04),
+    inset 0 2px 3px rgba(255, 255, 255, 1),
+    inset 0 -3px 5px rgba(15, 23, 42, 0.07);
+
+  --clay-shadow-btn-hover:
+    0 8px 18px -2px rgba(15, 23, 42, 0.12),
+    0 3px 6px -1px rgba(15, 23, 42, 0.05),
+    inset 0 2px 3px rgba(255, 255, 255, 1),
+    inset 0 -3px 5px rgba(15, 23, 42, 0.08);
+
+  --clay-shadow-btn-active:
+    0 2px 4px 0 rgba(15, 23, 42, 0.04),
+    inset 0 3px 6px rgba(15, 23, 42, 0.12),
+    inset 0 -1px 2px rgba(255, 255, 255, 0.7);
+
+  /* ダークボタン用シャドウ */
+  --clay-shadow-dark-btn:
+    0 8px 20px -3px rgba(15, 23, 42, 0.28),
+    0 3px 8px -1px rgba(15, 23, 42, 0.18),
+    inset 0 2px 3px rgba(255, 255, 255, 0.25),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.45);
+
+  --clay-shadow-dark-btn-hover:
+    0 10px 24px -2px rgba(15, 23, 42, 0.35),
+    0 4px 10px -1px rgba(15, 23, 42, 0.22),
+    inset 0 2px 3px rgba(255, 255, 255, 0.3),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.5);
+
+  --clay-shadow-dark-btn-active:
+    0 2px 5px 0 rgba(0, 0, 0, 0.25),
+    inset 0 3px 6px rgba(0, 0, 0, 0.6),
+    inset 0 -1px 2px rgba(255, 255, 255, 0.15);
+
+  /* 入力フィールド用凹み（Sunken）シャドウ */
+  --clay-shadow-input:
+    inset 0 2.5px 5px rgba(15, 23, 42, 0.08),
+    inset 0 1px 2px rgba(15, 23, 42, 0.05),
+    0 1px 2px rgba(255, 255, 255, 0.9);
+
+  --clay-shadow-input-focus:
+    inset 0 2.5px 5px rgba(15, 23, 42, 0.12),
+    inset 0 0 0 2px #0f172a,
+    0 1px 2px rgba(255, 255, 255, 0.9);
+
+  /* バッジ・マーカー・ピル用シャドウ */
+  --clay-shadow-pill:
+    0 4px 8px -2px rgba(15, 23, 42, 0.06),
+    inset 0 2px 3px rgba(255, 255, 255, 0.95),
+    inset 0 -2px 3px rgba(15, 23, 42, 0.06);
+
+  --clay-shadow-pill-dark:
+    0 4px 10px -2px rgba(15, 23, 42, 0.25),
+    inset 0 1.5px 2.5px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.45);
+}
+
+/* クレイモーフィズム共通ユーティリティクラス */
+.clay-card {
+  background-color: #ffffff;
+  box-shadow: var(--clay-shadow-card);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 2rem;
+}
+
+.clay-item {
+  background-color: #ffffff;
+  box-shadow: var(--clay-shadow-item);
+  border: 1px solid rgba(241, 245, 249, 0.9);
+  border-radius: 1.25rem;
+  transition: box-shadow 150ms ease, transform 150ms ease;
+}
+
+.clay-item:hover {
+  box-shadow: var(--clay-shadow-item-hover);
+}
+
+.clay-btn {
+  background-color: #ffffff;
+  color: #1e293b;
+  box-shadow: var(--clay-shadow-btn);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 1rem;
+  transition: all 120ms cubic-bezier(0.2, 0, 0, 1);
+  user-select: none;
+}
+
+.clay-btn:hover {
+  box-shadow: var(--clay-shadow-btn-hover);
+  transform: translateY(-1px);
+}
+
+.clay-btn:active {
+  box-shadow: var(--clay-shadow-btn-active);
+  transform: translateY(1px);
+}
+
+.clay-btn-dark {
+  background-color: #0f172a;
+  color: #ffffff;
+  box-shadow: var(--clay-shadow-dark-btn);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
+  transition: all 120ms cubic-bezier(0.2, 0, 0, 1);
+  user-select: none;
+}
+
+.clay-btn-dark:hover {
+  background-color: #1e293b;
+  box-shadow: var(--clay-shadow-dark-btn-hover);
+  transform: translateY(-1px);
+}
+
+.clay-btn-dark:active {
+  box-shadow: var(--clay-shadow-dark-btn-active);
+  transform: translateY(1px);
+}
+
+.clay-input {
+  background-color: #f8fafc;
+  box-shadow: var(--clay-shadow-input);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 1rem;
+  transition: all 150ms ease;
+  outline: none;
+}
+
+.clay-input:focus {
+  background-color: #ffffff;
+  box-shadow: var(--clay-shadow-input-focus);
+  border-color: #0f172a;
+}
+
+.clay-pill {
+  background-color: #f1f5f9;
+  color: #334155;
+  box-shadow: var(--clay-shadow-pill);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 9999px;
+  user-select: none;
+}
+
+.clay-pill-dark {
+  background-color: #0f172a;
+  color: #ffffff;
+  box-shadow: var(--clay-shadow-pill-dark);
+  border-radius: 9999px;
+  user-select: none;
+}
+
+.clay-sunken {
+  background-color: #f1f5f9;
+  box-shadow: inset 0 2px 5px rgba(15, 23, 42, 0.07), 0 1px 2px rgba(255, 255, 255, 0.9);
+  border-radius: 1.25rem;
 }
 
 summary {
@@ -92,20 +275,72 @@ summary::-webkit-details-marker {
   --tag-target-opacity: 0.4;
 }
 
-/* 旅行名バー固定時のスタイル */
+/* アプリモード時の親カード: 背景・境界・影を完全透明化 */
+#main-card.app-mode {
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* 天井のスクロールアウト・マスク: スクロールして画面上端に抜けるスポットを自然に遮蔽（背景と同化し不可視） */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0.75rem;
+  background-color: var(--clay-bg-page, #f1f5f9);
+  z-index: 30;
+  pointer-events: none;
+}
+
+@media (max-width: 639px) {
+  body::before {
+    height: 0.5rem;
+  }
+}
+
+/* 旅行名バー固定時のスタイル（スクロール時も四隅の丸角を保ち、天井に当たっても角が絶対にできないフローティング・クレイカード） */
 #lp-slot-wrapper.is-sticky {
   position: sticky;
-  top: 0;
+  top: 0.75rem;
   z-index: 35;
-  background-color: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
-  transition: box-shadow 150ms ease;
+  background-color: #ffffff;
+  border-radius: 2rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: var(--clay-shadow-card);
+  transition: box-shadow 150ms ease, background-color 150ms ease, top 150ms ease;
+}
+
+@media (max-width: 639px) {
+  #lp-slot-wrapper.is-sticky {
+    top: 0.5rem;
+    border-radius: 1.5rem !important;
+  }
 }
 
 #lp-slot-wrapper.is-sticky.scrolled {
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+  background-color: #ffffff;
+  border-radius: 2rem !important;
+  box-shadow: 0 14px 30px -4px rgba(15, 23, 42, 0.12), inset 0 2px 3px rgba(255, 255, 255, 0.9), inset 0 -3px 5px rgba(15, 23, 42, 0.05);
+}
+
+@media (max-width: 639px) {
+  #lp-slot-wrapper.is-sticky.scrolled {
+    border-radius: 1.5rem !important;
+  }
+}
+
+/* タイムラインセクション: 背景・枠・影を完全透明化（もう一枚の背景を徹底排除、各スポット自身が独立クレイアイテムとして浮き立つ） */
+#itinerary-section,
+#itinerary-section.app-card {
+  background-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  margin-top: 0.5rem;
 }
 
 /* 旅行名入力コンテナ: アプリ表示時の左寄せモード */
@@ -115,19 +350,47 @@ summary::-webkit-details-marker {
   margin-right: auto !important;
 }
 
-#trip-combobox-container.app-mode #trip-name-line {
-  border-bottom: 1px solid transparent;
-  box-shadow: none;
-  padding-bottom: 0.25rem;
+/* 旅行名表示: アプリ表示時は四角い枠・シャドウ・背景を完全排除し、ホバー時にも一切角が出ない仕様 */
+#trip-name-line.app-mode,
+#trip-combobox-container.app-mode #trip-name-line,
+#lp-slot-wrapper.is-sticky #trip-name-line,
+.is-sticky #trip-name-line {
+  border: none !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  padding: 0.25rem 0.5rem;
+  margin-left: -0.5rem;
+  transition: color 150ms ease, border-color 150ms ease;
 }
 
-#trip-combobox-container.app-mode #trip-name-line:hover {
-  border-bottom-color: #cbd5e1;
+#trip-name-line.app-mode:hover,
+#trip-combobox-container.app-mode #trip-name-line:hover,
+#lp-slot-wrapper.is-sticky #trip-name-line:hover,
+.is-sticky #trip-name-line:hover {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  cursor: text !important;
 }
 
-#trip-combobox-container.app-mode #trip-name-line:focus-within {
-  border-bottom-color: #0f172a;
-  box-shadow: 0 2px 4px -1px rgba(15, 23, 42, 0.08);
+#trip-name-line.app-mode:hover #trip-name-input,
+#trip-combobox-container.app-mode #trip-name-line:hover #trip-name-input,
+#lp-slot-wrapper.is-sticky #trip-name-line:hover #trip-name-input,
+.is-sticky #trip-name-line:hover #trip-name-input {
+  color: #334155;
+}
+
+/* 編集フォーカス時も四角い角枠は出さず、スマートな下線インジケータのみ */
+#trip-name-line.app-mode:focus-within,
+#trip-combobox-container.app-mode #trip-name-line:focus-within,
+#lp-slot-wrapper.is-sticky #trip-name-line:focus-within,
+.is-sticky #trip-name-line:focus-within {
+  background-color: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid #0f172a !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 /* 日程タグ（day-tabs）との配置調整: スマホ時はカード全幅＋タイムライン側でTAGを吸収 */
@@ -157,7 +420,7 @@ summary::-webkit-details-marker {
   scrollbar-width: none;
 }
 
-/* グローバル・ホバーメッセージ（ツールチップ: グレー背景に黒文字） */
+/* グローバル・ホバーメッセージ（ツールチップ: クレイモーフィズム） */
 #app-tooltip {
   position: fixed;
   z-index: 9999;
@@ -168,12 +431,11 @@ summary::-webkit-details-marker {
   font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 500;
-  padding: 0.35rem 0.65rem;
-  border-radius: 0.375rem;
-  background-color: #e2e8f0; /* グレー背景 (slate-200) */
-  color: #0f172a; /* 黒文字 (slate-900) */
-  border: 1px solid #cbd5e1; /* 境界線 (slate-300) */
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.75rem;
+  background-color: #1e293b;
+  color: #f8fafc;
+  box-shadow: 0 8px 16px -2px rgba(15, 23, 42, 0.25), inset 0 1.5px 2px rgba(255, 255, 255, 0.2), inset 0 -2px 3px rgba(0, 0, 0, 0.35);
   top: -9999px;
   left: -9999px;
 }
@@ -200,4 +462,95 @@ details summary .day-chevron {
 details[open] summary .day-chevron {
   transform: rotate(0deg);
 }
+
+/* 新規日程タグ（DaysTag）追加アニメーション:
+   1. ＋ボタンとの間に隙間がスッと広がる (0%〜40%)
+   2. その隙間に右からDaysTagがスライドアニメーションで現れる (40%〜100%)
+   LPのdayTagPopと同じイージング cubic-bezier(0.25, 1, 0.35, 1) を適用 */
+@keyframes dayTagInsertWithGap {
+  0% {
+    opacity: 0;
+    max-height: 0px;
+    margin-top: -8px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+    transform: translateX(54px) scale(0.92);
+  }
+  40% {
+    opacity: 0;
+    max-height: 44px;
+    margin-top: 0px;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    transform: translateX(40px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    max-height: 44px;
+    margin-top: 0px;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* 日程タグ（DaysTag）削除アニメーション（逆再生）:
+   1. DaysTagが右へスッとスライドアウトして消える (0%〜60%)
+   2. 隙間がスッと閉じて＋ボタンが上に詰まる (60%〜100%) */
+@keyframes dayTagRemoveWithGap {
+  0% {
+    opacity: 1;
+    max-height: 44px;
+    margin-top: 0px;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    transform: translateX(0) scale(1);
+  }
+  60% {
+    opacity: 0;
+    max-height: 44px;
+    margin-top: 0px;
+    padding-top: 0.375rem;
+    padding-bottom: 0.375rem;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    transform: translateX(54px) scale(0.92);
+  }
+  100% {
+    opacity: 0;
+    max-height: 0px;
+    margin-top: -8px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+    transform: translateX(54px) scale(0.92);
+  }
+}
+
+#day-tabs button.day-tag-inserting {
+  animation: dayTagInsertWithGap 500ms cubic-bezier(0.25, 1, 0.35, 1) both !important;
+  transition: none !important;
+  overflow: hidden !important;
+  will-change: transform, opacity, max-height, margin-top;
+}
+
+#day-tabs button.day-tag-removing {
+  animation: dayTagRemoveWithGap 500ms cubic-bezier(0.25, 1, 0.35, 1) both !important;
+  transition: none !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  will-change: transform, opacity, max-height, margin-top;
+}
+
+
+
 

@@ -9,9 +9,12 @@
     "build": "astro build",
     "preview": "astro preview",
     "check": "tsc --noEmit",
-    "astro": "astro"
+    "astro": "astro",
+    "d1:apply:local": "wrangler d1 execute tabiori-db --local --file=./db/schema.sql",
+    "d1:apply:remote": "wrangler d1 execute tabiori-db --remote --file=./db/schema.sql"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^11.2.0",
     "@astrojs/tailwind": "^5.1.4",
     "astro": "^4.16.18",
     "lucide": "^0.469.0",
@@ -20,6 +23,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@cloudflare/workers-types": "^4.20260702.1",
     "@types/node": "^20.17.10",
     "typescript": "^5.7.2",
     "wrangler": "^3.99.0"

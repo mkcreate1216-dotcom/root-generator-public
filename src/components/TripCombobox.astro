@@ -2,8 +2,8 @@
 ---
 
 <div class="relative w-full max-w-xl mx-auto transition-all duration-300" id="trip-combobox-container">
-  <!-- 下側に影付きの線が1本あるだけのミニマルかつ明瞭なUI -->
-  <div id="trip-name-line" class="relative flex items-center w-full border-b-2 border-slate-300 pb-2.5 transition-all duration-200 shadow-[0_4px_6px_-2px_rgba(0,0,0,0.06)] hover:border-slate-400 hover:shadow-[0_4px_8px_-2px_rgba(0,0,0,0.1)] focus-within:border-slate-900 focus-within:shadow-[0_4px_10px_-2px_rgba(15,23,42,0.15)]">
+  <!-- 角丸ボックス型の旅行名入力UI -->
+  <div id="trip-name-line" class="relative flex items-center w-full rounded-2xl clay-input px-4 py-2.5 sm:px-5 sm:py-3 transition-all duration-200">
     <!-- タイトル入力欄 -->
     <input
       id="trip-name-input"
@@ -20,7 +20,7 @@
       aria-label="旅行一覧を表示"
       aria-haspopup="listbox"
       aria-expanded="false"
-      class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-lg p-1.5 text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 cursor-pointer shrink-0"
+      class="absolute right-2.5 sm:right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-full clay-btn p-1.5 text-slate-500 hover:text-slate-800 cursor-pointer shrink-0"
       title="保存した旅程一覧"
     >
       <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -33,7 +33,7 @@
   <ul
     id="trip-combobox-menu"
     role="listbox"
-    class="absolute left-0 right-0 z-50 mt-2 hidden max-h-60 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+    class="absolute left-0 right-0 z-50 mt-2 hidden max-h-60 overflow-y-auto rounded-2xl clay-card p-2 space-y-1"
   ></ul>
 
   <!-- タイトル入力欄の下の「はじめる」ボタン -->
@@ -41,7 +41,7 @@
     <button
       id="trip-confirm-btn"
       type="button"
-      class="rounded-xl bg-slate-900 px-8 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-slate-800 hover:shadow active:scale-95 cursor-pointer"
+      class="clay-btn-dark rounded-2xl px-10 py-3 text-base font-bold shadow-md cursor-pointer"
     >
       はじめる
     </button>

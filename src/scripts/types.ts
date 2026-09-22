@@ -22,6 +22,7 @@ export interface Day {
 
 export interface Trip {
   id: string;
+  shareId?: string;
   tripName: string;
   days: Day[];
   activeDayIndex: number;
@@ -34,6 +35,7 @@ export interface Trip {
 }
 
 export interface AppState {
+  shareId?: string;
   days: Day[];
   activeDayIndex: number;
   mapType: MapType;

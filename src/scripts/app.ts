@@ -15,6 +15,9 @@ import {
   Clock,
   FileText,
   MapPin,
+  CloudUpload,
+  RefreshCw,
+  Save,
 } from 'lucide';
 import type { AppState, Day, MapType } from './types';
 import {
@@ -22,11 +25,13 @@ import {
   MAP_TYPE_STORAGE_KEY,
   MAX_TRIPS,
   createDay,
+  createTripEntry,
   getStoredMapType,
 } from './storage';
 import { getDayRouteUrl, openRoute } from './maps';
 import { copyShareItinerary, extractDataFromUrl, parseShareUrlData, getDayItems, showToast } from './share';
 import { animateSpotReorder } from './flip';
+import { collabManager } from './collab';
 
 function refreshIcons(_root?: HTMLElement): void {
   createIcons({
@@ -46,6 +51,9 @@ function refreshIcons(_root?: HTMLElement): void {
       Clock,
       FileText,
       MapPin,
+      CloudUpload,
+      RefreshCw,
+      Save,
     },
   });
 }
@@ -83,6 +91,7 @@ const dayUndoStack: Array<{ index: number; day: Day }> = [];
 const dayTabsEl = document.getElementById('day-tabs') as HTMLDivElement;
 const timelineEl = document.getElementById('timeline') as HTMLDivElement;
 const tripNameInputEl = document.getElementById('trip-name-input') as HTMLInputElement | null;
+const tripNameLineEl = document.getElementById('trip-name-line') as HTMLDivElement | null;
 const tripComboboxContainerEl = document.getElementById('trip-combobox-container');
 const tripComboboxToggleEl = document.getElementById('trip-combobox-toggle');
 const tripComboboxMenuEl = document.getElementById('trip-combobox-menu') as HTMLUListElement | null;
@@ -95,7 +104,8 @@ const newSpotInputEl = document.getElementById('new-spot-input') as HTMLInputEle
 const addSpotFormEl = document.getElementById('add-spot-form') as HTMLFormElement;
 const addTypeDepartureEl = document.getElementById('add-type-departure') as HTMLInputElement | null;
 const addTypeAccommodationEl = document.getElementById('add-type-accommodation') as HTMLInputElement | null;
-const addTypeNoteEl = document.getElementById('add-type-note') as HTMLParagraphElement;
+const addTypeNoteEl = document.getElementById('add-type-note') as HTMLSpanElement | null;
+const addTypeDefaultHintEl = document.getElementById('add-type-default-hint') as HTMLSpanElement | null;
 const addAccommodationScopeEl = document.getElementById('add-accommodation-scope') as HTMLDivElement;
 const addAccommodationScopeAllEl = document.getElementById('add-accommodation-scope-all') as HTMLButtonElement;
 const addAccommodationScopeTodayEl = document.getElementById('add-accommodation-scope-today') as HTMLButtonElement;
@@ -128,8 +138,11 @@ function ensureValidState(): void {
   }
 }
 
-function saveState(): void {
+function saveState(markAsUnsaved = true): void {
   tripStore.save(state);
+  if (markAsUnsaved) {
+    collabManager.markUnsaved();
+  }
 }
 
 function syncAutoStarts(): void {
@@ -191,19 +204,23 @@ function updateStickyOffsets(): void {
     return;
   }
 
+  const stickyTop = window.innerWidth < 640 ? 8 : 12;
   const panelHeight = lpSlotWrapperEl ? Math.round(lpSlotWrapperEl.getBoundingClientRect().height) : 115;
-  document.documentElement.style.setProperty('--trip-header-height', `${panelHeight}px`);
-  document.documentElement.style.setProperty('--sticky-form-height', `${panelHeight}px`);
-  document.documentElement.style.setProperty('--total-sticky-height', `${panelHeight}px`);
+  const totalOffset = panelHeight + stickyTop;
+  document.documentElement.style.setProperty('--trip-header-height', `${totalOffset}px`);
+  document.documentElement.style.setProperty('--sticky-form-height', `${totalOffset}px`);
+  document.documentElement.style.setProperty('--total-sticky-height', `${totalOffset}px`);
 }
 
 function scrollToDay(index: number): void {
   const section = document.getElementById(`day-section-${index}`);
   if (!section) return;
   updateStickyOffsets();
-  const totalOffset = lpSlotWrapperEl ? Math.round(lpSlotWrapperEl.getBoundingClientRect().height) : 115;
+  const stickyTop = window.innerWidth < 640 ? 8 : 12;
+  const panelHeight = lpSlotWrapperEl ? Math.round(lpSlotWrapperEl.getBoundingClientRect().height) : 115;
+  const totalOffset = panelHeight + stickyTop;
   const sectionTop = section.getBoundingClientRect().top + window.scrollY;
-  const targetScrollY = Math.max(0, sectionTop - totalOffset + 2);
+  const targetScrollY = Math.max(0, sectionTop - totalOffset - 8);
   window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
 }
 
@@ -293,25 +310,39 @@ function toggleTripMenu(force?: boolean): void {
   }
 }
 
+function syncCollabStateWithActiveTrip(): void {
+  if (state.shareId) {
+    collabManager.initFromPlan({
+      id: state.shareId,
+      title: state.tripName,
+      data: state,
+      version: 1,
+      createdAt: '',
+      updatedAt: '',
+    });
+    collabManager.fetchLatest();
+    if (typeof window !== 'undefined' && window.location.pathname !== `/p/${state.shareId}`) {
+      window.history.pushState(null, '', `/p/${state.shareId}`);
+    }
+  } else {
+    collabManager.reset();
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.history.pushState(null, '', '/');
+    }
+  }
+}
+
 function createNewTrip(): void {
   if (tripStore.trips.length >= MAX_TRIPS) {
     alert(`旅行は最大${MAX_TRIPS}件までしか作成できません。`);
     return;
   }
   saveState();
-  const newTrip = {
-    id: `trip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    tripName: '',
-    days: [createDay(1)],
-    activeDayIndex: 0,
-    departure: '',
-    arrival: '',
-    autoArrival: true,
-    mapType: getStoredMapType(),
-  };
+  const newTrip = createTripEntry('');
   tripStore.trips.push(newTrip);
   tripStore.activeTripId = newTrip.id;
   tripStore.applyActiveTripToState(state);
+  syncCollabStateWithActiveTrip();
   isTripConfirmed = false;
   isTransitioningToApp = false;
   saveState();
@@ -339,6 +370,7 @@ function deleteTrip(tripId: string): void {
   if (tripId === tripStore.activeTripId) {
     tripStore.activeTripId = tripStore.trips[Math.max(0, index - 1)].id;
     tripStore.applyActiveTripToState(state);
+    syncCollabStateWithActiveTrip();
     isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
   }
   saveState();
@@ -351,8 +383,8 @@ function renderTripComboboxMenu(): void {
   tripStore.trips.forEach((trip, index) => {
     const item = document.createElement('li');
     const isSelected = trip.id === tripStore.activeTripId;
-    item.className = `flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-sm transition-colors duration-75 hover:bg-slate-100 ${
-      isSelected ? 'bg-slate-50 font-bold text-slate-900' : 'text-slate-700'
+    item.className = `flex cursor-pointer items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 text-sm transition-all duration-75 ${
+      isSelected ? 'clay-sunken font-bold text-slate-900' : 'hover:bg-slate-100 text-slate-700'
     }`;
     item.setAttribute('role', 'option');
     item.setAttribute('aria-selected', String(isSelected));
@@ -386,11 +418,11 @@ function renderTripComboboxMenu(): void {
     const singleTrip = tripStore.trips.length <= 1;
     if (singleTrip) {
       deleteBtn.disabled = true;
-      deleteBtn.className = 'rounded-md p-1 text-slate-200 cursor-not-allowed shrink-0';
+      deleteBtn.className = 'rounded-lg p-1.5 text-slate-200 cursor-not-allowed shrink-0';
       deleteBtn.title = '最後の1件の旅行は削除できません';
     } else {
       deleteBtn.className =
-        'rounded-md p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors duration-75 shrink-0';
+        'rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors duration-75 shrink-0 cursor-pointer';
       deleteBtn.title = `${displayName}を削除`;
       deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -406,8 +438,9 @@ function renderTripComboboxMenu(): void {
         saveState();
         tripStore.activeTripId = trip.id;
         tripStore.applyActiveTripToState(state);
+        syncCollabStateWithActiveTrip();
         isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
-        saveState();
+        saveState(false);
         render();
       } else if (state.tripName && state.tripName.trim().length > 0) {
         isTripConfirmed = true;
@@ -420,7 +453,7 @@ function renderTripComboboxMenu(): void {
   });
 
   const separator = document.createElement('li');
-  separator.className = 'my-1 border-t border-slate-100';
+  separator.className = 'my-1.5 border-t border-slate-100';
   separator.setAttribute('role', 'separator');
   tripComboboxMenuEl.appendChild(separator);
 
@@ -428,7 +461,7 @@ function renderTripComboboxMenu(): void {
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
   const isMaxTrips = tripStore.trips.length >= MAX_TRIPS;
-  addBtn.className = `flex w-full items-center gap-2 px-3 py-2 text-xs font-medium transition-colors duration-75 ${
+  addBtn.className = `flex w-full items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all duration-75 ${
     isMaxTrips
       ? 'cursor-not-allowed text-slate-400'
       : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer'
@@ -486,10 +519,10 @@ function updateMapTypeUI(): void {
     const isSelected = label.dataset.mapType === state.mapType;
     if (isSelected) {
       label.className =
-        'map-type-label flex cursor-pointer items-center rounded px-2 py-1 text-xs font-medium transition-all select-none bg-slate-900 text-white shadow-xs';
+        'map-type-label flex cursor-pointer items-center rounded-lg px-2.5 py-1 text-xs font-bold transition-all select-none clay-btn text-slate-900';
     } else {
       label.className =
-        'map-type-label flex cursor-pointer items-center rounded px-2 py-1 text-xs font-medium transition-all select-none text-slate-600 hover:text-slate-900 hover:bg-slate-200/60';
+        'map-type-label flex cursor-pointer items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-all select-none text-slate-500 hover:text-slate-900';
     }
   });
 
@@ -544,16 +577,34 @@ function renderAddSpotOptions(): void {
   if (addTypeAccommodationEl) {
     addTypeAccommodationEl.checked = state.addLocationType === 'accommodation';
   }
-  addAccommodationScopeEl.classList.toggle('hidden', state.addLocationType !== 'accommodation');
-  const note = state.addLocationType === 'departure' ? '後から上書きできます。' : '';
-  addTypeNoteEl.textContent = note;
-  addTypeNoteEl.classList.toggle('hidden', !note);
+
+  const isAccommodation = state.addLocationType === 'accommodation';
+  const isDeparture = state.addLocationType === 'departure';
+
+  // 宿泊地オプション: 同じ行内に inline-flex で表示
+  if (addAccommodationScopeEl) {
+    addAccommodationScopeEl.classList.toggle('hidden', !isAccommodation);
+    addAccommodationScopeEl.classList.toggle('inline-flex', isAccommodation);
+  }
+
+  // 発着地点オプション: 同じ行内に表示
+  const note = isDeparture ? '後から上書きできます。' : '';
+  if (addTypeNoteEl) {
+    addTypeNoteEl.textContent = note;
+    addTypeNoteEl.classList.toggle('hidden', !note);
+  }
+
+  // 未選択時のみ「（未選択時はスポット）」を表示
+  if (addTypeDefaultHintEl) {
+    addTypeDefaultHintEl.classList.toggle('hidden', isAccommodation || isDeparture);
+  }
+
   setTagStyle(addAccommodationScopeAllEl, state.addAccommodationScope === 'all');
   setTagStyle(addAccommodationScopeTodayEl, state.addAccommodationScope === 'today');
   newSpotInputEl.placeholder =
-    state.addLocationType === 'departure'
+    isDeparture
       ? '例: 東京駅'
-      : state.addLocationType === 'accommodation'
+      : isAccommodation
         ? '例: 京都駅周辺'
         : '例: 浅草寺';
   updateStickyOffsets();
@@ -589,16 +640,36 @@ function addSpot(): void {
   render();
 }
 
+let isAnimatingDayTabs = false;
+
 function addDay(): void {
+  if (isAnimatingDayTabs) return;
+  isAnimatingDayTabs = true;
+  isScrollingToTab = true;
+
+  const newDayIndex = state.days.length;
   const prevAccommodation = (state.days[state.days.length - 1].accommodation || '').trim();
-  state.days.push(createDay(state.days.length + 1, prevAccommodation));
-  state.activeDayIndex = state.days.length - 1;
+  state.days.push(createDay(newDayIndex + 1, prevAccommodation));
+  state.activeDayIndex = newDayIndex;
   saveState();
   render();
-  document.getElementById(`day-section-${state.activeDayIndex}`)?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start',
-  });
+
+  // ＋ボタンと既存DayTagの間に隙間ができ、そこに右から追加されたDaysTagがスライドアニメーションで表示
+  const newTagBtn = dayTabsEl?.querySelector<HTMLElement>(`[data-day-index="${newDayIndex}"]`);
+  if (newTagBtn) {
+    newTagBtn.classList.add('day-tag-inserting');
+    setTimeout(() => {
+      newTagBtn.classList.remove('day-tag-inserting');
+    }, 550);
+  }
+
+  // スポットカード側はアニメーションさせず、新日程へ自然にスクロール
+  scrollToDay(newDayIndex);
+
+  setTimeout(() => {
+    isAnimatingDayTabs = false;
+    isScrollingToTab = false;
+  }, 600);
 }
 
 function undoDeleteDay(): boolean {
@@ -620,13 +691,7 @@ function undoDeleteDay(): boolean {
   return true;
 }
 
-function deleteActiveDay(): void {
-  if (state.days.length <= 1) {
-    alert('日程は最低1日必要です。');
-    return;
-  }
-
-  const targetIndex = state.activeDayIndex;
+function executeDeleteDay(targetIndex: number): void {
   const targetDay = state.days[targetIndex];
   const targetName = targetDay?.name || `Day ${targetIndex + 1}`;
 
@@ -663,22 +728,48 @@ function deleteActiveDay(): void {
   });
 }
 
+function deleteActiveDay(): void {
+  if (isAnimatingDayTabs) return;
+  if (state.days.length <= 1) {
+    alert('日程は最低1日必要です。');
+    return;
+  }
+
+  const targetIndex = state.activeDayIndex;
+  const targetTagBtn = dayTabsEl?.querySelector<HTMLElement>(`[data-day-index="${targetIndex}"]`);
+
+  if (!targetTagBtn) {
+    executeDeleteDay(targetIndex);
+    return;
+  }
+
+  isAnimatingDayTabs = true;
+  isScrollingToTab = true;
+
+  // 削除時は逆再生（右へスライドアウトし隙間が閉じる）
+  targetTagBtn.classList.add('day-tag-removing');
+
+  setTimeout(() => {
+    executeDeleteDay(targetIndex);
+    isAnimatingDayTabs = false;
+    setTimeout(() => {
+      isScrollingToTab = false;
+    }, 200);
+  }, 480);
+}
+
 function renderTabs(): void {
   dayTabsEl.innerHTML = '';
   state.days.forEach((day, index) => {
     const button = document.createElement('button');
     const active = index === state.activeDayIndex;
-    button.className = `w-14 sm:w-16 shrink-0 rounded-lg border px-1 py-1.5 sm:px-1.5 sm:py-2 text-center text-xs sm:text-sm font-medium whitespace-nowrap shadow-xs transition-all duration-75 cursor-pointer ${
+    button.className = `w-14 sm:w-16 shrink-0 rounded-2xl px-1 py-1.5 sm:px-1.5 sm:py-2 text-center text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-75 cursor-pointer ${
       active
-        ? 'text-white'
-        : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900 hover:scale-105 hover:shadow-xs'
+        ? 'clay-btn-dark text-white'
+        : 'clay-btn text-slate-700 hover:text-slate-900'
     }`;
-    if (active) {
-      button.style.backgroundColor = '#18181b';
-      button.style.borderColor = '#18181b';
-      button.style.color = '#ffffff';
-    }
     button.textContent = day.name;
+    button.dataset.dayIndex = String(index);
     button.addEventListener('click', () => {
       state.activeDayIndex = index;
       state.openRouteMenuIndex = null;
@@ -720,7 +811,7 @@ function renderTabs(): void {
   const addButton = document.createElement('button');
   addButton.type = 'button';
   addButton.className =
-    'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full bg-slate-900 p-0 text-base sm:text-lg font-semibold leading-none text-white shadow-xs transition-all duration-75 hover:scale-105 hover:bg-slate-800 hover:shadow-md active:scale-90 cursor-pointer';
+    'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full clay-btn-dark p-0 text-base sm:text-lg font-bold leading-none text-white cursor-pointer transition-all duration-75';
   const addIcon = document.createElement('span');
   addIcon.textContent = '+';
   addIcon.style.transform = 'translateY(-1px)';
@@ -732,7 +823,7 @@ function renderTabs(): void {
   const deleteButton = document.createElement('button');
   deleteButton.type = 'button';
   deleteButton.className =
-    'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full bg-slate-200 p-0 text-base sm:text-lg font-semibold leading-none text-slate-700 transition-all duration-75 hover:scale-105 hover:bg-slate-300 hover:text-slate-900 hover:shadow-md active:scale-90 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100 disabled:hover:bg-slate-200 disabled:hover:text-slate-700 disabled:hover:shadow-none cursor-pointer';
+    'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full clay-btn p-0 text-base sm:text-lg font-bold leading-none text-slate-700 transition-all duration-75 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer';
   const deleteIcon = document.createElement('span');
   deleteIcon.textContent = '−';
   deleteIcon.style.transform = 'translateY(-1px)';
@@ -749,19 +840,154 @@ function renderTabs(): void {
   dayTabsEl.appendChild(divider);
 
 
-  const shareButton = document.createElement('button');
-  shareButton.type = 'button';
-  shareButton.id = 'share-btn';
-  shareButton.className =
-    'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full border border-slate-300 bg-white p-0 text-slate-700 shadow-xs transition-all duration-75 hover:scale-105 hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:shadow-md active:scale-90 cursor-pointer';
-  shareButton.setAttribute('aria-label', 'URL共有');
-  shareButton.setAttribute('data-tooltip', 'URL共有');
-  shareButton.setAttribute('data-tooltip-pos', 'left');
-  shareButton.innerHTML = '<i data-lucide="share-2" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
-  shareButton.addEventListener('click', () => {
-    copyShareItinerary(shareButton, state);
-  });
-  dayTabsEl.appendChild(shareButton);
+  const collabState = collabManager.getState();
+
+  if (collabState.planId) {
+    // 1. 共有URLコピーボタン
+    const shareButton = document.createElement('button');
+    shareButton.type = 'button';
+    shareButton.id = 'share-btn';
+    shareButton.className =
+      'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full clay-btn p-0 text-slate-700 transition-all duration-75 cursor-pointer';
+    const shareTooltip = '共有URLをコピー';
+    shareButton.setAttribute('aria-label', shareTooltip);
+    shareButton.setAttribute('data-tooltip', shareTooltip);
+    shareButton.setAttribute('data-tooltip-pos', 'left');
+    shareButton.innerHTML = '<i data-lucide="share-2" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
+    shareButton.addEventListener('click', async () => {
+      const url = await collabManager.createShareLink(state.tripName, state, shareButton);
+      if (url) {
+        saveState(false);
+      }
+      renderTabs();
+    });
+    dayTabsEl.appendChild(shareButton);
+
+    // 2. 最新化リロードボタン（更新）
+    const reloadButton = document.createElement('button');
+    reloadButton.type = 'button';
+    reloadButton.id = 'collab-reload-btn';
+    reloadButton.className =
+      'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full clay-btn p-0 text-slate-700 transition-all duration-75 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+    reloadButton.setAttribute('aria-label', '最新の旅程を再読込');
+    reloadButton.setAttribute('data-tooltip', '最新の旅程を再読込');
+    reloadButton.setAttribute('data-tooltip-pos', 'left');
+    reloadButton.innerHTML = '<i data-lucide="refresh-cw" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
+    reloadButton.addEventListener('click', async () => {
+      reloadButton.classList.add('animate-spin');
+      reloadButton.disabled = true;
+      try {
+        const latest = await collabManager.fetchLatest();
+        if (latest && latest.data) {
+          let planData = latest.data;
+          if (typeof planData === 'string') {
+            try {
+              planData = JSON.parse(planData);
+            } catch (e) {
+              console.error('Failed to parse plan data:', e);
+            }
+          }
+          if (planData && typeof planData === 'object') {
+            Object.assign(state, planData);
+            if (latest.title) state.tripName = latest.title;
+            state.shareId = latest.id;
+            ensureValidState();
+            syncAutoStarts();
+            saveState(false);
+            render();
+            showToast('最新データを反映しました！');
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Reload failed:', err);
+      } finally {
+        reloadButton.classList.remove('animate-spin');
+        reloadButton.disabled = false;
+        renderTabs();
+      }
+    });
+    dayTabsEl.appendChild(reloadButton);
+
+    // 3. 変更を保存ボタン（保存）
+    const saveButton = document.createElement('button');
+    saveButton.type = 'button';
+    saveButton.id = 'collab-save-btn';
+    const isUnsaved = collabState.hasUnsavedChanges;
+    saveButton.className = `relative flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full p-0 transition-all duration-75 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+      isUnsaved
+        ? 'clay-btn-dark text-white ring-2 ring-amber-400'
+        : 'clay-btn text-slate-700'
+    }`;
+    const saveTooltip = isUnsaved ? '変更を保存（未保存の変更あり）' : '変更を保存済み';
+    saveButton.setAttribute('aria-label', saveTooltip);
+    saveButton.setAttribute('data-tooltip', saveTooltip);
+    saveButton.setAttribute('data-tooltip-pos', 'left');
+    saveButton.innerHTML = `<i data-lucide="save" class="h-3.5 w-3.5 sm:h-4 sm:w-4 ${isUnsaved ? 'text-amber-400' : ''}"></i>`;
+    if (isUnsaved) {
+      const dot = document.createElement('span');
+      dot.className = 'absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white';
+      saveButton.appendChild(dot);
+    }
+    saveButton.addEventListener('click', async () => {
+      saveButton.disabled = true;
+      try {
+        await collabManager.savePlan(state.tripName, state, {
+          onConflict: () => {
+            showToast(
+              '⚠️ 他の人が更新しました。最新版を読み直してください',
+              async () => {
+                const latest = await collabManager.fetchLatest();
+                if (latest && latest.data) {
+                  let planData = latest.data;
+                  if (typeof planData === 'string') {
+                    try {
+                      planData = JSON.parse(planData);
+                    } catch {}
+                  }
+                  if (planData && typeof planData === 'object') {
+                    Object.assign(state, planData);
+                    if (latest.title) state.tripName = latest.title;
+                    state.shareId = latest.id;
+                    ensureValidState();
+                    syncAutoStarts();
+                    saveState(false);
+                    render();
+                    showToast('最新データを反映しました！');
+                  }
+                }
+              },
+              '最新版を読込'
+            );
+          },
+        });
+      } finally {
+        saveButton.disabled = false;
+        renderTabs();
+      }
+    });
+    dayTabsEl.appendChild(saveButton);
+  } else {
+    // 未共有時: 共有リンク発行ボタンのみ表示
+    const shareButton = document.createElement('button');
+    shareButton.type = 'button';
+    shareButton.id = 'share-btn';
+    shareButton.className =
+      'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full clay-btn p-0 text-slate-700 transition-all duration-75 cursor-pointer';
+    const shareTooltip = '共有リンクを発行';
+    shareButton.setAttribute('aria-label', shareTooltip);
+    shareButton.setAttribute('data-tooltip', shareTooltip);
+    shareButton.setAttribute('data-tooltip-pos', 'left');
+    shareButton.innerHTML = '<i data-lucide="share-2" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
+    shareButton.addEventListener('click', async () => {
+      const url = await collabManager.createShareLink(state.tripName, state, shareButton);
+      if (url) {
+        saveState(false);
+      }
+      renderTabs();
+    });
+    dayTabsEl.appendChild(shareButton);
+  }
 
   refreshIcons(dayTabsEl);
 }
@@ -819,7 +1045,7 @@ function createMemoComponent(options: {
     if (isEditing) {
       const editBox = document.createElement('div');
       editBox.className =
-        'rounded-lg border border-slate-300 bg-white p-2 shadow-xs transition-all focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200';
+        'rounded-2xl clay-sunken p-2.5 transition-all focus-within:ring-2 focus-within:ring-slate-900';
 
       const textarea = document.createElement('textarea');
       textarea.value = currentMemo;
@@ -838,7 +1064,7 @@ function createMemoComponent(options: {
       const finishBtn = document.createElement('button');
       finishBtn.type = 'button';
       finishBtn.className =
-        'rounded bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white transition-colors duration-75 hover:bg-slate-800 cursor-pointer select-none';
+        'clay-btn-dark rounded-xl px-3 py-1 text-[11px] font-bold text-white cursor-pointer select-none';
       finishBtn.textContent = '完了';
 
       let isFinished = false;
@@ -888,7 +1114,7 @@ function createMemoComponent(options: {
       const addBtn = document.createElement('button');
       addBtn.type = 'button';
       addBtn.className =
-        'inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium text-slate-400 transition-colors duration-75 hover:bg-slate-100 hover:text-slate-700 cursor-pointer select-none';
+        'inline-flex items-center gap-1.5 rounded-xl clay-btn px-2.5 py-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 cursor-pointer select-none';
       addBtn.innerHTML = '<i data-lucide="file-text" class="h-3 w-3"></i><span>+ メモを追加</span>';
       addBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -903,7 +1129,7 @@ function createMemoComponent(options: {
     // メモが存在する場合
     const previewBox = document.createElement('div');
     previewBox.className =
-      'group rounded-lg border border-slate-200/80 bg-slate-50/80 p-2 text-xs transition-colors duration-75 hover:border-slate-300 hover:bg-slate-50';
+      'group rounded-xl clay-sunken p-2.5 text-xs transition-all';
 
     // 1行目表示行
     const headerRow = document.createElement('div');
@@ -937,7 +1163,7 @@ function createMemoComponent(options: {
       const toggleBtn = document.createElement('button');
       toggleBtn.type = 'button';
       toggleBtn.className =
-        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 transition-colors duration-75 hover:bg-slate-200/70 hover:text-slate-800 cursor-pointer select-none';
+        'inline-flex items-center gap-1 rounded-lg clay-btn px-2 py-0.5 text-[10px] font-medium text-slate-600 cursor-pointer select-none';
       toggleBtn.innerHTML = isExpanded
         ? '<span>閉じる</span><i data-lucide="chevron-up" class="h-3 w-3"></i>'
         : '<span>詳細</span><i data-lucide="chevron-down" class="h-3 w-3"></i>';
@@ -956,7 +1182,7 @@ function createMemoComponent(options: {
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
     editBtn.className =
-      'rounded p-1 text-slate-400 opacity-60 transition-all duration-75 hover:bg-slate-200/70 hover:text-slate-700 hover:opacity-100 group-hover:opacity-100 cursor-pointer';
+      'rounded-lg p-1 text-slate-400 hover:text-slate-800 transition-all cursor-pointer';
     editBtn.title = 'メモを編集';
     editBtn.innerHTML = '<i data-lucide="pencil" class="h-3 w-3"></i>';
     editBtn.addEventListener('click', (e) => {
@@ -1001,7 +1227,7 @@ function createSpotCard(
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
-    'relative rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs transition-colors duration-75 hover:border-slate-300 hover:shadow-sm sm:p-4';
+    'relative rounded-2xl clay-item p-3.5 sm:p-4';
   card.dataset.spotCard = 'true';
   card.dataset.spotValue = spotValue;
   card.draggable = true;
@@ -1050,7 +1276,7 @@ function createSpotCard(
 
   const marker = document.createElement('div');
   marker.className =
-    'mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white';
+    'mt-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full clay-pill-dark text-xs font-bold text-white';
   marker.textContent = String(markerIndex + 1);
 
   const content = document.createElement('div');
@@ -1061,7 +1287,7 @@ function createSpotCard(
   input.value = spotValue;
   input.placeholder = 'スポット名';
   input.className =
-    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors duration-75 focus:border-slate-900 focus:ring-2 focus:ring-slate-200';
+    'w-full rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
   input.addEventListener('input', (e) => {
     const day = state.days[dayIndex];
     if (day && day.spots[index]) {
@@ -1098,7 +1324,7 @@ function createSpotCard(
   const upBtn = document.createElement('button');
   upBtn.type = 'button';
   upBtn.className =
-    'rounded-md border border-slate-300 bg-white p-1.5 text-slate-600 transition-colors duration-75 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer';
+    'rounded-xl clay-btn p-1.5 text-slate-600 transition-all duration-75 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer';
   upBtn.innerHTML = '<i data-lucide="arrow-up" class="h-3.5 w-3.5"></i>';
   upBtn.setAttribute('aria-label', '上に移動');
   upBtn.setAttribute('data-tooltip', '上に移動');
@@ -1109,7 +1335,7 @@ function createSpotCard(
   const downBtn = document.createElement('button');
   downBtn.type = 'button';
   downBtn.className =
-    'rounded-md border border-slate-300 bg-white p-1.5 text-slate-600 transition-colors duration-75 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer';
+    'rounded-xl clay-btn p-1.5 text-slate-600 transition-all duration-75 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer';
   downBtn.innerHTML = '<i data-lucide="arrow-down" class="h-3.5 w-3.5"></i>';
   downBtn.setAttribute('aria-label', '下に移動');
   downBtn.setAttribute('data-tooltip', '下に移動');
@@ -1127,7 +1353,7 @@ function createSpotCard(
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
   removeBtn.className =
-    'rounded-md bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700 transition-colors duration-75 hover:bg-slate-300 hover:text-slate-900 cursor-pointer';
+    'rounded-xl clay-btn px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-red-600 transition-all duration-75 cursor-pointer';
   removeBtn.textContent = '削除';
   removeBtn.setAttribute('aria-label', 'スポットを削除');
   removeBtn.setAttribute('data-tooltip', 'スポットを削除');
@@ -1160,7 +1386,7 @@ function createAccommodationCard(
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
-    'relative rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs transition-colors duration-75 hover:border-slate-300 hover:shadow-sm sm:p-4';
+    'relative rounded-2xl clay-item p-3.5 sm:p-4';
   card.dataset.spotCard = 'true';
 
   card.addEventListener('dragover', (e) => {
@@ -1192,7 +1418,7 @@ function createAccommodationCard(
 
   const marker = document.createElement('div');
   marker.className =
-    'mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white';
+    'mt-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full clay-pill-dark text-xs font-bold text-white';
   marker.textContent = String(index + 1);
 
   const content = document.createElement('div');
@@ -1203,7 +1429,7 @@ function createAccommodationCard(
   input.value = accommodation;
   input.placeholder = '宿泊地を入力';
   input.className =
-    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors duration-75 focus:border-slate-900 focus:ring-2 focus:ring-slate-200';
+    'w-full rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
   input.addEventListener('input', (e) => {
     const day = state.days[dayIndex];
     if (day) {
@@ -1232,7 +1458,7 @@ function createAccommodationCard(
   controls.className = 'mt-2 flex items-center justify-between gap-2';
 
   const badge = document.createElement('span');
-  badge.className = 'rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600';
+  badge.className = 'rounded-lg clay-pill px-2.5 py-1 text-xs font-semibold text-slate-700';
   badge.textContent = '宿泊地';
 
   const hint = document.createElement('span');
@@ -1241,7 +1467,7 @@ function createAccommodationCard(
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
   removeBtn.className =
-    'rounded-md bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700 transition-colors duration-75 hover:bg-slate-300 hover:text-slate-900 cursor-pointer';
+    'rounded-xl clay-btn px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-red-600 transition-all duration-75 cursor-pointer';
   removeBtn.textContent = '削除';
   removeBtn.setAttribute('aria-label', '宿泊地を削除');
   removeBtn.setAttribute('data-tooltip', '宿泊地を削除');
@@ -1275,7 +1501,7 @@ function createEndpointCard(
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
-    'relative rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs transition-colors duration-75 hover:border-slate-300 hover:shadow-sm sm:p-4';
+    'relative rounded-2xl clay-item p-3.5 sm:p-4';
   card.dataset.spotCard = 'true';
 
   card.addEventListener('dragover', (e) => {
@@ -1308,7 +1534,7 @@ function createEndpointCard(
 
   const marker = document.createElement('div');
   marker.className =
-    'mt-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white';
+    'mt-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full clay-pill-dark text-xs font-bold text-white';
   marker.textContent = String(index + 1);
 
   const content = document.createElement('div');
@@ -1319,7 +1545,7 @@ function createEndpointCard(
   input.value = location;
   input.placeholder = `${label}を入力`;
   input.className =
-    'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition-colors duration-75 focus:border-slate-900 focus:ring-2 focus:ring-slate-200';
+    'w-full rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
   input.addEventListener('input', (e) => {
     if (label === '出発地点') {
       state.departure = (e.target as HTMLInputElement).value;
@@ -1350,7 +1576,7 @@ function createEndpointCard(
   controls.className = 'mt-2 flex items-center justify-between gap-2';
 
   const badge = document.createElement('span');
-  badge.className = 'rounded-md bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600';
+  badge.className = 'rounded-lg clay-pill px-2.5 py-1 text-xs font-semibold text-slate-700';
   badge.textContent = label;
 
   const hint = document.createElement('span');
@@ -1359,7 +1585,7 @@ function createEndpointCard(
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
   removeBtn.className =
-    'rounded-md bg-slate-200 px-2 py-1 text-xs font-medium text-slate-700 transition-colors duration-75 hover:bg-slate-300 hover:text-slate-900 cursor-pointer';
+    'rounded-xl clay-btn px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-red-600 transition-all duration-75 cursor-pointer';
   removeBtn.textContent = '削除';
   removeBtn.setAttribute('aria-label', `${label}を削除`);
   removeBtn.setAttribute('data-tooltip', `${label}を削除`);
@@ -1409,7 +1635,7 @@ function createRouteConnector(
   btn.setAttribute('data-route-btn', 'true');
   const mapLabel = state.mapType === 'apple' ? 'Apple' : 'Google';
   btn.className =
-    'relative z-10 inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-xs transition-all duration-75 hover:scale-105 hover:border-slate-900 hover:bg-slate-900 hover:text-white hover:shadow-md cursor-pointer active:scale-95 select-none';
+    'relative z-10 inline-flex items-center gap-1.5 rounded-full clay-btn px-3.5 py-1.5 text-xs font-semibold text-slate-700 cursor-pointer select-none transition-all duration-75';
   btn.innerHTML = '<i data-lucide="route" class="h-3.5 w-3.5"></i>ルート';
   btn.setAttribute('data-tooltip', `${mapLabel}でルートを開く`);
   btn.setAttribute('data-tooltip-pos', 'bottom');
@@ -1427,17 +1653,20 @@ function createRouteConnector(
 }
 
 function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
+  const isLastDay = dayIndex === state.days.length - 1;
   const details = document.createElement('details');
   details.id = `day-section-${dayIndex}`;
   details.dataset.dayIndex = String(dayIndex);
-  details.className = 'border-t border-slate-200 py-2 first:border-t-0 first:pt-0';
-  details.style.scrollMarginTop = 'var(--total-sticky-height, 150px)';
+  details.className = `border-t border-slate-200 py-2 first:border-t-0 first:pt-0 ${
+    isLastDay ? 'min-h-[calc(100vh-var(--total-sticky-height,150px)-2rem)]' : ''
+  }`;
+  details.style.scrollMarginTop = 'calc(var(--total-sticky-height, 150px) + 8px)';
   details.open = !collapsedDays.has(dayIndex);
 
   const summary = document.createElement('summary');
   summary.className =
-    'sticky z-20 flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-white/95 px-3 py-2.5 backdrop-blur-sm shadow-xs transition-colors duration-75 hover:bg-slate-50';
-  summary.style.top = 'var(--total-sticky-height, 150px)';
+    'sticky z-20 flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 clay-item transition-all duration-75 hover:bg-slate-50';
+  summary.style.top = 'calc(var(--total-sticky-height, 150px) + 8px)';
   summary.style.listStyle = 'none';
 
   const chevronWrap = document.createElement('div');
@@ -1529,12 +1758,12 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
   details.appendChild(summary);
 
   const body = document.createElement('div');
-  body.className = 'pt-2';
+  body.className = `pt-2 ${isLastDay ? 'pb-20' : ''}`;
 
   if (items.length === 0) {
     const empty = document.createElement('div');
     empty.className =
-      'rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 transition-colors duration-75';
+      'rounded-2xl clay-sunken p-6 text-center text-sm text-slate-500 transition-colors duration-75';
     empty.textContent =
       'まだスポットがありません。上の入力から追加するか、スポットをここにドラッグ＆ドロップしてください。';
     empty.addEventListener('dragover', (e) => {
@@ -1575,7 +1804,7 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
 
   const dropZone = document.createElement('div');
   dropZone.className =
-    'h-8 rounded-xl border border-dashed border-transparent transition-colors duration-75 mt-2 flex items-center justify-center text-xs text-slate-400';
+    'h-9 rounded-xl border border-dashed border-transparent transition-all duration-75 mt-2 flex items-center justify-center text-xs text-slate-400';
   dropZone.dataset.dropZone = 'true';
   dropZone.addEventListener('dragover', (e) => {
     if (!draggedSpot) return;
@@ -1628,12 +1857,18 @@ function renderAccommodation(): void {
   const allDays = state.accommodationUpdateScope === 'all';
   accommodationScopeAllEl.setAttribute('aria-pressed', String(allDays));
   accommodationScopeNextDayEl.setAttribute('aria-pressed', String(!allDays));
-  accommodationScopeAllEl.style.backgroundColor = allDays ? '#18181b' : '#ffffff';
-  accommodationScopeAllEl.style.borderColor = allDays ? '#18181b' : '#d4d4d8';
-  accommodationScopeAllEl.style.color = allDays ? '#ffffff' : '#3f3f46';
-  accommodationScopeNextDayEl.style.backgroundColor = allDays ? '#ffffff' : '#18181b';
-  accommodationScopeNextDayEl.style.borderColor = allDays ? '#d4d4d8' : '#18181b';
-  accommodationScopeNextDayEl.style.color = allDays ? '#3f3f46' : '#ffffff';
+  accommodationScopeAllEl.className = allDays
+    ? 'clay-btn-dark rounded-xl px-3 py-1.5 text-xs font-bold cursor-pointer text-white'
+    : 'clay-btn rounded-xl px-3 py-1.5 text-xs font-semibold cursor-pointer text-slate-700';
+  accommodationScopeNextDayEl.className = allDays
+    ? 'clay-btn rounded-xl px-3 py-1.5 text-xs font-semibold cursor-pointer text-slate-700'
+    : 'clay-btn-dark rounded-xl px-3 py-1.5 text-xs font-bold cursor-pointer text-white';
+  accommodationScopeAllEl.style.backgroundColor = '';
+  accommodationScopeAllEl.style.borderColor = '';
+  accommodationScopeAllEl.style.color = '';
+  accommodationScopeNextDayEl.style.backgroundColor = '';
+  accommodationScopeNextDayEl.style.borderColor = '';
+  accommodationScopeNextDayEl.style.color = '';
 }
 
 function updateActiveDayFromScroll(): void {
@@ -1688,14 +1923,14 @@ function updateItineraryVisibility(): void {
     appHeaderContainerEl.classList.toggle('hidden', !showItinerary);
   }
 
-  // メインカードのレイアウト（LP時は人間工学的中央、アプリ時は通常カード）
+  // メインカードのレイアウト（LP時は人間工学的中央、アプリ時は透明コンテナ app-mode）
   if (mainCardEl) {
     if (showItinerary) {
       mainCardEl.className =
-        'rounded-2xl border border-slate-200 bg-white shadow-sm block p-0 transition-all duration-300';
+        'block p-0 transition-all duration-300 app-mode';
     } else {
       mainCardEl.className =
-        'rounded-3xl border border-slate-200/80 bg-white shadow-xs min-h-[82vh] flex flex-col items-center justify-center p-5 pb-20 sm:p-10 sm:pb-28 transition-all duration-300';
+        'clay-card min-h-[82vh] flex flex-col items-center justify-center p-5 pb-20 sm:p-10 sm:pb-28 transition-all duration-300';
     }
   }
 
@@ -1714,14 +1949,21 @@ function updateItineraryVisibility(): void {
     tripComboboxContainerEl.classList.toggle('app-mode', showItinerary);
   }
 
+  // 旅行名入力枠のスタイル調整（アプリ表示時は四角い枠やシャドウを排した見出しスタイルに切り替え）
+  if (tripNameLineEl) {
+    tripNameLineEl.classList.toggle('app-mode', showItinerary);
+    tripNameLineEl.classList.toggle('clay-input', !showItinerary);
+  }
+
   // 一体型パネル内のスポット追加フォームの表示・非表示
   if (addSpotFormEl) {
     addSpotFormEl.classList.toggle('hidden', !showItinerary);
   }
 
-  // 日程セクションと固定日程タブ・マップセレクター
+  // 日程セクションと固定日程タブ・マップセレクター（アプリ時は独立クレイカード app-card を付与）
   if (itinerarySectionEl) {
     itinerarySectionEl.classList.toggle('hidden', !showItinerary);
+    itinerarySectionEl.classList.toggle('app-card', showItinerary);
   }
   if (dayTabsEl) {
     dayTabsEl.classList.toggle('hidden', !showItinerary);
@@ -2099,8 +2341,9 @@ function setupEventListeners(): void {
       saveState();
       tripStore.activeTripId = (e.target as HTMLSelectElement).value;
       tripStore.applyActiveTripToState(state);
+      syncCollabStateWithActiveTrip();
       isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
-      saveState();
+      saveState(false);
       render();
     });
   }
@@ -2259,33 +2502,128 @@ function setupEventListeners(): void {
 
 // アプリ初期化
 export function init(): void {
-  const rawShareData = extractDataFromUrl();
-  const sharedTrip = rawShareData ? parseShareUrlData(rawShareData) : null;
-
   tripStore.load();
 
-  if (sharedTrip) {
-    const existingIndex = tripStore.trips.findIndex((t) => t.id === sharedTrip.id);
+  // 1. URLパス判定（/p/[planId] アクセス時）
+  const initialPlan = typeof window !== 'undefined' ? (window as any).__INITIAL_PLAN__ : null;
+  const pathMatch = typeof window !== 'undefined' ? window.location.pathname.match(/^\/p\/([^/]+)/) : null;
+  const urlPlanId = initialPlan ? initialPlan.id : pathMatch && pathMatch[1] ? pathMatch[1] : null;
+
+  if (urlPlanId) {
+    // 共有URLから開いた場合: ローカル3件枠に紐付け・同期
+    const existingIndex = tripStore.trips.findIndex((t) => t.shareId === urlPlanId);
     if (existingIndex >= 0) {
-      tripStore.trips[existingIndex] = sharedTrip;
+      tripStore.activeTripId = tripStore.trips[existingIndex].id;
     } else {
-      tripStore.trips.unshift(sharedTrip);
+      // 3件枠の先頭に新しく登録
+      const newTripEntry = createTripEntry(initialPlan?.title || '');
+      newTripEntry.shareId = urlPlanId;
+      tripStore.trips.unshift(newTripEntry);
       if (tripStore.trips.length > MAX_TRIPS) {
         tripStore.trips = tripStore.trips.slice(0, MAX_TRIPS);
       }
+      tripStore.activeTripId = newTripEntry.id;
     }
-    tripStore.activeTripId = sharedTrip.id;
-    tripStore.applyActiveTripToState(state);
-    isTripConfirmed = true;
-    showToast('共有された旅行プランを読み込みました！');
+
+    if (initialPlan) {
+      collabManager.initFromPlan(initialPlan);
+      tripStore.applyActiveTripToState(state);
+      if (initialPlan.data) {
+        Object.assign(state, initialPlan.data);
+        if (initialPlan.title) state.tripName = initialPlan.title;
+      }
+      state.shareId = urlPlanId;
+      isTripConfirmed = true;
+      showToast(`「${initialPlan.title || '共有プラン'}」を開きました（共同編集可能）`);
+    } else {
+      // クライアントサイドフェッチ
+      tripStore.applyActiveTripToState(state);
+      state.shareId = urlPlanId;
+      collabManager.initFromPlan({
+        id: urlPlanId,
+        title: state.tripName,
+        data: state,
+        version: 1,
+        createdAt: '',
+        updatedAt: '',
+      });
+      collabManager.fetchLatest().then((plan) => {
+        if (plan) {
+          collabManager.initFromPlan(plan);
+          if (plan.data) {
+            Object.assign(state, plan.data);
+            if (plan.title) state.tripName = plan.title;
+          }
+          state.shareId = urlPlanId;
+          isTripConfirmed = true;
+          ensureValidState();
+          syncAutoStarts();
+          saveState(false);
+          render();
+          showToast(`「${plan.title || '共有プラン'}」を開きました`);
+        }
+      });
+    }
   } else {
-    tripStore.applyActiveTripToState(state);
-    isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
+    // トップページ（/）または従来のクエリ共有URLアクセス時
+    const rawShareData = extractDataFromUrl();
+    const sharedTrip = rawShareData ? parseShareUrlData(rawShareData) : null;
+
+    if (sharedTrip) {
+      const existingIndex = tripStore.trips.findIndex((t) => t.id === sharedTrip.id);
+      if (existingIndex >= 0) {
+        tripStore.trips[existingIndex] = sharedTrip;
+      } else {
+        tripStore.trips.unshift(sharedTrip);
+        if (tripStore.trips.length > MAX_TRIPS) {
+          tripStore.trips = tripStore.trips.slice(0, MAX_TRIPS);
+        }
+      }
+      tripStore.activeTripId = sharedTrip.id;
+      tripStore.applyActiveTripToState(state);
+      isTripConfirmed = true;
+      showToast('共有された旅行プランを読み込みました！');
+    } else {
+      tripStore.applyActiveTripToState(state);
+      isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
+    }
+
+    if (state.shareId) {
+      collabManager.initFromPlan({
+        id: state.shareId,
+        title: state.tripName,
+        data: state,
+        version: 1,
+        createdAt: '',
+        updatedAt: '',
+      });
+      collabManager.fetchLatest().then((plan) => {
+        if (plan && plan.data) {
+          let planData = plan.data;
+          if (typeof planData === 'string') {
+            try {
+              planData = JSON.parse(planData);
+            } catch {}
+          }
+          if (planData && typeof planData === 'object') {
+            Object.assign(state, planData);
+            if (plan.title) state.tripName = plan.title;
+            state.shareId = plan.id;
+            ensureValidState();
+            syncAutoStarts();
+            saveState(false);
+            render();
+          }
+        }
+      });
+    } else {
+      collabManager.reset();
+    }
   }
 
   ensureValidState();
   syncAutoStarts();
-  saveState();
+  saveState(false);
   setupEventListeners();
   render();
 }
