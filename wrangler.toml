@@ -1,12 +1,14 @@
-name = "tabi-ori"
+name = "root-generator-public"
 compatibility_date = "2024-09-19"
 compatibility_flags = ["nodejs_compat"]
 
+main = "./dist/_worker.js/index.js"
+
 [assets]
 directory = "./dist"
+binding = "ASSETS"
 
 [[d1_databases]]
 binding = "DB"
 database_name = "tabiori-db"
-database_id = "local-tabiori-db"
-
+database_id = "1d39c9b7-1121-4670-a423-5cc25f1ee4aa"
