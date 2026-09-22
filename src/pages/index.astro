@@ -11,7 +11,7 @@ import Tooltip from '../components/Tooltip.astro';
   <div id="app-wrapper" class="mx-auto w-full max-w-5xl transition-all duration-300">
     <div
       id="main-card"
-      class="rounded-3xl border border-slate-200/80 bg-white shadow-xs min-h-[82vh] flex flex-col items-center justify-center p-5 pb-20 sm:p-10 sm:pb-28 transition-all duration-300"
+      class="clay-card min-h-[82vh] flex flex-col items-center justify-center p-5 pb-20 sm:p-10 sm:pb-28 transition-all duration-300"
     >
       <div id="app-header-container" class="hidden"></div>
 
@@ -27,14 +27,14 @@ import Tooltip from '../components/Tooltip.astro';
       <!-- LP下部: サンプルタグ（縦に3つ並べる） -->
       <div id="lp-samples-section" class="w-full max-w-xs mx-auto mt-6 text-center transition-all duration-200">
         <p class="text-xs text-slate-500 mb-2.5 select-none font-medium">例:</p>
-        <div class="flex flex-col items-center gap-2 select-none">
-          <button type="button" data-sample-trip="京都 2泊3日" class="w-full rounded-full border border-slate-200 bg-white py-1.5 px-4 text-xs text-slate-500 shadow-xs text-center hover:border-slate-400 hover:text-slate-800 transition-colors cursor-pointer">
+        <div class="flex flex-col items-center gap-2.5 select-none">
+          <button type="button" data-sample-trip="京都 2泊3日" class="clay-btn w-full rounded-full py-2 px-4 text-xs font-medium text-slate-600 text-center transition-all cursor-pointer hover:text-slate-900">
             京都 2泊3日
           </button>
-          <button type="button" data-sample-trip="北海道ドライブ" class="w-full rounded-full border border-slate-200 bg-white py-1.5 px-4 text-xs text-slate-500 shadow-xs text-center hover:border-slate-400 hover:text-slate-800 transition-colors cursor-pointer">
+          <button type="button" data-sample-trip="北海道ドライブ" class="clay-btn w-full rounded-full py-2 px-4 text-xs font-medium text-slate-600 text-center transition-all cursor-pointer hover:text-slate-900">
             北海道ドライブ
           </button>
-          <button type="button" data-sample-trip="金沢 週末ひとり旅" class="w-full rounded-full border border-slate-200 bg-white py-1.5 px-4 text-xs text-slate-500 shadow-xs text-center hover:border-slate-400 hover:text-slate-800 transition-colors cursor-pointer">
+          <button type="button" data-sample-trip="金沢 週末ひとり旅" class="clay-btn w-full rounded-full py-2 px-4 text-xs font-medium text-slate-600 text-center transition-all cursor-pointer hover:text-slate-900">
             金沢 週末ひとり旅
           </button>
         </div>
@@ -44,25 +44,25 @@ import Tooltip from '../components/Tooltip.astro';
       <section id="itinerary-section" class="hidden w-full p-4 pt-2 sm:p-6 sm:pt-2">
         <div id="timeline" class="space-y-0 pb-12 pr-[3.75rem] sm:pr-0"></div>
 
-        <div id="endpoint-section" class="hidden mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+        <div id="endpoint-section" class="hidden mt-6 clay-sunken p-3.5 sm:p-5">
           <div id="departure-field">
             <label class="mb-2 block text-sm font-medium text-slate-700" for="departure-input">出発地点</label>
             <input
               id="departure-input"
               type="text"
               placeholder="例: 東京駅"
-              class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+              class="w-full clay-input px-3.5 py-2.5 text-sm outline-none"
             />
           </div>
         </div>
 
-        <div id="accommodation-section" class="hidden mt-6 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+        <div id="accommodation-section" class="hidden mt-6 clay-sunken p-3.5 sm:p-5">
           <label class="mb-2 block text-sm font-medium text-slate-700" for="accommodation-input">宿泊地</label>
           <div class="mb-3 flex gap-2" role="group" aria-label="宿泊地の変更範囲">
-            <button id="accommodation-scope-all" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer">
+            <button id="accommodation-scope-all" type="button" class="clay-btn rounded-xl px-3 py-1.5 text-xs font-medium text-slate-700 cursor-pointer">
               以降すべて
             </button>
-            <button id="accommodation-scope-next-day" type="button" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 cursor-pointer">
+            <button id="accommodation-scope-next-day" type="button" class="clay-btn rounded-xl px-3 py-1.5 text-xs font-medium text-slate-700 cursor-pointer">
               当日・翌日だけ
             </button>
           </div>
@@ -70,7 +70,7 @@ import Tooltip from '../components/Tooltip.astro';
             id="accommodation-input"
             type="text"
             placeholder="例: 京都駅周辺"
-            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-slate-900 focus:ring-2 focus:ring-slate-200"
+            class="w-full clay-input px-3.5 py-2.5 text-sm outline-none"
           />
           <p class="mt-2 text-xs text-slate-500">入力すると翌日の出発地点（先頭）にデフォルトで反映されます。</p>
         </div>

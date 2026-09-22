@@ -14,7 +14,7 @@ export function showToast(message: string, onAction?: () => void, actionText = '
 
   const toast = document.createElement('div');
   toast.className =
-    'fixed bottom-6 left-1/2 z-50 flex max-w-[90vw] -translate-x-1/2 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2.5 text-sm text-white shadow-xl backdrop-blur-sm transition-all';
+    'fixed bottom-6 left-1/2 z-50 flex max-w-[90vw] -translate-x-1/2 items-center gap-3 rounded-2xl clay-btn-dark px-5 py-3 text-sm text-white transition-all select-none';
 
   const textSpan = document.createElement('span');
   textSpan.textContent = message;
