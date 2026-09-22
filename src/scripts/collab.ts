@@ -214,9 +214,17 @@ class CollabManager {
     try {
       const response = await fetch(`/api/plans/${this.state.planId}`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch plan: ${response.status}`);
+        const errText = await response.text();
+        throw new Error(`Failed to fetch plan (${response.status}): ${errText}`);
       }
       const plan: PlanDataResponse = await response.json();
+      if (typeof plan.data === 'string') {
+        try {
+          plan.data = JSON.parse(plan.data);
+        } catch (e) {
+          console.error('Failed to parse plan.data JSON:', e);
+        }
+      }
       this.state.version = plan.version;
       this.state.updatedAt = plan.updatedAt;
       this.state.hasUnsavedChanges = false;
