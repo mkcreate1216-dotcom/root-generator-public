@@ -30,11 +30,32 @@
   </div>
 
   <!-- ドロップダウンメニュー -->
-  <ul
+  <div
     id="trip-combobox-menu"
-    role="listbox"
-    class="absolute left-0 right-0 z-50 mt-2 hidden max-h-60 overflow-y-auto rounded-2xl clay-card p-2 space-y-1"
-  ></ul>
+    class="absolute left-0 right-0 z-50 mt-2 hidden rounded-2xl clay-card p-2 flex flex-col shadow-lg"
+  >
+    <!-- 旅行名一覧スクロールエリア -->
+    <ul
+      id="trip-combobox-list"
+      role="listbox"
+      class="max-h-60 overflow-y-auto space-y-1 overscroll-contain pr-0.5"
+    ></ul>
+
+    <!-- 下部固定アクション: 新しい旅程を作成 -->
+    <div class="mt-1.5 border-t border-slate-100 pt-1.5 shrink-0">
+      <button
+        id="trip-combobox-add-btn"
+        type="button"
+        class="flex w-full items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all duration-75 cursor-pointer"
+      >
+        <svg class="h-4 w-4 shrink-0 text-slate-600" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 12h14"/>
+          <path d="M12 5v14"/>
+        </svg>
+        <span>新しい旅程を作成</span>
+      </button>
+    </div>
+  </div>
 
   <!-- タイトル入力欄の下の「はじめる」ボタン -->
   <div id="trip-confirm-container" class="mt-5 flex justify-center">

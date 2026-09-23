@@ -95,7 +95,9 @@ const tripNameInputEl = document.getElementById('trip-name-input') as HTMLInputE
 const tripNameLineEl = document.getElementById('trip-name-line') as HTMLDivElement | null;
 const tripComboboxContainerEl = document.getElementById('trip-combobox-container');
 const tripComboboxToggleEl = document.getElementById('trip-combobox-toggle');
-const tripComboboxMenuEl = document.getElementById('trip-combobox-menu') as HTMLUListElement | null;
+const tripComboboxMenuEl = document.getElementById('trip-combobox-menu');
+const tripComboboxListEl = document.getElementById('trip-combobox-list') as HTMLUListElement | null;
+const tripComboboxAddBtnEl = document.getElementById('trip-combobox-add-btn') as HTMLButtonElement | null;
 const tripConfirmContainerEl = document.getElementById('trip-confirm-container') as HTMLDivElement | null;
 const tripConfirmBtnEl = document.getElementById('trip-confirm-btn') as HTMLButtonElement | null;
 const tripSwitcherEl = document.getElementById('trip-switcher') as HTMLSelectElement | null;
@@ -376,8 +378,8 @@ function deleteTrip(tripId: string): void {
 }
 
 function renderTripComboboxMenu(): void {
-  if (!tripComboboxMenuEl) return;
-  tripComboboxMenuEl.innerHTML = '';
+  if (!tripComboboxListEl) return;
+  tripComboboxListEl.innerHTML = '';
 
   // 常に最新（作成日の降順）で並ぶように保証
   tripStore.trips = sortTripsByCreatedAt(tripStore.trips);
@@ -475,29 +477,10 @@ function renderTripComboboxMenu(): void {
       toggleTripMenu(false);
     });
 
-    tripComboboxMenuEl.appendChild(item);
+    tripComboboxListEl.appendChild(item);
   });
 
-  const separator = document.createElement('li');
-  separator.className = 'my-1.5 border-t border-slate-100';
-  separator.setAttribute('role', 'separator');
-  tripComboboxMenuEl.appendChild(separator);
-
-  const addActionItem = document.createElement('li');
-  const addBtn = document.createElement('button');
-  addBtn.type = 'button';
-  addBtn.className =
-    'flex w-full items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all duration-75 text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer';
-  addBtn.innerHTML = '<i data-lucide="plus" class="h-4 w-4 shrink-0"></i><span>新しい旅程を作成</span>';
-  addBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    createNewTrip();
-    toggleTripMenu(false);
-  });
-  addActionItem.appendChild(addBtn);
-  tripComboboxMenuEl.appendChild(addActionItem);
-
-  refreshIcons(tripComboboxMenuEl);
+  refreshIcons(tripComboboxListEl);
 }
 
 function renderTripSwitcher(): void {
@@ -2373,6 +2356,14 @@ function setupEventListeners(): void {
     tripComboboxToggleEl.addEventListener('click', (e) => {
       e.stopPropagation();
       toggleTripMenu();
+    });
+  }
+
+  if (tripComboboxAddBtnEl) {
+    tripComboboxAddBtnEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      createNewTrip();
+      toggleTripMenu(false);
     });
   }
 
