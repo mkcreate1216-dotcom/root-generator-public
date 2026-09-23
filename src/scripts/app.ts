@@ -114,6 +114,7 @@ const addAccommodationScopeAllEl = document.getElementById('add-accommodation-sc
 const addAccommodationScopeTodayEl = document.getElementById('add-accommodation-scope-today') as HTMLButtonElement;
 const itinerarySectionEl = document.getElementById('itinerary-section') as HTMLDivElement | null;
 const headerMapSelectorEl = document.getElementById('header-map-selector-container') as HTMLDivElement | null;
+const appWrapperEl = document.getElementById('app-wrapper') as HTMLDivElement | null;
 const mainCardEl = document.getElementById('main-card') as HTMLDivElement | null;
 const appHeaderContainerEl = document.getElementById('app-header-container') as HTMLDivElement | null;
 const lpHeroSectionEl = document.getElementById('lp-hero-section') as HTMLDivElement | null;
@@ -1961,6 +1962,11 @@ function updateItineraryVisibility(): void {
 
   if (appHeaderContainerEl) {
     appHeaderContainerEl.classList.toggle('hidden', !showItinerary);
+  }
+
+  // アプリコンテナ（LP時は常に中央寄せ、アプリ時は日程タグ用の余白を有効化）
+  if (appWrapperEl) {
+    appWrapperEl.classList.toggle('app-mode', showItinerary);
   }
 
   // メインカードのレイアウト（LP時は人間工学的中央、アプリ時は透明コンテナ app-mode）

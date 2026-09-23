@@ -403,6 +403,7 @@ body::before {
 }
 
 /* 日程タグ（day-tabs）との配置調整: スマホ時はカード全幅＋タイムライン側でTAGを吸収 */
+/* アプリコンテナ（#app-wrapper）の余白設定: LP表示時は常に均等で完全な中央寄せを維持 */
 #app-wrapper {
   padding-left: 0.75rem;
   padding-right: 0.75rem;
@@ -415,8 +416,15 @@ body::before {
     padding-left: 1.5rem;
     /* デスクトップで十分な余白があるときは中央配置、狭くなって日程タグと重なりそうになったら右側が縮む */
     padding-right: max(1.5rem, calc(6.5rem - max(0px, (100vw - 64rem) / 2)));
+    padding-right: 1.5rem;
     padding-top: 1.5rem;
     padding-bottom: 1.5rem;
+  }
+
+  /* アプリ表示時（日程タグ day-tabs 表示時）のみ、日程タグとの重なりを防ぐため右側を調整 */
+  #app-wrapper.app-mode,
+  #app-wrapper:has(#main-card.app-mode) {
+    padding-right: max(1.5rem, calc(6.5rem - max(0px, (100vw - 64rem) / 2)));
   }
 }
 

@@ -26,3 +26,8 @@ pnpm-debug.log*
 # Cloudflare
 .wrangler/
 
+# Database backups and SQL dumps
+*.sql
+!db/*.sql
+backup*.sql
+
