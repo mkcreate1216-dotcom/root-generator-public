@@ -15,26 +15,39 @@ const { class: className = '' } = Astro.props;
   <div class="flex items-center justify-between gap-2 mb-2.5 px-1 text-slate-400 text-[11px] font-medium">
     <div class="flex items-center gap-1.5">
       <span aria-hidden="true" class="text-xs">✈️</span>
-      <span id="ad-label">旅の準備（ホテル・宿）</span>
+      <span id="ad-label">旅の準備（宿泊・レンタカー）</span>
     </div>
     <div class="flex items-center gap-2">
+      <!-- ページネーション ドット -->
+      <div class="flex items-center gap-1" aria-hidden="true">
+        <span class="ad-dot w-1.5 h-1.5 rounded-full bg-slate-400 transition-colors"></span>
+        <span class="ad-dot w-1.5 h-1.5 rounded-full bg-slate-200 transition-colors"></span>
+      </div>
       <span class="text-[10px] tracking-wider text-slate-400 font-semibold">PR</span>
     </div>
   </div>
 
-  <!-- バナー枠（300×60） -->
-  <div class="flex items-center justify-center mx-auto overflow-hidden rounded bg-transparent">
-    <!-- 楽天トラベル（宿泊） -->
-    <div class="flex items-center justify-center">
+  <!-- 1枠ローテーションバナー（最大320×60・中央揃えで比率の違いを吸収） -->
+  <div
+    id="ad-rotator"
+    class="relative w-full max-w-[320px] h-[60px] mx-auto overflow-hidden rounded bg-transparent"
+  >
+    <!-- スライド 1: 楽天トラベル（宿泊: 300×60） -->
+    <div
+      class="ad-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 opacity-100 z-10"
+      data-index="0"
+    >
       <a
         href="https://rpx.a8.net/svt/ejp?a8mat=4BCHZL+CEJ596+2HOM+6JZDD&rakuten=y&a8ejpredirect=http%3A%2F%2Fhb.afl.rakuten.co.jp%2Fhgc%2F0eb4779e.5d30c5ba.0eb4779f.b871e4e3%2Fa26092361755_4BCHZL_CEJ596_2HOM_6JZDD%3Fpc%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F%26m%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F"
         rel="nofollow noopener noreferrer"
         target="_blank"
-        class="inline-block transition-opacity duration-150 hover:opacity-80 active:opacity-70"
+        class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
       >
         <img
           src="https://hbb.afl.rakuten.co.jp/hsb/0ea7f9c5.e8977d11.0ea7f99d.1ac92fca/153145/"
           border="0"
+          width="300"
+          height="60"
           alt="楽天トラベルでホテル・宿を探す"
           loading="lazy"
           class="rounded max-w-full h-auto block"
@@ -49,5 +62,101 @@ const { class: className = '' } = Astro.props;
         class="inline"
       />
     </div>
+
+    <!-- スライド 2: エアトリレンタカー（レンタカー: 320×50） -->
+    <div
+      class="ad-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 opacity-0 pointer-events-none z-0"
+      data-index="1"
+    >
+      <a
+        href="https://px.a8.net/svt/ejp?a8mat=4BCHZR+5U623E+AD2+2TA9FL"
+        rel="nofollow noopener noreferrer"
+        target="_blank"
+        class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
+      >
+        <img
+          src="https://www20.a8.net/svt/bgt?aid=260923671353&wid=002&eno=01&mid=s00000001343017012000&mc=1"
+          border="0"
+          width="320"
+          height="50"
+          alt="エアトリで全国のレンタカーを比較・予約する"
+          loading="lazy"
+          class="rounded max-w-full h-auto block"
+        />
+      </a>
+      <img
+        border="0"
+        width="1"
+        height="1"
+        src="https://www19.a8.net/0.gif?a8mat=4BCHZR+5U623E+AD2+2TA9FL"
+        alt=""
+        class="inline"
+      />
+    </div>
   </div>
 </aside>
+
+<script>
+  function setupAdRotator() {
+    const rotator = document.getElementById('ad-rotator');
+    if (!rotator) return;
+
+    const slides = rotator.querySelectorAll<HTMLElement>('.ad-slide');
+    const dots = document.querySelectorAll<HTMLElement>('.ad-dot');
+    if (slides.length <= 1) return;
+
+    let currentIndex = 0;
+    let timerId: ReturnType<typeof setInterval> | null = null;
+    const intervalMs = 6000; // 6秒ごとに切り替え
+
+    function showSlide(index: number) {
+      slides.forEach((slide, i) => {
+        const isActive = i === index;
+        slide.classList.toggle('opacity-100', isActive);
+        slide.classList.toggle('opacity-0', !isActive);
+        slide.classList.toggle('pointer-events-none', !isActive);
+        slide.classList.toggle('z-10', isActive);
+        slide.classList.toggle('z-0', !isActive);
+      });
+
+      dots.forEach((dot, i) => {
+        const isActive = i === index;
+        dot.classList.toggle('bg-slate-400', isActive);
+        dot.classList.toggle('bg-slate-200', !isActive);
+      });
+
+      currentIndex = index;
+    }
+
+    function nextSlide() {
+      const nextIndex = (currentIndex + 1) % slides.length;
+      showSlide(nextIndex);
+    }
+
+    function startTimer() {
+      stopTimer();
+      timerId = setInterval(nextSlide, intervalMs);
+    }
+
+    function stopTimer() {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    }
+
+    // ホバー・タップ中は誤操作防止のためローテーションを停止
+    rotator.addEventListener('mouseenter', stopTimer);
+    rotator.addEventListener('mouseleave', startTimer);
+    rotator.addEventListener('touchstart', stopTimer, { passive: true });
+
+    startTimer();
+  }
+
+  // 画面初期化時・ページ表示時に設定
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupAdRotator);
+  } else {
+    setupAdRotator();
+  }
+</script>
