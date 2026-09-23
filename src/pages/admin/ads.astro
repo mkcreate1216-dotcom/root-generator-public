@@ -1,11 +1,11 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { adsConfig } from '../../config/ads';
+import { adsConfig, AD_SIZE_PRESETS, type AdSlotSize } from '../../config/ads';
 
 export const prerender = true;
 ---
 
-<Layout title="広告管理・プレビュー | たびおり" showFooterAd={false}>
+<Layout title="広告管理・プレビュー | たびろーむ" showFooterAd={false}>
   <head slot="head">
     <meta name="robots" content="noindex, nofollow" />
   </head>
@@ -16,11 +16,11 @@ export const prerender = true;
       <div>
         <div class="flex items-center gap-2 mb-1">
           <span class="text-xs font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 tracking-wide uppercase">Admin Tool</span>
-          <span class="text-xs text-slate-400">パターンA: 静的設定管理</span>
+          <span class="text-xs text-slate-400">広告枠拡張 ＆ サイズ変更対応</span>
         </div>
         <h1 class="text-2xl font-black text-slate-800 tracking-tight">広告・プロモーション枠 設定ジェネレーター</h1>
         <p class="text-sm text-slate-500 mt-1">
-          広告バナーの登録・配置設定をブラウザ上でプレビューしながら編集し、設定コード（TypeScript）を生成します。
+          広告枠の追加、バナーサイズの変更（300×250レクタングル等）、A8タグ解析を行い、設定コード（TypeScript）を生成します。
         </p>
       </div>
 
@@ -45,30 +45,19 @@ export const prerender = true;
               <span>👀</span>
               <span>掲載枠ライブプレビュー</span>
             </h2>
-            <span class="text-[11px] text-slate-400">実機レイアウト再現</span>
+            <div id="preview-size-badge" class="text-[11px] font-mono bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded border border-indigo-200">
+              320×60
+            </div>
           </div>
 
-          <!-- スロット切り替えタブ -->
-          <div class="flex gap-2 mb-4 p-1 bg-slate-100 rounded-xl" id="preview-slot-tabs">
-            <button
-              type="button"
-              data-preview-slot="itinerary_bottom"
-              class="slot-tab-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold text-indigo-700 bg-white shadow-xs transition-all cursor-pointer"
-            >
-              ✈️ 行程表下枠
-            </button>
-            <button
-              type="button"
-              data-preview-slot="footer_top"
-              class="slot-tab-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all cursor-pointer"
-            >
-              🧳 フッター直上枠
-            </button>
+          <!-- スロット切り替えタブ（JSで動的生成） -->
+          <div class="flex flex-wrap gap-1.5 mb-4 p-1 bg-slate-100 rounded-xl" id="preview-slot-tabs">
+            <!-- JSで各枠のタブボタンが生成されます -->
           </div>
 
           <!-- プレビュー枠表示コンテナ -->
-          <div class="bg-white/60 border border-slate-200/80 rounded-2xl p-4 sm:p-6 relative overflow-hidden">
-            <div id="preview-container">
+          <div class="bg-white/60 border border-slate-200/80 rounded-2xl p-4 sm:p-6 relative overflow-hidden flex items-center justify-center min-h-[140px]">
+            <div id="preview-container" class="w-full">
               <!-- JSによってプレビュー要素がここに動的生成されます -->
             </div>
           </div>
@@ -103,8 +92,120 @@ export const prerender = true;
         </div>
       </div>
 
-      <!-- 右カラム: 広告アイテム管理・掲載枠アサイン -->
+      <!-- 右カラム: 広告アイテム管理・掲載枠設定・新規枠追加 -->
       <div class="lg:col-span-6 space-y-6">
+        <!-- 掲載枠の配置・サイズ設定＆新規作成 -->
+        <div class="clay-card p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <span>📌</span>
+              <span>掲載枠の設定 ＆ サイズ変更</span>
+            </h2>
+            <button
+              id="open-new-placement-modal-btn"
+              type="button"
+              class="clay-btn text-xs font-bold px-3 py-1.5 rounded-xl text-indigo-600 hover:text-indigo-800 transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <span>＋ 掲載枠を新規作成</span>
+            </button>
+          </div>
+          <p class="text-xs text-slate-500 mb-4">
+            各枠の表示ON/OFF、バナーサイズ（320×60、300×250等）、表示する広告を設定します。
+          </p>
+
+          <!-- 新規掲載枠作成フォーム（トグル表示） -->
+          <div id="new-placement-form-container" class="hidden mb-5 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-200/80 transition-all">
+            <h3 class="text-xs font-bold text-indigo-900 mb-2 flex items-center gap-1.5">
+              <span>✨</span>
+              <span>新しい掲載枠を作成</span>
+            </h3>
+            <div class="space-y-3">
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="new-placement-id">スロットID (半角英数) *</label>
+                  <input
+                    id="new-placement-id"
+                    type="text"
+                    placeholder="例: sidebar_top"
+                    class="clay-input w-full px-3 py-1.5 text-xs font-mono outline-none"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="new-placement-name">枠の表示名称 *</label>
+                  <input
+                    id="new-placement-name"
+                    type="text"
+                    placeholder="例: サイドバー上部枠"
+                    class="clay-input w-full px-3 py-1.5 text-xs outline-none"
+                  />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-3 gap-3">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="new-placement-icon">アイコン</label>
+                  <input
+                    id="new-placement-icon"
+                    type="text"
+                    value="💡"
+                    class="clay-input w-full px-3 py-1.5 text-xs outline-none"
+                  />
+                </div>
+                <div class="col-span-2">
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="new-placement-label">PR見出しラベル</label>
+                  <input
+                    id="new-placement-label"
+                    type="text"
+                    placeholder="例: おすすめプラン"
+                    class="clay-input w-full px-3 py-1.5 text-xs outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="new-placement-desc">説明（管理用）</label>
+                <input
+                  id="new-placement-desc"
+                  type="text"
+                  placeholder="例: サイドバーの最上部に表示される枠"
+                  class="clay-input w-full px-3 py-1.5 text-xs outline-none"
+                />
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="new-placement-size">初期サイズ</label>
+                <select id="new-placement-size" class="clay-input w-full px-3 py-1.5 text-xs outline-none bg-transparent">
+                  <option value="compact">コンパクト (320×60)</option>
+                  <option value="medium">モバイルラージ (320×100)</option>
+                  <option value="rectangle">レクタングル (300×250)</option>
+                  <option value="leaderboard">リーダーボード (728×90)</option>
+                </select>
+              </div>
+
+              <div class="flex justify-end gap-2 pt-1">
+                <button
+                  id="cancel-new-placement-btn"
+                  type="button"
+                  class="px-3 py-1.5 text-xs text-slate-500 hover:text-slate-700 cursor-pointer"
+                >
+                  キャンセル
+                </button>
+                <button
+                  id="create-placement-btn"
+                  type="button"
+                  class="clay-btn px-4 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl cursor-pointer"
+                >
+                  ＋ 枠を作成
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="placements-config-container" class="space-y-4">
+            <!-- JSで掲載枠設定が挿入されます -->
+          </div>
+        </div>
+
         <!-- A8タグ自動解析＆新規追加 -->
         <div class="clay-card p-5 sm:p-6">
           <div class="flex items-center justify-between mb-2">
@@ -268,23 +369,6 @@ export const prerender = true;
             <!-- JSでアイテムカードが挿入されます -->
           </div>
         </div>
-
-        <!-- 掲載枠の配置・割り当て設定 -->
-        <div class="clay-card p-5 sm:p-6">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-              <span>📌</span>
-              <span>掲載枠の設定と広告割り当て</span>
-            </h2>
-          </div>
-          <p class="text-xs text-slate-500 mb-4">
-            各掲載枠の表示/非表示（有効化）と、どの広告を何個スライド表示するかを設定します。
-          </p>
-
-          <div id="placements-config-container" class="space-y-4">
-            <!-- JSで掲載枠設定が挿入されます -->
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -299,24 +383,36 @@ export const prerender = true;
   </div>
 
   <!-- 初期データを安全に渡す -->
-  <script define:vars={{ initialConfig: adsConfig }}>
+  <script define:vars={{ initialConfig: adsConfig, sizePresets: AD_SIZE_PRESETS }}>
     window.__INITIAL_ADS_CONFIG__ = initialConfig;
+    window.__SIZE_PRESETS__ = sizePresets;
   </script>
 
   <script>
-    import type { AdsConfiguration, AdItem, AdPlacementId } from '../../config/ads';
+    import type { AdsConfiguration, AdItem, AdPlacementConfig, AdSlotSize } from '../../config/ads';
 
     // @ts-ignore
     const defaultData: AdsConfiguration = window.__INITIAL_ADS_CONFIG__;
-    const STORAGE_KEY = 'tabiori_ads_admin_config_v1';
+    // @ts-ignore
+    const sizePresetsData: Record<AdSlotSize, { label: string; width: number; height: number }> = window.__SIZE_PRESETS__;
+    const STORAGE_KEY = 'tabiroam_ads_admin_config_v2';
+    const LEGACY_STORAGE_KEY = 'tabiori_ads_admin_config_v2';
 
     // ローカルストレージまたは初期データから設定をロード
     let currentConfig: AdsConfiguration = (() => {
       try {
-        const saved = localStorage.getItem(STORAGE_KEY);
+        const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (parsed.items && parsed.placements) return parsed;
+          if (parsed.items && parsed.placements) {
+            // 旧設定からのマイグレーション
+            Object.values(parsed.placements).forEach((p: any) => {
+              if (!p.sizePreset) p.sizePreset = 'compact';
+              if (!p.maxWidth) p.maxWidth = 320;
+              if (!p.maxHeight) p.maxHeight = 60;
+            });
+            return parsed;
+          }
         }
       } catch (e) {
         console.warn('Failed to parse saved config:', e);
@@ -324,7 +420,7 @@ export const prerender = true;
       return JSON.parse(JSON.stringify(defaultData));
     })();
 
-    let activePreviewSlot: AdPlacementId = 'itinerary_bottom';
+    let activePreviewSlot: string = 'itinerary_bottom';
     let previewTimerId: ReturnType<typeof setInterval> | null = null;
     let previewCurrentIndex = 0;
 
@@ -351,6 +447,7 @@ export const prerender = true;
       } catch (e) {
         console.error('Failed to save to localStorage:', e);
       }
+      renderSlotTabs();
       renderItemsList();
       renderPlacementsConfig();
       renderPreview();
@@ -390,6 +487,35 @@ export const prerender = true;
         alt: bannerImg ? bannerImg.getAttribute('alt') || '' : '',
         trackingPixelUrl: trackingImg && trackingImg !== bannerImg ? trackingImg.getAttribute('src') || '' : '',
       };
+    }
+
+    // プレビュータブのレンダリング
+    function renderSlotTabs() {
+      const tabsContainer = document.getElementById('preview-slot-tabs');
+      if (!tabsContainer) return;
+
+      const placementKeys = Object.keys(currentConfig.placements);
+      if (!placementKeys.includes(activePreviewSlot) && placementKeys.length > 0) {
+        activePreviewSlot = placementKeys[0];
+      }
+
+      tabsContainer.innerHTML = placementKeys
+        .map((key) => {
+          const p = currentConfig.placements[key];
+          const isActive = key === activePreviewSlot;
+          return `
+            <button
+              type="button"
+              data-preview-slot="${key}"
+              class="slot-tab-btn py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                isActive ? 'text-indigo-700 bg-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }"
+            >
+              ${p.icon} ${p.name}
+            </button>
+          `;
+        })
+        .join('');
     }
 
     // 登録済み広告一覧の描画
@@ -476,7 +602,7 @@ export const prerender = true;
       const container = document.getElementById('placements-config-container');
       if (!container) return;
 
-      const placementKeys: AdPlacementId[] = ['itinerary_bottom', 'footer_top'];
+      const placementKeys = Object.keys(currentConfig.placements);
 
       container.innerHTML = placementKeys
         .map((key) => {
@@ -484,6 +610,7 @@ export const prerender = true;
           if (!placement) return '';
 
           const isSelectedTab = activePreviewSlot === key;
+          const isStandardSlot = ['itinerary_bottom', 'footer_top', 'lp_hero_bottom'].includes(key);
 
           return `
             <div class="p-4 rounded-2xl border ${isSelectedTab ? 'border-indigo-300 bg-indigo-50/20' : 'border-slate-200/80 bg-white/70'}">
@@ -493,23 +620,95 @@ export const prerender = true;
                   <span class="text-xs font-bold text-slate-800">${placement.name}</span>
                   <code class="text-[10px] font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-500">${placement.id}</code>
                 </div>
-                <label class="flex items-center gap-1.5 text-xs font-bold cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    data-action="toggle-placement-enabled"
-                    data-placement-id="${placement.id}"
-                    ${placement.enabled ? 'checked' : ''}
-                    class="rounded text-indigo-600 focus:ring-indigo-400 w-4 h-4"
-                  />
-                  <span class="${placement.enabled ? 'text-indigo-600' : 'text-slate-400'}">
-                    ${placement.enabled ? '掲載中 (ON)' : '非表示 (OFF)'}
-                  </span>
-                </label>
+                <div class="flex items-center gap-3">
+                  <label class="flex items-center gap-1.5 text-xs font-bold cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      data-action="toggle-placement-enabled"
+                      data-placement-id="${placement.id}"
+                      ${placement.enabled ? 'checked' : ''}
+                      class="rounded text-indigo-600 focus:ring-indigo-400 w-4 h-4"
+                    />
+                    <span class="${placement.enabled ? 'text-indigo-600' : 'text-slate-400'}">
+                      ${placement.enabled ? '掲載中 (ON)' : '非表示 (OFF)'}
+                    </span>
+                  </label>
+                  ${
+                    !isStandardSlot
+                      ? `
+                    <button
+                      type="button"
+                      data-action="delete-placement"
+                      data-placement-id="${placement.id}"
+                      class="text-slate-400 hover:text-rose-600 transition-colors p-1"
+                      title="この掲載枠を削除"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                  `
+                      : ''
+                  }
+                </div>
               </div>
 
               <p class="text-[11px] text-slate-500 mb-3">${placement.description}</p>
 
-              <div class="bg-slate-50/80 rounded-xl p-2.5 border border-slate-200/50">
+              <!-- サイズ設定エリア -->
+              <div class="mb-3 p-2.5 rounded-xl bg-slate-50/80 border border-slate-200/50">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div class="text-[11px] font-semibold text-slate-700 flex items-center gap-1">
+                    <span>📐</span>
+                    <span>表示サイズ:</span>
+                  </div>
+                  <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <select
+                      data-action="change-placement-size-preset"
+                      data-placement-id="${placement.id}"
+                      class="clay-input text-xs px-2.5 py-1 rounded-lg outline-none bg-white text-slate-700 flex-1 sm:flex-initial"
+                    >
+                      <option value="compact" ${placement.sizePreset === 'compact' ? 'selected' : ''}>コンパクト (320×60)</option>
+                      <option value="medium" ${placement.sizePreset === 'medium' ? 'selected' : ''}>モバイルラージ (320×100)</option>
+                      <option value="rectangle" ${placement.sizePreset === 'rectangle' ? 'selected' : ''}>レクタングル (300×250)</option>
+                      <option value="leaderboard" ${placement.sizePreset === 'leaderboard' ? 'selected' : ''}>リーダーボード (728×90)</option>
+                      <option value="custom" ${placement.sizePreset === 'custom' ? 'selected' : ''}>カスタム指定</option>
+                    </select>
+
+                    ${
+                      placement.sizePreset === 'custom'
+                        ? `
+                      <div class="flex items-center gap-1 text-[11px] font-mono text-slate-600">
+                        <input
+                          type="number"
+                          data-action="change-custom-width"
+                          data-placement-id="${placement.id}"
+                          value="${placement.maxWidth}"
+                          class="clay-input w-14 px-1.5 py-1 text-center rounded outline-none"
+                          placeholder="幅"
+                        />
+                        <span>×</span>
+                        <input
+                          type="number"
+                          data-action="change-custom-height"
+                          data-placement-id="${placement.id}"
+                          value="${placement.maxHeight}"
+                          class="clay-input w-14 px-1.5 py-1 text-center rounded outline-none"
+                          placeholder="高さ"
+                        />
+                        <span>px</span>
+                      </div>
+                    `
+                        : `
+                      <span class="text-[11px] font-mono text-slate-400 shrink-0">
+                        (${placement.maxWidth}×${placement.maxHeight}px)
+                      </span>
+                    `
+                    }
+                  </div>
+                </div>
+              </div>
+
+              <!-- 広告割り当て選択 -->
+              <div class="bg-slate-50/80 rounded-xl p-2.5 border border-slate-200/50 mb-3">
                 <div class="text-[11px] font-semibold text-slate-700 mb-2">表示する広告の選択:</div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   ${currentConfig.items
@@ -534,6 +733,20 @@ export const prerender = true;
                     .join('')}
                 </div>
               </div>
+
+              <!-- Astroコード貼り付け用スニペットボタン -->
+              <div class="flex items-center justify-between pt-1">
+                <span class="text-[10px] text-slate-400">埋め込み用タグ:</span>
+                <button
+                  type="button"
+                  data-action="copy-tag-snippet"
+                  data-slot-id="${placement.id}"
+                  class="text-[11px] text-indigo-600 hover:text-indigo-800 font-mono flex items-center gap-1 cursor-pointer"
+                >
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                  <span>&lt;TravelBookingAd slotId="${placement.id}" /&gt; をコピー</span>
+                </button>
+              </div>
             </div>
           `;
         })
@@ -543,6 +756,7 @@ export const prerender = true;
     // プレビューの描画とアニメーションセットアップ
     function renderPreview() {
       const container = document.getElementById('preview-container');
+      const sizeBadge = document.getElementById('preview-size-badge');
       if (!container) return;
 
       if (previewTimerId) {
@@ -551,10 +765,19 @@ export const prerender = true;
       }
 
       const placement = currentConfig.placements[activePreviewSlot];
-      if (!placement || !placement.enabled) {
+      if (!placement) {
+        container.innerHTML = `<div class="text-center py-8 text-xs text-slate-400">掲載枠が選択されていません。</div>`;
+        return;
+      }
+
+      if (sizeBadge) {
+        sizeBadge.textContent = `${placement.maxWidth}×${placement.maxHeight} px`;
+      }
+
+      if (!placement.enabled) {
         container.innerHTML = `
           <div class="text-center py-8 text-xs text-slate-400">
-            この枠は現在「非表示（OFF）」に設定されています。
+            この枠「${placement.name}」は現在「非表示（OFF）」に設定されています。
           </div>
         `;
         return;
@@ -575,15 +798,20 @@ export const prerender = true;
       }
 
       const hasMultiple = activeAds.length > 1;
+      const maxWidth = placement.maxWidth || 320;
+      const maxHeight = placement.maxHeight || 60;
 
       container.innerHTML = `
         <aside class="w-full max-w-5xl mx-auto pt-2 pb-0 border-t border-slate-200/80 select-none">
-          <div class="flex items-center justify-between gap-2 mb-2 px-1 text-slate-400 text-[11px] font-medium">
-            <div class="flex items-center gap-1.5">
-              <span aria-hidden="true" class="text-xs">${placement.icon}</span>
-              <span>${placement.label}</span>
+          <div
+            class="flex items-center justify-between gap-2 mb-2 px-1 text-slate-400 text-[11px] font-medium mx-auto"
+            style="max-width: ${maxWidth + (hasMultiple ? 80 : 0)}px;"
+          >
+            <div class="flex items-center gap-1.5 truncate">
+              <span aria-hidden="true" class="text-xs shrink-0">${placement.icon}</span>
+              <span class="truncate">${placement.label}</span>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 shrink-0">
               ${
                 hasMultiple
                   ? `
@@ -607,7 +835,7 @@ export const prerender = true;
             </div>
           </div>
 
-          <div class="flex items-center justify-center gap-1 sm:gap-2.5 w-full">
+          <div class="flex items-center justify-center gap-1.5 sm:gap-3 w-full">
             ${
               hasMultiple
                 ? `
@@ -622,7 +850,11 @@ export const prerender = true;
                 : '<div class="w-7 sm:w-8 shrink-0"></div>'
             }
 
-            <div id="sim-rotator" class="relative w-full max-w-[320px] h-[60px] overflow-hidden rounded bg-transparent shrink">
+            <div
+              id="sim-rotator"
+              class="relative w-full overflow-hidden rounded bg-transparent shrink flex items-center justify-center"
+              style="max-width: ${maxWidth}px; height: ${maxHeight}px;"
+            >
               ${activeAds
                 .map(
                   (ad, idx) => `
@@ -630,8 +862,8 @@ export const prerender = true;
                   class="sim-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 ${idx === 0 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'}"
                   data-sim-index="${idx}"
                 >
-                  <a href="${ad.linkUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center transition-opacity hover:opacity-80">
-                    <img src="${ad.imageUrl}" alt="${ad.alt}" width="${ad.width}" height="${ad.height}" class="rounded max-w-full h-auto block" />
+                  <a href="${ad.linkUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center max-w-full max-h-full transition-opacity hover:opacity-80">
+                    <img src="${ad.imageUrl}" alt="${ad.alt}" width="${ad.width}" height="${ad.height}" class="rounded max-w-full max-h-full object-contain block" />
                   </a>
                 </div>
               `
@@ -647,7 +879,8 @@ export const prerender = true;
                 id="sim-next-btn"
                 class="shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200/80 active:scale-95 text-slate-500 hover:text-slate-800 transition-all border border-slate-200/60 shadow-xs cursor-pointer focus:outline-none"
               >
-                <svg class="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 18 6-6-6-6"/></svg>
+                <svg class="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 18 6-6-6-6"/>
+                </svg>
               </button>
             `
                 : '<div class="w-7 sm:w-8 shrink-0"></div>'
@@ -658,7 +891,6 @@ export const prerender = true;
 
       if (!hasMultiple) return;
 
-      // プレビュー内のカルーセルスクリプト
       previewCurrentIndex = 0;
       const slides = container.querySelectorAll<HTMLElement>('.sim-slide');
       const dots = container.querySelectorAll<HTMLElement>('[data-sim-dot]');
@@ -762,21 +994,34 @@ export interface AdItem {
   active: boolean;
 }
 
-export type AdPlacementId = 'itinerary_bottom' | 'footer_top';
+export type AdSlotSize = 'compact' | 'medium' | 'rectangle' | 'leaderboard' | 'custom';
+
+export const AD_SIZE_PRESETS: Record<AdSlotSize, { label: string; width: number; height: number }> = {
+  compact: { label: 'コンパクト (320×60)', width: 320, height: 60 },
+  medium: { label: 'モバイルラージ (320×100)', width: 320, height: 100 },
+  rectangle: { label: 'レクタングル (300×250)', width: 300, height: 250 },
+  leaderboard: { label: 'リーダーボード (728×90)', width: 728, height: 90 },
+  custom: { label: 'カスタム', width: 320, height: 60 },
+};
+
+export type AdPlacementId = 'itinerary_bottom' | 'footer_top' | 'lp_hero_bottom' | (string & {});
 
 export interface AdPlacementConfig {
-  id: AdPlacementId;
+  id: string;
   name: string;
   description: string;
   enabled: boolean;
   label: string;
   icon: string;
+  sizePreset: AdSlotSize;
+  maxWidth: number;
+  maxHeight: number;
   adIds: string[];
 }
 
 export interface AdsConfiguration {
   items: AdItem[];
-  placements: Record<AdPlacementId, AdPlacementConfig>;
+  placements: Record<string, AdPlacementConfig>;
 }
 
 export const adsConfig: AdsConfiguration = ${JSON.stringify(currentConfig, null, 2)};
@@ -784,7 +1029,7 @@ export const adsConfig: AdsConfiguration = ${JSON.stringify(currentConfig, null,
 /**
  * 指定した掲載枠に表示すべき有効な広告アイテムのリストを取得します。
  */
-export function getAdsForPlacement(placementId: AdPlacementId): {
+export function getAdsForPlacement(placementId: string): {
   placement: AdPlacementConfig | null;
   ads: AdItem[];
 } {
@@ -805,8 +1050,8 @@ export function getAdsForPlacement(placementId: AdPlacementId): {
       codeContainer.textContent = codeString;
     }
 
-    // フォームのリセット・編集モード切替
-    function resetForm() {
+    // フォームのリセット
+    function resetItemForm() {
       const idInput = document.getElementById('item-id-input') as HTMLInputElement;
       const nameInput = document.getElementById('item-name-input') as HTMLInputElement;
       const catInput = document.getElementById('item-category-input') as HTMLSelectElement;
@@ -839,28 +1084,19 @@ export function getAdsForPlacement(placementId: AdPlacementId): {
 
     // イベントリスナーの登録
     function setupEventListeners() {
-      // タブ切り替え
-      document.querySelectorAll<HTMLButtonElement>('[data-preview-slot]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const slot = btn.dataset.previewSlot as AdPlacementId;
+      // プレビュータブ切り替え
+      document.getElementById('preview-slot-tabs')?.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-preview-slot]');
+        if (!btn) return;
+        const slot = btn.dataset.previewSlot;
+        if (slot) {
           activePreviewSlot = slot;
-
-          document.querySelectorAll<HTMLButtonElement>('[data-preview-slot]').forEach((b) => {
-            const isActive = b === btn;
-            b.classList.toggle('bg-white', isActive);
-            b.classList.toggle('text-indigo-700', isActive);
-            b.classList.toggle('shadow-xs', isActive);
-            b.classList.toggle('text-slate-600', !isActive);
-          });
-
-          renderPreview();
-          renderPlacementsConfig();
-        });
+          saveAndRefresh();
+        }
       });
 
       // A8タグ解析ボタン
-      const parseBtn = document.getElementById('parse-tag-btn');
-      parseBtn?.addEventListener('click', () => {
+      document.getElementById('parse-tag-btn')?.addEventListener('click', () => {
         const rawInput = document.getElementById('raw-tag-input') as HTMLTextAreaElement;
         const text = rawInput?.value.trim() || '';
         if (!text) {
@@ -892,8 +1128,7 @@ export function getAdsForPlacement(placementId: AdPlacementId): {
       });
 
       // 広告アイテムの保存
-      const saveBtn = document.getElementById('save-item-btn');
-      saveBtn?.addEventListener('click', () => {
+      document.getElementById('save-item-btn')?.addEventListener('click', () => {
         const idInput = document.getElementById('item-id-input') as HTMLInputElement;
         const nameInput = document.getElementById('item-name-input') as HTMLInputElement;
         const catInput = document.getElementById('item-category-input') as HTMLSelectElement;
@@ -915,7 +1150,6 @@ export function getAdsForPlacement(placementId: AdPlacementId): {
 
         const editingId = idInput.value;
         if (editingId) {
-          // 既存更新
           const existing = currentConfig.items.find((i) => i.id === editingId);
           if (existing) {
             existing.name = name;
@@ -929,7 +1163,6 @@ export function getAdsForPlacement(placementId: AdPlacementId): {
           }
           showToast('広告アイテムを更新しました！');
         } else {
-          // 新規追加
           const newId = `ad-${Date.now()}`;
           const newItem: AdItem = {
             id: newId,
@@ -945,22 +1178,21 @@ export function getAdsForPlacement(placementId: AdPlacementId): {
           };
           currentConfig.items.push(newItem);
 
-          // 自動的に行程表下枠に追加
-          if (currentConfig.placements.itinerary_bottom) {
-            currentConfig.placements.itinerary_bottom.adIds.push(newId);
+          // 現在選択中の掲載枠に自動追加
+          if (currentConfig.placements[activePreviewSlot]) {
+            currentConfig.placements[activePreviewSlot].adIds.push(newId);
           }
 
           showToast('新規広告アイテムを追加しました！');
         }
 
-        resetForm();
+        resetItemForm();
         saveAndRefresh();
       });
 
-      // 編集キャンセル
-      document.getElementById('cancel-edit-btn')?.addEventListener('click', resetForm);
+      document.getElementById('cancel-edit-btn')?.addEventListener('click', resetItemForm);
 
-      // 一覧内の操作（編集、削除、トグル）
+      // 一覧内の操作
       document.getElementById('items-list-container')?.addEventListener('click', (e) => {
         const target = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
         if (!target) return;
@@ -1009,23 +1241,37 @@ export function getAdsForPlacement(placementId: AdPlacementId): {
         }
       });
 
-      // 掲載枠の操作
+      // 掲載枠のサイズ変更・割り当て操作
       document.getElementById('placements-config-container')?.addEventListener('change', (e) => {
         const target = e.target as HTMLInputElement;
         const action = target.dataset.action;
+        const pId = target.dataset.placementId;
+        if (!pId || !currentConfig.placements[pId]) return;
+
+        const placement = currentConfig.placements[pId];
 
         if (action === 'toggle-placement-enabled') {
-          const pId = target.dataset.placementId as AdPlacementId;
-          if (currentConfig.placements[pId]) {
-            currentConfig.placements[pId].enabled = target.checked;
-            saveAndRefresh();
-            showToast(`${currentConfig.placements[pId].name} を ${target.checked ? '掲載中' : '非表示'} にしました`);
+          placement.enabled = target.checked;
+          saveAndRefresh();
+          showToast(`${placement.name} を ${target.checked ? '掲載中' : '非表示'} にしました`);
+        } else if (action === 'change-placement-size-preset') {
+          const preset = target.value as AdSlotSize;
+          placement.sizePreset = preset;
+          if (preset !== 'custom' && sizePresetsData[preset]) {
+            placement.maxWidth = sizePresetsData[preset].width;
+            placement.maxHeight = sizePresetsData[preset].height;
           }
+          saveAndRefresh();
+          showToast(`${placement.name} のサイズを ${preset} に変更しました`);
+        } else if (action === 'change-custom-width') {
+          placement.maxWidth = parseInt(target.value, 10) || 320;
+          saveAndRefresh();
+        } else if (action === 'change-custom-height') {
+          placement.maxHeight = parseInt(target.value, 10) || 60;
+          saveAndRefresh();
         } else if (action === 'toggle-placement-ad') {
-          const pId = target.dataset.placementId as AdPlacementId;
           const adId = target.dataset.adId;
-          if (pId && adId && currentConfig.placements[pId]) {
-            const placement = currentConfig.placements[pId];
+          if (adId) {
             if (target.checked) {
               if (!placement.adIds.includes(adId)) placement.adIds.push(adId);
             } else {
@@ -1034,6 +1280,110 @@ export function getAdsForPlacement(placementId: AdPlacementId): {
             saveAndRefresh();
           }
         }
+      });
+
+      // 枠削除・スニペットコピー
+      document.getElementById('placements-config-container')?.addEventListener('click', async (e) => {
+        const target = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        if (action === 'delete-placement') {
+          const pId = target.dataset.placementId;
+          if (!pId) return;
+          if (!confirm(`掲載枠「${currentConfig.placements[pId]?.name}」を削除しますか？`)) return;
+
+          delete currentConfig.placements[pId];
+          if (activePreviewSlot === pId) {
+            activePreviewSlot = Object.keys(currentConfig.placements)[0] || '';
+          }
+          saveAndRefresh();
+          showToast('掲載枠を削除しました');
+        } else if (action === 'copy-tag-snippet') {
+          const slotId = target.dataset.slotId;
+          if (!slotId) return;
+          const snippet = `<TravelBookingAd slotId="${slotId}" />`;
+          try {
+            await navigator.clipboard.writeText(snippet);
+            showToast(`タグ ${snippet} をコピーしました！`);
+          } catch (err) {
+            prompt('以下のタグをコピーして配置してください:', snippet);
+          }
+        }
+      });
+
+      // 新規掲載枠作成フォームの開閉
+      const openModalBtn = document.getElementById('open-new-placement-modal-btn');
+      const formContainer = document.getElementById('new-placement-form-container');
+      const cancelNewBtn = document.getElementById('cancel-new-placement-btn');
+      const createPlacementBtn = document.getElementById('create-placement-btn');
+
+      openModalBtn?.addEventListener('click', () => {
+        formContainer?.classList.toggle('hidden');
+        if (!formContainer?.classList.contains('hidden')) {
+          (document.getElementById('new-placement-id') as HTMLInputElement)?.focus();
+        }
+      });
+
+      cancelNewBtn?.addEventListener('click', () => {
+        formContainer?.classList.add('hidden');
+      });
+
+      createPlacementBtn?.addEventListener('click', () => {
+        const idInput = document.getElementById('new-placement-id') as HTMLInputElement;
+        const nameInput = document.getElementById('new-placement-name') as HTMLInputElement;
+        const iconInput = document.getElementById('new-placement-icon') as HTMLInputElement;
+        const labelInput = document.getElementById('new-placement-label') as HTMLInputElement;
+        const descInput = document.getElementById('new-placement-desc') as HTMLInputElement;
+        const sizeInput = document.getElementById('new-placement-size') as HTMLSelectElement;
+
+        const id = idInput?.value.trim();
+        const name = nameInput?.value.trim();
+
+        if (!id || !name) {
+          alert('スロットIDと表示名称は必須です。');
+          return;
+        }
+
+        // 半角英数字とアンダースコアのみ
+        if (!/^[a-zA-Z0-9_]+$/.test(id)) {
+          alert('スロットIDは半角英数字とアンダースコア（_）のみ使用できます。');
+          return;
+        }
+
+        if (currentConfig.placements[id]) {
+          alert('このスロットIDは既に存在します。別のIDを指定してください。');
+          return;
+        }
+
+        const sizePreset = (sizeInput?.value || 'compact') as AdSlotSize;
+        const presetInfo = sizePresetsData[sizePreset] || { width: 320, height: 60 };
+
+        const newPlacement: AdPlacementConfig = {
+          id,
+          name,
+          description: descInput?.value.trim() || 'カスタム掲載枠',
+          enabled: true,
+          label: labelInput?.value.trim() || name,
+          icon: iconInput?.value.trim() || '📌',
+          sizePreset,
+          maxWidth: presetInfo.width,
+          maxHeight: presetInfo.height,
+          adIds: currentConfig.items.map((i) => i.id), // 初期は全広告を選択
+        };
+
+        currentConfig.placements[id] = newPlacement;
+        activePreviewSlot = id;
+
+        // フォームリセット
+        idInput.value = '';
+        nameInput.value = '';
+        if (labelInput) labelInput.value = '';
+        if (descInput) descInput.value = '';
+        formContainer?.classList.add('hidden');
+
+        saveAndRefresh();
+        showToast(`新しい掲載枠「${name}」を作成しました！`);
       });
 
       // コードコピー
@@ -1045,7 +1395,6 @@ export function getAdsForPlacement(placementId: AdPlacementId): {
           await navigator.clipboard.writeText(codeElem.textContent);
           showToast('設定コードをクリップボードにコピーしました！');
         } catch (err) {
-          console.error('Failed to copy:', err);
           showToast('コピーに失敗しました。手動で選択してコピーしてください。');
         }
       });
@@ -1055,7 +1404,7 @@ export function getAdsForPlacement(placementId: AdPlacementId): {
         if (!confirm('初期状態に戻しますか？保存されていない変更は破棄されます。')) return;
         localStorage.removeItem(STORAGE_KEY);
         currentConfig = JSON.parse(JSON.stringify(defaultData));
-        resetForm();
+        resetItemForm();
         saveAndRefresh();
         showToast('初期設定にリセットしました');
       });

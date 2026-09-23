@@ -1,8 +1,8 @@
 {
-  "name": "tabi-ori",
+  "name": "tabirome",
   "type": "module",
   "version": "1.0.0",
-  "description": "たびおり - 予定を縦糸に、想い出を横糸に。旅を織る。",
+  "description": "たびろーむ - 道草を楽しむ、気ままな旅へ。旅程作成アプリ",
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
@@ -11,8 +11,8 @@
     "check:specs": "node ./scripts/verify-specs.mjs",
     "check": "node ./scripts/verify-specs.mjs && tsc --noEmit",
     "astro": "astro",
-    "d1:apply:local": "wrangler d1 execute tabiori-db --local --file=./db/schema.sql",
-    "d1:apply:remote": "wrangler d1 execute tabiori-db --remote --file=./db/schema.sql"
+    "d1:apply:local": "wrangler d1 execute tabirome-db --local --file=./db/schema.sql",
+    "d1:apply:remote": "wrangler d1 execute tabirome-db --remote --file=./db/schema.sql"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^11.2.0",

@@ -10,5 +10,6 @@ binding = "ASSETS"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "tabiori-db"
+database_name = "tabirome-db"
+# 新規作成した D1 DB の database_id を設定してください (例: npx wrangler d1 create tabirome-db で取得)
 database_id = "1d39c9b7-1121-4670-a423-5cc25f1ee4aa"
