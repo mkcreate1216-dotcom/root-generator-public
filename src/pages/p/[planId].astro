@@ -5,6 +5,7 @@ import TripCombobox from '../../components/TripCombobox.astro';
 import SpotAddForm from '../../components/SpotAddForm.astro';
 import DayTabs from '../../components/DayTabs.astro';
 import Tooltip from '../../components/Tooltip.astro';
+import TravelBookingAd from '../../components/TravelBookingAd.astro';
 
 export const prerender = false;
 
@@ -77,7 +78,10 @@ const pageTitle = `${initialPlanData.title} - たびおり`;
 
       <!-- 日程セクション -->
       <section id="itinerary-section" class="hidden w-full p-4 pt-2 sm:p-6 sm:pt-2">
-        <div id="timeline" class="space-y-0 pb-12 pr-[3.75rem] sm:pr-0"></div>
+        <div id="timeline" class="space-y-0 pb-4 pr-[3.75rem] sm:pr-0"></div>
+
+        <!-- 旅の準備（宿泊・レンタカー予約プロモーション） -->
+        <TravelBookingAd slotId="itinerary_bottom" />
 
         <div id="endpoint-section" class="hidden mt-6 clay-sunken p-3.5 sm:p-5">
           <div id="departure-field">

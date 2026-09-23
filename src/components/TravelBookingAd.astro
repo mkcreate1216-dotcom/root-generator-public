@@ -1,28 +1,41 @@
 ---
+import { getAdsForPlacement, type AdPlacementId } from '../config/ads';
+
 interface Props {
+  slotId?: AdPlacementId;
   class?: string;
 }
 
 const { class: className = '' } = Astro.props;
+const { slotId = 'itinerary_bottom', class: className = '' } = Astro.props;
+const { placement, ads } = getAdsForPlacement(slotId);
+
+// 掲載枠が無効または表示対象の広告がない場合はレンダリングしない
+if (!placement || ads.length === 0) {
+  return null;
+}
+
+const hasMultipleAds = ads.length > 1;
+const uniqueSlotKey = `ad-slot-${slotId}`;
 ---
 
 <aside
   id="travel-booking-ad"
+  id={uniqueSlotKey}
+  data-ad-slot-container
   class={`w-full max-w-5xl mx-auto mt-6 mb-1 pt-4 pb-0 border-t border-slate-200/80 select-none ${className}`}
   aria-label="プロモーション"
 >
   <!-- 控えめなPR表記 -->
-  <div class="flex items-center justify-between gap-2 mb-2.5 px-1 text-slate-400 text-[11px] font-medium">
   <div class="flex items-center justify-between gap-2 mb-2 px-1 text-slate-400 text-[11px] font-medium">
     <div class="flex items-center gap-1.5">
       <span aria-hidden="true" class="text-xs">✈️</span>
       <span id="ad-label">旅の準備（宿泊・レンタカー）</span>
+      <span aria-hidden="true" class="text-xs">{placement.icon}</span>
+      <span class="ad-label-text">{placement.label}</span>
     </div>
     <div class="flex items-center gap-2">
       <!-- ページネーション ドット -->
-      <div class="flex items-center gap-1" aria-hidden="true">
-        <span class="ad-dot w-1.5 h-1.5 rounded-full bg-slate-400 transition-colors"></span>
-        <span class="ad-dot w-1.5 h-1.5 rounded-full bg-slate-200 transition-colors"></span>
       <div class="flex items-center gap-1" aria-label="スライド切り替え">
         <button
           type="button"
@@ -37,17 +50,23 @@ const { class: className = '' } = Astro.props;
           data-dot-index="1"
         ></button>
       </div>
-      <span class="text-[10px] tracking-wider text-slate-400 font-semibold">PR</span>
+      <!-- ページネーション ドット（複数広告時のみ） -->
+      {hasMultipleAds && (
+        <div class="flex items-center gap-1" aria-label="スライド切り替え">
+          {ads.map((ad, index) => (
+            <button
+              type="button"
+              class={`ad-dot w-2 h-2 rounded-full transition-all p-0 border-0 cursor-pointer ${index === 0 ? 'bg-slate-400' : 'bg-slate-200'}`}
+              aria-label={`${index + 1}つ目の広告（${ad.name}）を表示`}
+              data-dot-index={index}
+            ></button>
+          ))}
+        </div>
+      )}
       <span class="text-[10px] tracking-wider text-slate-500 font-bold bg-slate-200/70 px-1.5 py-0.5 rounded">PR</span>
     </div>
   </div>
 
-  <!-- 1枠ローテーションバナー（最大320×60・中央揃えで比率の違いを吸収） -->
-  <div
-    id="ad-rotator"
-    class="relative w-full max-w-[320px] h-[60px] mx-auto overflow-hidden rounded bg-transparent"
-  >
-    <!-- スライド 1: 楽天トラベル（宿泊: 300×60） -->
   <!-- 広告表示エリア（左右に切り替えボタンを独立配置し誤タップを防止） -->
   <div class="flex items-center justify-center gap-1 sm:gap-2.5 w-full">
     <!-- 前へボタン（＜） -->
@@ -62,19 +81,28 @@ const { class: className = '' } = Astro.props;
         <path d="m15 18-6-6 6-6"/>
       </svg>
     </button>
+    <!-- 前へボタン（＜）（複数広告時のみ） -->
+    {hasMultipleAds ? (
+      <button
+        type="button"
+        class="ad-prev-btn shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200/80 active:scale-95 text-slate-500 hover:text-slate-800 transition-all border border-slate-200/60 shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+        aria-label="前のプロモーションを表示"
+        title="前のプロモーション"
+      >
+        <svg class="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m15 18-6-6 6-6"/>
+        </svg>
+      </button>
+    ) : (
+      <div class="w-7 sm:w-8 shrink-0 opacity-0 pointer-events-none" aria-hidden="true" />
+    )}
 
     <!-- 1枠ローテーションバナー（最大320×60・中央揃えで比率の違いを吸収） -->
     <div
-      class="ad-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 opacity-100 z-10"
-      data-index="0"
       id="ad-rotator"
       class="relative w-full max-w-[320px] h-[60px] overflow-hidden rounded bg-transparent shrink"
+      class="ad-rotator relative w-full max-w-[320px] h-[60px] overflow-hidden rounded bg-transparent shrink"
     >
-      <a
-        href="https://rpx.a8.net/svt/ejp?a8mat=4BCHZL+CEJ596+2HOM+6JZDD&rakuten=y&a8ejpredirect=http%3A%2F%2Fhb.afl.rakuten.co.jp%2Fhgc%2F0eb4779e.5d30c5ba.0eb4779f.b871e4e3%2Fa26092361755_4BCHZL_CEJ596_2HOM_6JZDD%3Fpc%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F%26m%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F"
-        rel="nofollow noopener noreferrer"
-        target="_blank"
-        class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
       <!-- スライド 1: 楽天トラベル（宿泊: 300×60） -->
       <div
         class="ad-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 opacity-100 z-10"
@@ -85,6 +113,12 @@ const { class: className = '' } = Astro.props;
           rel="nofollow noopener noreferrer"
           target="_blank"
           class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
+      {ads.map((ad, index) => (
+        <div
+          class={`ad-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 ${
+            index === 0 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'
+          }`}
+          data-index={index}
         >
           <img
             src="https://hbb.afl.rakuten.co.jp/hsb/0ea7f9c5.e8977d11.0ea7f99d.1ac92fca/153145/"
@@ -97,45 +131,55 @@ const { class: className = '' } = Astro.props;
           />
         </a>
         <img
-          src="https://hbb.afl.rakuten.co.jp/hsb/0ea7f9c5.e8977d11.0ea7f99d.1ac92fca/153145/"
           border="0"
-          width="300"
-          height="60"
-          alt="楽天トラベルでホテル・宿を探す"
-          loading="lazy"
-          class="rounded max-w-full h-auto block"
           width="1"
           height="1"
           src="https://www15.a8.net/0.gif?a8mat=4BCHZL+CEJ596+2HOM+6JZDD"
           alt=""
           class="inline"
         />
-      </a>
-      <img
-        border="0"
-        width="1"
-        height="1"
-        src="https://www15.a8.net/0.gif?a8mat=4BCHZL+CEJ596+2HOM+6JZDD"
-        alt=""
-        class="inline"
-      />
-    </div>
       </div>
+          <a
+            href={ad.linkUrl}
+            rel="nofollow noopener noreferrer"
+            target="_blank"
+            class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
+          >
+            <img
+              src={ad.imageUrl}
+              border="0"
+              width={ad.width}
+              height={ad.height}
+              alt={ad.alt}
+              loading="lazy"
+              class="rounded max-w-full h-auto block"
+            />
+          </a>
+          {ad.trackingPixelUrl && (
+            <img
+              border="0"
+              width="1"
+              height="1"
+              src={ad.trackingPixelUrl}
+              alt=""
+              class="inline"
+            />
+          )}
+        </div>
+      ))}
+    </div>
 
-    <!-- スライド 2: エアトリレンタカー（レンタカー: 320×50） -->
-    <div
-      class="ad-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 opacity-0 pointer-events-none z-0"
-      data-index="1"
-    >
-      <a
-        href="https://px.a8.net/svt/ejp?a8mat=4BCHZR+5U623E+AD2+2TA9FL"
-        rel="nofollow noopener noreferrer"
-        target="_blank"
-        class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
       <!-- スライド 2: エアトリレンタカー（レンタカー: 320×50） -->
       <div
         class="ad-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 opacity-0 pointer-events-none z-0"
         data-index="1"
+    <!-- 次へボタン（＞）（複数広告時のみ） -->
+    {hasMultipleAds ? (
+      <button
+        type="button"
+        class="ad-next-btn shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200/80 active:scale-95 text-slate-500 hover:text-slate-800 transition-all border border-slate-200/60 shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+        aria-label="次のプロモーションを表示"
+        title="次のプロモーション"
       >
         <a
           href="https://px.a8.net/svt/ejp?a8mat=4BCHZR+5U623E+AD2+2TA9FL"
@@ -154,28 +198,13 @@ const { class: className = '' } = Astro.props;
           />
         </a>
         <img
-          src="https://www20.a8.net/svt/bgt?aid=260923671353&wid=002&eno=01&mid=s00000001343017012000&mc=1"
           border="0"
-          width="320"
-          height="50"
-          alt="エアトリで全国のレンタカーを比較・予約する"
-          loading="lazy"
-          class="rounded max-w-full h-auto block"
           width="1"
           height="1"
           src="https://www19.a8.net/0.gif?a8mat=4BCHZR+5U623E+AD2+2TA9FL"
           alt=""
           class="inline"
         />
-      </a>
-      <img
-        border="0"
-        width="1"
-        height="1"
-        src="https://www19.a8.net/0.gif?a8mat=4BCHZR+5U623E+AD2+2TA9FL"
-        alt=""
-        class="inline"
-      />
       </div>
     </div>
 
@@ -191,6 +220,13 @@ const { class: className = '' } = Astro.props;
         <path d="m9 18 6-6-6-6"/>
       </svg>
     </button>
+        <svg class="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m9 18 6-6-6-6"/>
+        </svg>
+      </button>
+    ) : (
+      <div class="w-7 sm:w-8 shrink-0 opacity-0 pointer-events-none" aria-hidden="true" />
+    )}
   </div>
 </aside>
 
@@ -198,23 +234,33 @@ const { class: className = '' } = Astro.props;
   function setupAdRotator() {
     const rotator = document.getElementById('ad-rotator');
     if (!rotator) return;
+  function setupAllAdRotators() {
+    const containers = document.querySelectorAll<HTMLElement>('[data-ad-slot-container]');
 
     const slides = rotator.querySelectorAll<HTMLElement>('.ad-slide');
     const dots = document.querySelectorAll<HTMLElement>('.ad-dot');
-    if (slides.length <= 1) return;
     const prevBtn = document.getElementById('ad-prev-btn');
     const nextBtn = document.getElementById('ad-next-btn');
+    containers.forEach((container) => {
+      // 既に初期化済みの場合はスキップ
+      if (container.dataset.initialized === 'true') return;
+      container.dataset.initialized = 'true';
 
     if (slides.length <= 1) {
       if (prevBtn) prevBtn.style.display = 'none';
       if (nextBtn) nextBtn.style.display = 'none';
       return;
     }
+      const rotator = container.querySelector<HTMLElement>('.ad-rotator');
+      if (!rotator) return;
 
     let currentIndex = 0;
     let timerId: ReturnType<typeof setInterval> | null = null;
-    const intervalMs = 6000; // 6秒ごとに切り替え
     const intervalMs = 6000; // 6秒ごとに自動切り替え
+      const slides = rotator.querySelectorAll<HTMLElement>('.ad-slide');
+      const dots = container.querySelectorAll<HTMLElement>('.ad-dot');
+      const prevBtn = container.querySelector<HTMLElement>('.ad-prev-btn');
+      const nextBtn = container.querySelector<HTMLElement>('.ad-next-btn');
 
     function showSlide(index: number) {
       slides.forEach((slide, i) => {
@@ -225,39 +271,67 @@ const { class: className = '' } = Astro.props;
         slide.classList.toggle('z-10', isActive);
         slide.classList.toggle('z-0', !isActive);
       });
+      if (slides.length <= 1) {
+        return;
+      }
 
       dots.forEach((dot, i) => {
         const isActive = i === index;
         dot.classList.toggle('bg-slate-400', isActive);
         dot.classList.toggle('bg-slate-200', !isActive);
       });
+      let currentIndex = 0;
+      let timerId: ReturnType<typeof setInterval> | null = null;
+      const intervalMs = 6000; // 6秒ごとに自動切り替え
 
       currentIndex = index;
     }
+      function showSlide(index: number) {
+        slides.forEach((slide, i) => {
+          const isActive = i === index;
+          slide.classList.toggle('opacity-100', isActive);
+          slide.classList.toggle('opacity-0', !isActive);
+          slide.classList.toggle('pointer-events-none', !isActive);
+          slide.classList.toggle('z-10', isActive);
+          slide.classList.toggle('z-0', !isActive);
+        });
 
     function nextSlide() {
       const nextIndex = (currentIndex + 1) % slides.length;
       showSlide(nextIndex);
     }
+        dots.forEach((dot, i) => {
+          const isActive = i === index;
+          dot.classList.toggle('bg-slate-400', isActive);
+          dot.classList.toggle('bg-slate-200', !isActive);
+        });
 
     function prevSlide() {
       const prevIndex = (currentIndex - 1 + slides.length) % slides.length;
       showSlide(prevIndex);
     }
+        currentIndex = index;
+      }
 
     function startTimer() {
       stopTimer();
       timerId = setInterval(nextSlide, intervalMs);
     }
+      function nextSlide() {
+        const nextIndex = (currentIndex + 1) % slides.length;
+        showSlide(nextIndex);
+      }
 
     function stopTimer() {
       if (timerId) {
         clearInterval(timerId);
         timerId = null;
+      function prevSlide() {
+        const prevIndex = (currentIndex - 1 + slides.length) % slides.length;
+        showSlide(prevIndex);
       }
     }
 
-    // ホバー・タップ中は誤操作防止のためローテーションを停止
     // 次へ・前へボタンの手動操作
     if (nextBtn) {
       nextBtn.addEventListener('click', (e) => {
@@ -266,6 +340,10 @@ const { class: className = '' } = Astro.props;
         startTimer(); // 手動操作後タイマー再開
       });
     }
+      function startTimer() {
+        stopTimer();
+        timerId = setInterval(nextSlide, intervalMs);
+      }
 
     if (prevBtn) {
       prevBtn.addEventListener('click', (e) => {
@@ -274,6 +352,12 @@ const { class: className = '' } = Astro.props;
         startTimer(); // 手動操作後タイマー再開
       });
     }
+      function stopTimer() {
+        if (timerId) {
+          clearInterval(timerId);
+          timerId = null;
+        }
+      }
 
     // ドットの手動タップ操作
     dots.forEach((dot, i) => {
@@ -281,6 +365,28 @@ const { class: className = '' } = Astro.props;
         e.stopPropagation();
         showSlide(i);
         startTimer();
+      if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          nextSlide();
+          startTimer();
+        });
+      }
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          prevSlide();
+          startTimer();
+        });
+      }
+
+      dots.forEach((dot, i) => {
+        dot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showSlide(i);
+          startTimer();
+        });
       });
     });
 
@@ -288,14 +394,22 @@ const { class: className = '' } = Astro.props;
     rotator.addEventListener('mouseenter', stopTimer);
     rotator.addEventListener('mouseleave', startTimer);
     rotator.addEventListener('touchstart', stopTimer, { passive: true });
+      rotator.addEventListener('mouseenter', stopTimer);
+      rotator.addEventListener('mouseleave', startTimer);
+      rotator.addEventListener('touchstart', stopTimer, { passive: true });
 
     startTimer();
+      startTimer();
+    });
   }
 
   // 画面初期化時・ページ表示時に設定
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', setupAdRotator);
+    document.addEventListener('DOMContentLoaded', setupAllAdRotators);
   } else {
     setupAdRotator();
+    setupAllAdRotators();
   }
 </script>
+

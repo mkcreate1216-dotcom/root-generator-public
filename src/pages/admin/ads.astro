@@ -1,0 +1,1075 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { adsConfig } from '../../config/ads';
+
+export const prerender = true;
+---
+
+<Layout title="広告管理・プレビュー | たびおり" showFooterAd={false}>
+  <head slot="head">
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- ヘッダーナビゲーション -->
+    <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-200">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="text-xs font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 tracking-wide uppercase">Admin Tool</span>
+          <span class="text-xs text-slate-400">パターンA: 静的設定管理</span>
+        </div>
+        <h1 class="text-2xl font-black text-slate-800 tracking-tight">広告・プロモーション枠 設定ジェネレーター</h1>
+        <p class="text-sm text-slate-500 mt-1">
+          広告バナーの登録・配置設定をブラウザ上でプレビューしながら編集し、設定コード（TypeScript）を生成します。
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <a
+          href="/"
+          class="clay-btn text-xs font-semibold px-4 py-2 rounded-xl text-slate-700 hover:text-slate-900 inline-flex items-center gap-1.5 transition-all"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+          アプリトップへ戻る
+        </a>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <!-- 左カラム: プレビュー＆エクスポート（固定/メイン） -->
+      <div class="lg:col-span-6 space-y-6 lg:sticky lg:top-6">
+        <!-- リアルタイムプレビュー -->
+        <div class="clay-card p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <span>👀</span>
+              <span>掲載枠ライブプレビュー</span>
+            </h2>
+            <span class="text-[11px] text-slate-400">実機レイアウト再現</span>
+          </div>
+
+          <!-- スロット切り替えタブ -->
+          <div class="flex gap-2 mb-4 p-1 bg-slate-100 rounded-xl" id="preview-slot-tabs">
+            <button
+              type="button"
+              data-preview-slot="itinerary_bottom"
+              class="slot-tab-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold text-indigo-700 bg-white shadow-xs transition-all cursor-pointer"
+            >
+              ✈️ 行程表下枠
+            </button>
+            <button
+              type="button"
+              data-preview-slot="footer_top"
+              class="slot-tab-btn flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all cursor-pointer"
+            >
+              🧳 フッター直上枠
+            </button>
+          </div>
+
+          <!-- プレビュー枠表示コンテナ -->
+          <div class="bg-white/60 border border-slate-200/80 rounded-2xl p-4 sm:p-6 relative overflow-hidden">
+            <div id="preview-container">
+              <!-- JSによってプレビュー要素がここに動的生成されます -->
+            </div>
+          </div>
+
+          <p class="text-[11px] text-slate-400 mt-3 text-center">
+            ※ プレビュー内でも左右の切り替え矢印やドット、自動ローテーション（6秒）が動作します。
+          </p>
+        </div>
+
+        <!-- エクスポートエリア -->
+        <div class="clay-card p-5 sm:p-6 bg-slate-900 text-slate-100">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-2">
+              <span class="text-indigo-400 font-bold text-xs uppercase tracking-wider">Export</span>
+              <h3 class="text-sm font-bold text-white">設定コード生成</h3>
+            </div>
+            <button
+              id="copy-code-btn"
+              type="button"
+              class="px-3.5 py-1.5 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white text-xs font-bold rounded-lg shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+              <span>コードをコピー</span>
+            </button>
+          </div>
+
+          <p class="text-xs text-slate-400 mb-3">
+            コピーしたコードを <code class="text-indigo-300 font-mono text-[11px] bg-slate-800 px-1.5 py-0.5 rounded">src/config/ads.ts</code> に貼り付けて保存・コミットすると本番に反映されます。
+          </p>
+
+          <pre class="bg-slate-950 p-3 rounded-xl text-[11px] font-mono text-slate-300 max-h-56 overflow-y-auto border border-slate-800 select-all"><code id="code-output">// 生成コードがここに表示されます</code></pre>
+        </div>
+      </div>
+
+      <!-- 右カラム: 広告アイテム管理・掲載枠アサイン -->
+      <div class="lg:col-span-6 space-y-6">
+        <!-- A8タグ自動解析＆新規追加 -->
+        <div class="clay-card p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <span>🪄</span>
+              <span>A8などのHTMLタグを自動解析</span>
+            </h2>
+            <span class="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">かんたん登録</span>
+          </div>
+          <p class="text-xs text-slate-500 mb-3">
+            ASP管理画面で発行されたバナーHTMLコードを貼り付けると、URLやサイズを自動抽出します。
+          </p>
+
+          <textarea
+            id="raw-tag-input"
+            rows="3"
+            placeholder="ここに <a href=&quot;...&quot;><img src=&quot;...&quot; /></a> タグを貼り付けてください"
+            class="clay-input w-full p-3 text-xs font-mono mb-2.5 outline-none resize-none"
+          ></textarea>
+
+          <div class="flex justify-end mb-4">
+            <button
+              id="parse-tag-btn"
+              type="button"
+              class="clay-btn px-4 py-2 text-xs font-bold text-indigo-600 hover:text-indigo-700 rounded-xl transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <span>⚡️ タグを解析してフォームに入力</span>
+            </button>
+          </div>
+
+          <div class="border-t border-slate-200/70 pt-4">
+            <h3 class="text-xs font-bold text-slate-700 mb-3 flex items-center gap-1.5">
+              <span>✏️</span>
+              <span id="form-mode-title">広告アイテムの新規登録 / 編集</span>
+            </h3>
+
+            <input type="hidden" id="item-id-input" value="" />
+
+            <div class="space-y-3">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="item-name-input">管理名称 *</label>
+                <input
+                  id="item-name-input"
+                  type="text"
+                  placeholder="例: 楽天トラベル（ホテル・宿）"
+                  class="clay-input w-full px-3 py-2 text-xs outline-none"
+                />
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="item-category-input">カテゴリ</label>
+                  <select id="item-category-input" class="clay-input w-full px-3 py-2 text-xs outline-none bg-transparent">
+                    <option value="hotel">宿泊・ホテル</option>
+                    <option value="car">レンタカー</option>
+                    <option value="activity">アクティビティ・体験</option>
+                    <option value="wifi">Wi-Fi・SIM</option>
+                    <option value="other">その他</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="item-alt-input">altテキスト (説明)</label>
+                  <input
+                    id="item-alt-input"
+                    type="text"
+                    placeholder="例: 楽天トラベルでホテル・宿を探す"
+                    class="clay-input w-full px-3 py-2 text-xs outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="item-link-input">リンク先URL (飛び先) *</label>
+                <input
+                  id="item-link-input"
+                  type="url"
+                  placeholder="https://..."
+                  class="clay-input w-full px-3 py-2 text-xs font-mono outline-none"
+                />
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="item-image-input">バナー画像URL *</label>
+                <input
+                  id="item-image-input"
+                  type="url"
+                  placeholder="https://..."
+                  class="clay-input w-full px-3 py-2 text-xs font-mono outline-none"
+                />
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="item-width-input">幅 (px)</label>
+                  <input
+                    id="item-width-input"
+                    type="number"
+                    value="300"
+                    class="clay-input w-full px-3 py-2 text-xs outline-none"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="item-height-input">高さ (px)</label>
+                  <input
+                    id="item-height-input"
+                    type="number"
+                    value="60"
+                    class="clay-input w-full px-3 py-2 text-xs outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1" for="item-tracking-input">計測用1x1画像URL（ある場合のみ）</label>
+                <input
+                  id="item-tracking-input"
+                  type="url"
+                  placeholder="https://.../0.gif"
+                  class="clay-input w-full px-3 py-2 text-xs font-mono outline-none"
+                />
+              </div>
+
+              <div class="flex items-center justify-between pt-2">
+                <button
+                  id="cancel-edit-btn"
+                  type="button"
+                  class="text-xs text-slate-500 hover:text-slate-700 hidden cursor-pointer"
+                >
+                  編集をキャンセル
+                </button>
+                <button
+                  id="save-item-btn"
+                  type="button"
+                  class="clay-btn ml-auto px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all cursor-pointer"
+                >
+                  ＋ 広告リストに保存
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 登録済み広告リスト -->
+        <div class="clay-card p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <span>📋</span>
+              <span>登録済み広告アイテム</span>
+              <span id="items-count-badge" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">0</span>
+            </h2>
+            <button
+              id="reset-default-btn"
+              type="button"
+              class="text-[11px] text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+            >
+              初期状態にリセット
+            </button>
+          </div>
+
+          <div id="items-list-container" class="space-y-3">
+            <!-- JSでアイテムカードが挿入されます -->
+          </div>
+        </div>
+
+        <!-- 掲載枠の配置・割り当て設定 -->
+        <div class="clay-card p-5 sm:p-6">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <span>📌</span>
+              <span>掲載枠の設定と広告割り当て</span>
+            </h2>
+          </div>
+          <p class="text-xs text-slate-500 mb-4">
+            各掲載枠の表示/非表示（有効化）と、どの広告を何個スライド表示するかを設定します。
+          </p>
+
+          <div id="placements-config-container" class="space-y-4">
+            <!-- JSで掲載枠設定が挿入されます -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知用 -->
+  <div
+    id="toast-notification"
+    class="fixed bottom-6 right-6 px-4 py-3 bg-slate-900 text-white text-xs font-semibold rounded-2xl shadow-xl transform translate-y-16 opacity-0 transition-all duration-300 flex items-center gap-2 z-50 pointer-events-none"
+  >
+    <span class="text-emerald-400 text-sm">✓</span>
+    <span id="toast-message">メッセージ</span>
+  </div>
+
+  <!-- 初期データを安全に渡す -->
+  <script define:vars={{ initialConfig: adsConfig }}>
+    window.__INITIAL_ADS_CONFIG__ = initialConfig;
+  </script>
+
+  <script>
+    import type { AdsConfiguration, AdItem, AdPlacementId } from '../../config/ads';
+
+    // @ts-ignore
+    const defaultData: AdsConfiguration = window.__INITIAL_ADS_CONFIG__;
+    const STORAGE_KEY = 'tabiori_ads_admin_config_v1';
+
+    // ローカルストレージまたは初期データから設定をロード
+    let currentConfig: AdsConfiguration = (() => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.items && parsed.placements) return parsed;
+        }
+      } catch (e) {
+        console.warn('Failed to parse saved config:', e);
+      }
+      return JSON.parse(JSON.stringify(defaultData));
+    })();
+
+    let activePreviewSlot: AdPlacementId = 'itinerary_bottom';
+    let previewTimerId: ReturnType<typeof setInterval> | null = null;
+    let previewCurrentIndex = 0;
+
+    // トースト通知表示
+    function showToast(message: string) {
+      const toast = document.getElementById('toast-notification');
+      const msgElem = document.getElementById('toast-message');
+      if (!toast || !msgElem) return;
+
+      msgElem.textContent = message;
+      toast.classList.remove('translate-y-16', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-16', 'opacity-0');
+      }, 2500);
+    }
+
+    // 設定の保存と画面更新
+    function saveAndRefresh() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentConfig));
+      } catch (e) {
+        console.error('Failed to save to localStorage:', e);
+      }
+      renderItemsList();
+      renderPlacementsConfig();
+      renderPreview();
+      renderExportCode();
+    }
+
+    // HTMLタグの自動解析ロジック
+    function parseAffiliateHtml(htmlStr: string) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlStr, 'text/html');
+      const aTag = doc.querySelector('a');
+      const imgs = Array.from(doc.querySelectorAll('img'));
+
+      const linkUrl = aTag ? aTag.getAttribute('href') || '' : '';
+
+      // バナー画像（1x1以外、またはサイズが大きい方）
+      let bannerImg = imgs.find((img) => {
+        const w = parseInt(img.getAttribute('width') || '0', 10);
+        const h = parseInt(img.getAttribute('height') || '0', 10);
+        return (w > 1 && h > 1) || (!w && !h);
+      });
+      if (!bannerImg && imgs.length > 0) bannerImg = imgs[0];
+
+      // トラッキング用画像（1x1または0.gifなど）
+      const trackingImg = imgs.find((img) => {
+        const w = parseInt(img.getAttribute('width') || '0', 10);
+        const h = parseInt(img.getAttribute('height') || '0', 10);
+        const src = img.getAttribute('src') || '';
+        return (w === 1 && h === 1) || src.includes('0.gif') || src.includes('tracking');
+      });
+
+      return {
+        linkUrl,
+        imageUrl: bannerImg ? bannerImg.getAttribute('src') || '' : '',
+        width: bannerImg ? parseInt(bannerImg.getAttribute('width') || '300', 10) : 300,
+        height: bannerImg ? parseInt(bannerImg.getAttribute('height') || '60', 10) : 60,
+        alt: bannerImg ? bannerImg.getAttribute('alt') || '' : '',
+        trackingPixelUrl: trackingImg && trackingImg !== bannerImg ? trackingImg.getAttribute('src') || '' : '',
+      };
+    }
+
+    // 登録済み広告一覧の描画
+    function renderItemsList() {
+      const container = document.getElementById('items-list-container');
+      const countBadge = document.getElementById('items-count-badge');
+      if (!container || !countBadge) return;
+
+      countBadge.textContent = String(currentConfig.items.length);
+
+      if (currentConfig.items.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-6 text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+            広告アイテムがまだ登録されていません。上のフォームから追加してください。
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = currentConfig.items
+        .map((item) => {
+          const categoryLabels: Record<string, string> = {
+            hotel: '🏨 宿泊',
+            car: '🚗 レンタカー',
+            activity: '🏄 体験',
+            wifi: '📶 Wi-Fi',
+            other: '📦 その他',
+          };
+          const categoryName = categoryLabels[item.category] || item.category;
+
+          return `
+            <div class="p-3.5 bg-white/80 border border-slate-200/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-16 h-10 shrink-0 bg-slate-100 rounded-lg overflow-hidden flex items-center justify-center border border-slate-200/60">
+                  <img src="${item.imageUrl}" alt="${item.alt}" class="max-w-full max-h-full object-contain" />
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-800 truncate">${item.name}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-medium">${categoryName}</span>
+                  </div>
+                  <div class="text-[10px] text-slate-400 font-mono truncate mt-0.5 max-w-[240px]">
+                    ${item.width}×${item.height} | ${item.linkUrl}
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+                <label class="flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none mr-2">
+                  <input
+                    type="checkbox"
+                    data-action="toggle-active"
+                    data-id="${item.id}"
+                    ${item.active ? 'checked' : ''}
+                    class="rounded text-indigo-600 focus:ring-indigo-400 w-3.5 h-3.5"
+                  />
+                  <span class="text-[11px] font-medium">${item.active ? '有効' : '停止'}</span>
+                </label>
+                <button
+                  type="button"
+                  data-action="edit-item"
+                  data-id="${item.id}"
+                  class="text-xs px-2.5 py-1 rounded-lg clay-btn text-slate-700 hover:text-indigo-600 transition-colors cursor-pointer"
+                >
+                  編集
+                </button>
+                <button
+                  type="button"
+                  data-action="delete-item"
+                  data-id="${item.id}"
+                  class="text-xs px-2.5 py-1 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                >
+                  削除
+                </button>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    // 掲載枠設定の描画
+    function renderPlacementsConfig() {
+      const container = document.getElementById('placements-config-container');
+      if (!container) return;
+
+      const placementKeys: AdPlacementId[] = ['itinerary_bottom', 'footer_top'];
+
+      container.innerHTML = placementKeys
+        .map((key) => {
+          const placement = currentConfig.placements[key];
+          if (!placement) return '';
+
+          const isSelectedTab = activePreviewSlot === key;
+
+          return `
+            <div class="p-4 rounded-2xl border ${isSelectedTab ? 'border-indigo-300 bg-indigo-50/20' : 'border-slate-200/80 bg-white/70'}">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">${placement.icon}</span>
+                  <span class="text-xs font-bold text-slate-800">${placement.name}</span>
+                  <code class="text-[10px] font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-500">${placement.id}</code>
+                </div>
+                <label class="flex items-center gap-1.5 text-xs font-bold cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    data-action="toggle-placement-enabled"
+                    data-placement-id="${placement.id}"
+                    ${placement.enabled ? 'checked' : ''}
+                    class="rounded text-indigo-600 focus:ring-indigo-400 w-4 h-4"
+                  />
+                  <span class="${placement.enabled ? 'text-indigo-600' : 'text-slate-400'}">
+                    ${placement.enabled ? '掲載中 (ON)' : '非表示 (OFF)'}
+                  </span>
+                </label>
+              </div>
+
+              <p class="text-[11px] text-slate-500 mb-3">${placement.description}</p>
+
+              <div class="bg-slate-50/80 rounded-xl p-2.5 border border-slate-200/50">
+                <div class="text-[11px] font-semibold text-slate-700 mb-2">表示する広告の選択:</div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  ${currentConfig.items
+                    .map((item) => {
+                      const isAssigned = placement.adIds.includes(item.id);
+                      return `
+                        <label class="flex items-center gap-2 text-xs p-1.5 rounded-lg hover:bg-white/80 transition-colors cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            data-action="toggle-placement-ad"
+                            data-placement-id="${placement.id}"
+                            data-ad-id="${item.id}"
+                            ${isAssigned ? 'checked' : ''}
+                            class="rounded text-indigo-600 focus:ring-indigo-400 w-3.5 h-3.5"
+                          />
+                          <span class="truncate ${item.active ? 'text-slate-700' : 'text-slate-400 line-through'}">
+                            ${item.name}
+                          </span>
+                        </label>
+                      `;
+                    })
+                    .join('')}
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+    }
+
+    // プレビューの描画とアニメーションセットアップ
+    function renderPreview() {
+      const container = document.getElementById('preview-container');
+      if (!container) return;
+
+      if (previewTimerId) {
+        clearInterval(previewTimerId);
+        previewTimerId = null;
+      }
+
+      const placement = currentConfig.placements[activePreviewSlot];
+      if (!placement || !placement.enabled) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-xs text-slate-400">
+            この枠は現在「非表示（OFF）」に設定されています。
+          </div>
+        `;
+        return;
+      }
+
+      const itemsMap = new Map(currentConfig.items.map((i) => [i.id, i]));
+      const activeAds = placement.adIds
+        .map((id) => itemsMap.get(id))
+        .filter((item): item is AdItem => Boolean(item && item.active));
+
+      if (activeAds.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8 text-xs text-slate-400">
+            表示可能な有効な広告が選択されていません。
+          </div>
+        `;
+        return;
+      }
+
+      const hasMultiple = activeAds.length > 1;
+
+      container.innerHTML = `
+        <aside class="w-full max-w-5xl mx-auto pt-2 pb-0 border-t border-slate-200/80 select-none">
+          <div class="flex items-center justify-between gap-2 mb-2 px-1 text-slate-400 text-[11px] font-medium">
+            <div class="flex items-center gap-1.5">
+              <span aria-hidden="true" class="text-xs">${placement.icon}</span>
+              <span>${placement.label}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              ${
+                hasMultiple
+                  ? `
+                <div class="flex items-center gap-1" id="sim-dots">
+                  ${activeAds
+                    .map(
+                      (_, idx) => `
+                    <button
+                      type="button"
+                      data-sim-dot="${idx}"
+                      class="w-2 h-2 rounded-full transition-all p-0 border-0 cursor-pointer ${idx === 0 ? 'bg-slate-400' : 'bg-slate-200'}"
+                    ></button>
+                  `
+                    )
+                    .join('')}
+                </div>
+              `
+                  : ''
+              }
+              <span class="text-[10px] tracking-wider text-slate-500 font-bold bg-slate-200/70 px-1.5 py-0.5 rounded">PR</span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-center gap-1 sm:gap-2.5 w-full">
+            ${
+              hasMultiple
+                ? `
+              <button
+                type="button"
+                id="sim-prev-btn"
+                class="shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200/80 active:scale-95 text-slate-500 hover:text-slate-800 transition-all border border-slate-200/60 shadow-xs cursor-pointer focus:outline-none"
+              >
+                <svg class="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+            `
+                : '<div class="w-7 sm:w-8 shrink-0"></div>'
+            }
+
+            <div id="sim-rotator" class="relative w-full max-w-[320px] h-[60px] overflow-hidden rounded bg-transparent shrink">
+              ${activeAds
+                .map(
+                  (ad, idx) => `
+                <div
+                  class="sim-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 ${idx === 0 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'}"
+                  data-sim-index="${idx}"
+                >
+                  <a href="${ad.linkUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center transition-opacity hover:opacity-80">
+                    <img src="${ad.imageUrl}" alt="${ad.alt}" width="${ad.width}" height="${ad.height}" class="rounded max-w-full h-auto block" />
+                  </a>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+
+            ${
+              hasMultiple
+                ? `
+              <button
+                type="button"
+                id="sim-next-btn"
+                class="shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200/80 active:scale-95 text-slate-500 hover:text-slate-800 transition-all border border-slate-200/60 shadow-xs cursor-pointer focus:outline-none"
+              >
+                <svg class="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            `
+                : '<div class="w-7 sm:w-8 shrink-0"></div>'
+            }
+          </div>
+        </aside>
+      `;
+
+      if (!hasMultiple) return;
+
+      // プレビュー内のカルーセルスクリプト
+      previewCurrentIndex = 0;
+      const slides = container.querySelectorAll<HTMLElement>('.sim-slide');
+      const dots = container.querySelectorAll<HTMLElement>('[data-sim-dot]');
+      const prevBtn = container.querySelector<HTMLElement>('#sim-prev-btn');
+      const nextBtn = container.querySelector<HTMLElement>('#sim-next-btn');
+      const rotator = container.querySelector<HTMLElement>('#sim-rotator');
+
+      function showSlide(index: number) {
+        slides.forEach((slide, i) => {
+          const isActive = i === index;
+          slide.classList.toggle('opacity-100', isActive);
+          slide.classList.toggle('opacity-0', !isActive);
+          slide.classList.toggle('pointer-events-none', !isActive);
+          slide.classList.toggle('z-10', isActive);
+          slide.classList.toggle('z-0', !isActive);
+        });
+
+        dots.forEach((dot, i) => {
+          const isActive = i === index;
+          dot.classList.toggle('bg-slate-400', isActive);
+          dot.classList.toggle('bg-slate-200', !isActive);
+        });
+
+        previewCurrentIndex = index;
+      }
+
+      function nextSlide() {
+        const next = (previewCurrentIndex + 1) % slides.length;
+        showSlide(next);
+      }
+
+      function prevSlide() {
+        const prev = (previewCurrentIndex - 1 + slides.length) % slides.length;
+        showSlide(prev);
+      }
+
+      function startTimer() {
+        stopTimer();
+        previewTimerId = setInterval(nextSlide, 6000);
+      }
+
+      function stopTimer() {
+        if (previewTimerId) {
+          clearInterval(previewTimerId);
+          previewTimerId = null;
+        }
+      }
+
+      if (nextBtn) {
+        nextBtn.onclick = (e) => {
+          e.stopPropagation();
+          nextSlide();
+          startTimer();
+        };
+      }
+      if (prevBtn) {
+        prevBtn.onclick = (e) => {
+          e.stopPropagation();
+          prevSlide();
+          startTimer();
+        };
+      }
+      dots.forEach((dot, idx) => {
+        dot.onclick = (e) => {
+          e.stopPropagation();
+          showSlide(idx);
+          startTimer();
+        };
+      });
+
+      if (rotator) {
+        rotator.onmouseenter = stopTimer;
+        rotator.onmouseleave = startTimer;
+      }
+
+      startTimer();
+    }
+
+    // TypeScriptコードのエクスポート生成
+    function renderExportCode() {
+      const codeContainer = document.getElementById('code-output');
+      if (!codeContainer) return;
+
+      const codeString = `/**
+ * 広告および掲載枠の設定管理
+ * /admin/ads ページで設定コードを生成し、このファイルにペーストして更新できます。
+ */
+
+export type AdCategory = 'hotel' | 'car' | 'activity' | 'wifi' | 'other';
+
+export interface AdItem {
+  id: string;
+  name: string;
+  category: AdCategory;
+  linkUrl: string;
+  imageUrl: string;
+  width: number;
+  height: number;
+  alt: string;
+  trackingPixelUrl?: string;
+  active: boolean;
+}
+
+export type AdPlacementId = 'itinerary_bottom' | 'footer_top';
+
+export interface AdPlacementConfig {
+  id: AdPlacementId;
+  name: string;
+  description: string;
+  enabled: boolean;
+  label: string;
+  icon: string;
+  adIds: string[];
+}
+
+export interface AdsConfiguration {
+  items: AdItem[];
+  placements: Record<AdPlacementId, AdPlacementConfig>;
+}
+
+export const adsConfig: AdsConfiguration = ${JSON.stringify(currentConfig, null, 2)};
+
+/**
+ * 指定した掲載枠に表示すべき有効な広告アイテムのリストを取得します。
+ */
+export function getAdsForPlacement(placementId: AdPlacementId): {
+  placement: AdPlacementConfig | null;
+  ads: AdItem[];
+} {
+  const placement = adsConfig.placements[placementId];
+  if (!placement || !placement.enabled) {
+    return { placement: null, ads: [] };
+  }
+
+  const itemsMap = new Map(adsConfig.items.map((item) => [item.id, item]));
+  const ads = placement.adIds
+    .map((id) => itemsMap.get(id))
+    .filter((item): item is AdItem => Boolean(item && item.active));
+
+  return { placement, ads };
+}
+`;
+
+      codeContainer.textContent = codeString;
+    }
+
+    // フォームのリセット・編集モード切替
+    function resetForm() {
+      const idInput = document.getElementById('item-id-input') as HTMLInputElement;
+      const nameInput = document.getElementById('item-name-input') as HTMLInputElement;
+      const catInput = document.getElementById('item-category-input') as HTMLSelectElement;
+      const altInput = document.getElementById('item-alt-input') as HTMLInputElement;
+      const linkInput = document.getElementById('item-link-input') as HTMLInputElement;
+      const imgInput = document.getElementById('item-image-input') as HTMLInputElement;
+      const widthInput = document.getElementById('item-width-input') as HTMLInputElement;
+      const heightInput = document.getElementById('item-height-input') as HTMLInputElement;
+      const trackInput = document.getElementById('item-tracking-input') as HTMLInputElement;
+      const rawInput = document.getElementById('raw-tag-input') as HTMLTextAreaElement;
+      const cancelBtn = document.getElementById('cancel-edit-btn');
+      const titleElem = document.getElementById('form-mode-title');
+      const saveBtn = document.getElementById('save-item-btn');
+
+      if (idInput) idInput.value = '';
+      if (nameInput) nameInput.value = '';
+      if (catInput) catInput.value = 'hotel';
+      if (altInput) altInput.value = '';
+      if (linkInput) linkInput.value = '';
+      if (imgInput) imgInput.value = '';
+      if (widthInput) widthInput.value = '300';
+      if (heightInput) heightInput.value = '60';
+      if (trackInput) trackInput.value = '';
+      if (rawInput) rawInput.value = '';
+
+      if (cancelBtn) cancelBtn.classList.add('hidden');
+      if (titleElem) titleElem.textContent = '広告アイテムの新規登録 / 編集';
+      if (saveBtn) saveBtn.textContent = '＋ 広告リストに保存';
+    }
+
+    // イベントリスナーの登録
+    function setupEventListeners() {
+      // タブ切り替え
+      document.querySelectorAll<HTMLButtonElement>('[data-preview-slot]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const slot = btn.dataset.previewSlot as AdPlacementId;
+          activePreviewSlot = slot;
+
+          document.querySelectorAll<HTMLButtonElement>('[data-preview-slot]').forEach((b) => {
+            const isActive = b === btn;
+            b.classList.toggle('bg-white', isActive);
+            b.classList.toggle('text-indigo-700', isActive);
+            b.classList.toggle('shadow-xs', isActive);
+            b.classList.toggle('text-slate-600', !isActive);
+          });
+
+          renderPreview();
+          renderPlacementsConfig();
+        });
+      });
+
+      // A8タグ解析ボタン
+      const parseBtn = document.getElementById('parse-tag-btn');
+      parseBtn?.addEventListener('click', () => {
+        const rawInput = document.getElementById('raw-tag-input') as HTMLTextAreaElement;
+        const text = rawInput?.value.trim() || '';
+        if (!text) {
+          alert('貼り付け欄にHTMLコードを入力してください。');
+          return;
+        }
+
+        const parsed = parseAffiliateHtml(text);
+        if (!parsed.linkUrl && !parsed.imageUrl) {
+          alert('HTMLタグからリンクまたは画像URLを検出できませんでした。');
+          return;
+        }
+
+        const linkInput = document.getElementById('item-link-input') as HTMLInputElement;
+        const imgInput = document.getElementById('item-image-input') as HTMLInputElement;
+        const widthInput = document.getElementById('item-width-input') as HTMLInputElement;
+        const heightInput = document.getElementById('item-height-input') as HTMLInputElement;
+        const altInput = document.getElementById('item-alt-input') as HTMLInputElement;
+        const trackInput = document.getElementById('item-tracking-input') as HTMLInputElement;
+
+        if (linkInput) linkInput.value = parsed.linkUrl;
+        if (imgInput) imgInput.value = parsed.imageUrl;
+        if (widthInput) widthInput.value = String(parsed.width);
+        if (heightInput) heightInput.value = String(parsed.height);
+        if (altInput) altInput.value = parsed.alt;
+        if (trackInput) trackInput.value = parsed.trackingPixelUrl;
+
+        showToast('HTMLタグを解析しフォームにセットしました！');
+      });
+
+      // 広告アイテムの保存
+      const saveBtn = document.getElementById('save-item-btn');
+      saveBtn?.addEventListener('click', () => {
+        const idInput = document.getElementById('item-id-input') as HTMLInputElement;
+        const nameInput = document.getElementById('item-name-input') as HTMLInputElement;
+        const catInput = document.getElementById('item-category-input') as HTMLSelectElement;
+        const altInput = document.getElementById('item-alt-input') as HTMLInputElement;
+        const linkInput = document.getElementById('item-link-input') as HTMLInputElement;
+        const imgInput = document.getElementById('item-image-input') as HTMLInputElement;
+        const widthInput = document.getElementById('item-width-input') as HTMLInputElement;
+        const heightInput = document.getElementById('item-height-input') as HTMLInputElement;
+        const trackInput = document.getElementById('item-tracking-input') as HTMLInputElement;
+
+        const name = nameInput.value.trim();
+        const linkUrl = linkInput.value.trim();
+        const imageUrl = imgInput.value.trim();
+
+        if (!name || !linkUrl || !imageUrl) {
+          alert('管理名称、リンク先URL、バナー画像URLは必須です。');
+          return;
+        }
+
+        const editingId = idInput.value;
+        if (editingId) {
+          // 既存更新
+          const existing = currentConfig.items.find((i) => i.id === editingId);
+          if (existing) {
+            existing.name = name;
+            existing.category = catInput.value as any;
+            existing.alt = altInput.value.trim();
+            existing.linkUrl = linkUrl;
+            existing.imageUrl = imageUrl;
+            existing.width = parseInt(widthInput.value, 10) || 300;
+            existing.height = parseInt(heightInput.value, 10) || 60;
+            existing.trackingPixelUrl = trackInput.value.trim() || undefined;
+          }
+          showToast('広告アイテムを更新しました！');
+        } else {
+          // 新規追加
+          const newId = `ad-${Date.now()}`;
+          const newItem: AdItem = {
+            id: newId,
+            name,
+            category: catInput.value as any,
+            alt: altInput.value.trim(),
+            linkUrl,
+            imageUrl,
+            width: parseInt(widthInput.value, 10) || 300,
+            height: parseInt(heightInput.value, 10) || 60,
+            trackingPixelUrl: trackInput.value.trim() || undefined,
+            active: true,
+          };
+          currentConfig.items.push(newItem);
+
+          // 自動的に行程表下枠に追加
+          if (currentConfig.placements.itinerary_bottom) {
+            currentConfig.placements.itinerary_bottom.adIds.push(newId);
+          }
+
+          showToast('新規広告アイテムを追加しました！');
+        }
+
+        resetForm();
+        saveAndRefresh();
+      });
+
+      // 編集キャンセル
+      document.getElementById('cancel-edit-btn')?.addEventListener('click', resetForm);
+
+      // 一覧内の操作（編集、削除、トグル）
+      document.getElementById('items-list-container')?.addEventListener('click', (e) => {
+        const target = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const id = target.dataset.id;
+        if (!id) return;
+
+        if (action === 'toggle-active') {
+          const item = currentConfig.items.find((i) => i.id === id);
+          if (item) {
+            item.active = (target as HTMLInputElement).checked;
+            saveAndRefresh();
+            showToast(`${item.name} を ${item.active ? '有効' : '停止'} にしました`);
+          }
+        } else if (action === 'edit-item') {
+          const item = currentConfig.items.find((i) => i.id === id);
+          if (!item) return;
+
+          (document.getElementById('item-id-input') as HTMLInputElement).value = item.id;
+          (document.getElementById('item-name-input') as HTMLInputElement).value = item.name;
+          (document.getElementById('item-category-input') as HTMLSelectElement).value = item.category;
+          (document.getElementById('item-alt-input') as HTMLInputElement).value = item.alt;
+          (document.getElementById('item-link-input') as HTMLInputElement).value = item.linkUrl;
+          (document.getElementById('item-image-input') as HTMLInputElement).value = item.imageUrl;
+          (document.getElementById('item-width-input') as HTMLInputElement).value = String(item.width);
+          (document.getElementById('item-height-input') as HTMLInputElement).value = String(item.height);
+          (document.getElementById('item-tracking-input') as HTMLInputElement).value = item.trackingPixelUrl || '';
+
+          document.getElementById('cancel-edit-btn')?.classList.remove('hidden');
+          const titleElem = document.getElementById('form-mode-title');
+          if (titleElem) titleElem.textContent = `広告アイテムの編集: ${item.name}`;
+          const saveBtn = document.getElementById('save-item-btn');
+          if (saveBtn) saveBtn.textContent = '✓ 変更を保存';
+
+          window.scrollTo({ top: 300, behavior: 'smooth' });
+        } else if (action === 'delete-item') {
+          if (!confirm('この広告アイテムを削除しますか？掲載枠からも解除されます。')) return;
+
+          currentConfig.items = currentConfig.items.filter((i) => i.id !== id);
+          Object.values(currentConfig.placements).forEach((p) => {
+            p.adIds = p.adIds.filter((adId) => adId !== id);
+          });
+          saveAndRefresh();
+          showToast('広告アイテムを削除しました');
+        }
+      });
+
+      // 掲載枠の操作
+      document.getElementById('placements-config-container')?.addEventListener('change', (e) => {
+        const target = e.target as HTMLInputElement;
+        const action = target.dataset.action;
+
+        if (action === 'toggle-placement-enabled') {
+          const pId = target.dataset.placementId as AdPlacementId;
+          if (currentConfig.placements[pId]) {
+            currentConfig.placements[pId].enabled = target.checked;
+            saveAndRefresh();
+            showToast(`${currentConfig.placements[pId].name} を ${target.checked ? '掲載中' : '非表示'} にしました`);
+          }
+        } else if (action === 'toggle-placement-ad') {
+          const pId = target.dataset.placementId as AdPlacementId;
+          const adId = target.dataset.adId;
+          if (pId && adId && currentConfig.placements[pId]) {
+            const placement = currentConfig.placements[pId];
+            if (target.checked) {
+              if (!placement.adIds.includes(adId)) placement.adIds.push(adId);
+            } else {
+              placement.adIds = placement.adIds.filter((id) => id !== adId);
+            }
+            saveAndRefresh();
+          }
+        }
+      });
+
+      // コードコピー
+      document.getElementById('copy-code-btn')?.addEventListener('click', async () => {
+        const codeElem = document.getElementById('code-output');
+        if (!codeElem || !codeElem.textContent) return;
+
+        try {
+          await navigator.clipboard.writeText(codeElem.textContent);
+          showToast('設定コードをクリップボードにコピーしました！');
+        } catch (err) {
+          console.error('Failed to copy:', err);
+          showToast('コピーに失敗しました。手動で選択してコピーしてください。');
+        }
+      });
+
+      // 初期状態リセット
+      document.getElementById('reset-default-btn')?.addEventListener('click', () => {
+        if (!confirm('初期状態に戻しますか？保存されていない変更は破棄されます。')) return;
+        localStorage.removeItem(STORAGE_KEY);
+        currentConfig = JSON.parse(JSON.stringify(defaultData));
+        resetForm();
+        saveAndRefresh();
+        showToast('初期設定にリセットしました');
+      });
+    }
+
+    // 画面初期化
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        setupEventListeners();
+        saveAndRefresh();
+      });
+    } else {
+      setupEventListeners();
+      saveAndRefresh();
+    }
+  </script>
+</Layout>

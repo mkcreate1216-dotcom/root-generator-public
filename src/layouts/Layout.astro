@@ -1,15 +1,18 @@
 ---
 import '../styles/global.css';
 import Footer from '../components/Footer.astro';
+import TravelBookingAd from '../components/TravelBookingAd.astro';
 
 interface Props {
   title?: string;
   description?: string;
+  showFooterAd?: boolean;
 }
 
 const {
   title = 'たびおり - 旅のしおり・ルート作成ツール',
   description = '予定を縦糸に、想い出を横糸に。スポットや宿泊地をタイムラインに追加するだけで、旅程の作成からルート確認・LINE共有まで完結する旅のしおり作成ツール。',
+  showFooterAd = true,
 } = Astro.props;
 ---
 
@@ -26,6 +29,7 @@ const {
     <main class="flex-1 w-full">
       <slot />
     </main>
+    {showFooterAd && <TravelBookingAd slotId="footer_top" class="mb-4" />}
     <Footer />
   </body>
 </html>
