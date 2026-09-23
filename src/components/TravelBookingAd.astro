@@ -8,22 +8,35 @@ const { class: className = '' } = Astro.props;
 
 <aside
   id="travel-booking-ad"
-  class={`w-full max-w-2xl mx-auto mt-10 mb-4 pt-6 border-t border-slate-200/80 select-none ${className}`}
+  class={`w-full max-w-sm mx-auto mt-10 mb-4 pt-6 border-t border-slate-200/80 select-none ${className}`}
   aria-label="プロモーション"
 >
   <!-- 控えめなPR表記 -->
-  <div class="flex items-center justify-between gap-2 mb-3 px-1 text-slate-400 text-[11px] font-medium">
+  <div class="flex items-center justify-between gap-2 mb-2.5 px-1 text-slate-400 text-[11px] font-medium">
     <div class="flex items-center gap-1.5">
       <span aria-hidden="true" class="text-xs">✈️</span>
-      <span>旅の準備（宿泊・レンタカー）</span>
+      <span id="ad-label">旅の準備（宿泊・レンタカー）</span>
     </div>
-    <span class="text-[10px] tracking-wider text-slate-400 font-semibold">PR</span>
+    <div class="flex items-center gap-2">
+      <!-- ページネーション ドット -->
+      <div class="flex items-center gap-1" aria-hidden="true">
+        <span class="ad-dot w-1.5 h-1.5 rounded-full bg-slate-400 transition-colors"></span>
+        <span class="ad-dot w-1.5 h-1.5 rounded-full bg-slate-200 transition-colors"></span>
+      </div>
+      <span class="text-[10px] tracking-wider text-slate-400 font-semibold">PR</span>
+    </div>
   </div>
 
-  <!-- バナー配置（両方300×60の完全一致サイズ） -->
-  <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 py-1">
-    <!-- 楽天トラベル（300×60） -->
-    <div class="flex items-center justify-center">
+  <!-- 1枠ローテーションバナー（300×60） -->
+  <div
+    id="ad-rotator"
+    class="relative w-[300px] h-[60px] mx-auto overflow-hidden rounded bg-transparent"
+  >
+    <!-- スライド 1: 楽天トラベル（宿泊） -->
+    <div
+      class="ad-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 opacity-100 z-10"
+      data-index="0"
+    >
       <a
         href="https://rpx.a8.net/svt/ejp?a8mat=4BCHZL+CEJ596+2HOM+6JZDD&rakuten=y&a8ejpredirect=http%3A%2F%2Fhb.afl.rakuten.co.jp%2Fhgc%2F0eb4779e.5d30c5ba.0eb4779f.b871e4e3%2Fa26092361755_4BCHZL_CEJ596_2HOM_6JZDD%3Fpc%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F%26m%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F"
         rel="nofollow noopener noreferrer"
@@ -35,7 +48,7 @@ const { class: className = '' } = Astro.props;
           border="0"
           alt="楽天トラベルでホテル・宿を探す"
           loading="lazy"
-          class="rounded max-w-full h-auto"
+          class="rounded max-w-full h-auto block"
         />
       </a>
       <img
@@ -48,8 +61,11 @@ const { class: className = '' } = Astro.props;
       />
     </div>
 
-    <!-- レンタカー予約（楽天トラベルレンタカー 300×60） -->
-    <div class="flex items-center justify-center">
+    <!-- スライド 2: 楽天トラベルレンタカー -->
+    <div
+      class="ad-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 opacity-0 pointer-events-none z-0"
+      data-index="1"
+    >
       <a
         href="https://rpx.a8.net/svt/ejp?a8mat=4BCHZL+CEJ4HE+2HOM+6O1Z5&rakuten=y&a8ejpredirect=http%3A%2F%2Fhb.afl.rakuten.co.jp%2Fhsc%2F0ea81083.052227c6.0ea81082.5814e1a7%2Fa26092361755_4BCHZL_CEJ4HE_2HOM_6O1Z5"
         rel="nofollow noopener noreferrer"
@@ -61,7 +77,7 @@ const { class: className = '' } = Astro.props;
           border="0"
           alt="楽天トラベルでレンタカーを予約する"
           loading="lazy"
-          class="rounded max-w-full h-auto"
+          class="rounded max-w-full h-auto block"
         />
       </a>
       <img
@@ -75,3 +91,68 @@ const { class: className = '' } = Astro.props;
     </div>
   </div>
 </aside>
+
+<script>
+  function setupAdRotator() {
+    const rotator = document.getElementById('ad-rotator');
+    if (!rotator) return;
+
+    const slides = rotator.querySelectorAll<HTMLElement>('.ad-slide');
+    const dots = document.querySelectorAll<HTMLElement>('.ad-dot');
+    if (slides.length <= 1) return;
+
+    let currentIndex = 0;
+    let timerId: ReturnType<typeof setInterval> | null = null;
+    const intervalMs = 6000; // 6秒ごとに切り替え
+
+    function showSlide(index: number) {
+      slides.forEach((slide, i) => {
+        const isActive = i === index;
+        slide.classList.toggle('opacity-100', isActive);
+        slide.classList.toggle('opacity-0', !isActive);
+        slide.classList.toggle('pointer-events-none', !isActive);
+        slide.classList.toggle('z-10', isActive);
+        slide.classList.toggle('z-0', !isActive);
+      });
+
+      dots.forEach((dot, i) => {
+        const isActive = i === index;
+        dot.classList.toggle('bg-slate-400', isActive);
+        dot.classList.toggle('bg-slate-200', !isActive);
+      });
+
+      currentIndex = index;
+    }
+
+    function nextSlide() {
+      const nextIndex = (currentIndex + 1) % slides.length;
+      showSlide(nextIndex);
+    }
+
+    function startTimer() {
+      stopTimer();
+      timerId = setInterval(nextSlide, intervalMs);
+    }
+
+    function stopTimer() {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+    }
+
+    // ホバー中は誤タップ防止のためローテーションを停止
+    rotator.addEventListener('mouseenter', stopTimer);
+    rotator.addEventListener('mouseleave', startTimer);
+    rotator.addEventListener('touchstart', stopTimer, { passive: true });
+
+    startTimer();
+  }
+
+  // 画面初期化時・ページ表示時に設定
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupAdRotator);
+  } else {
+    setupAdRotator();
+  }
+</script>
