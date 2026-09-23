@@ -283,25 +283,6 @@ summary::-webkit-details-marker {
   border: none !important;
 }
 
-/* 天井のスクロールアウト・マスク: スクロールして画面上端に抜けるスポットを自然に遮蔽（背景と同化し不可視） */
-body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 0.75rem;
-  background-color: var(--clay-bg-page, #f1f5f9);
-  z-index: 30;
-  pointer-events: none;
-}
-
-@media (max-width: 639px) {
-  body::before {
-    height: 0.5rem;
-  }
-}
-
 /* 旅行名バー固定時のスタイル（スクロール時も四隅の丸角を保ち、天井に当たっても角が絶対にできないフローティング・クレイカード） */
 #lp-slot-wrapper.is-sticky {
   position: sticky;
