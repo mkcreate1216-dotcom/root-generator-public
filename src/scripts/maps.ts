@@ -36,10 +36,9 @@ export function getDayRouteUrl(locations: string[], mapType: MapType): string {
   const waypoints = validLocations.slice(1, -1);
 
   if (mapType === 'apple') {
-    if (waypoints.length > 0) {
-      const waypointsParams = waypoints.map((wp) => `waypoint=${encodeURIComponent(wp)}`).join('&');
-      return `https://maps.apple.com/directions?source=${origin}&destination=${destination}&${waypointsParams}`;
-    }
+    // Apple Maps の公式仕様 (Map Links) は saddr (出発地) と daddr (目的地) の2地点のみ対応。
+    // 複数daddr等を渡すとAppleサーバーのリダイレクトでカンマ結合されて検索エラーになるため、
+    // 当日の出発地から最終目的地（宿泊地・到着地）へのルートを確実に生成する。
     return `https://maps.apple.com/?saddr=${origin}&daddr=${destination}`;
   }
 
