@@ -105,6 +105,7 @@ const tripNewBtnEl = document.getElementById('trip-new-btn');
 const tripDeleteBtnEl = document.getElementById('trip-delete-btn') as HTMLButtonElement | null;
 const newSpotInputEl = document.getElementById('new-spot-input') as HTMLInputElement;
 const addSpotFormEl = document.getElementById('add-spot-form') as HTMLFormElement;
+const addSpotTargetDayEl = document.getElementById('add-spot-target-day') as HTMLSpanElement | null;
 const addTypeDepartureEl = document.getElementById('add-type-departure') as HTMLInputElement | null;
 const addTypeAccommodationEl = document.getElementById('add-type-accommodation') as HTMLInputElement | null;
 const addTypeNoteEl = document.getElementById('add-type-note') as HTMLSpanElement | null;
@@ -602,6 +603,11 @@ function renderAddSpotOptions(): void {
 
   setTagStyle(addAccommodationScopeAllEl, state.addAccommodationScope === 'all');
   setTagStyle(addAccommodationScopeTodayEl, state.addAccommodationScope === 'today');
+  if (addSpotTargetDayEl) {
+    const currentDay = state.days[state.activeDayIndex];
+    addSpotTargetDayEl.textContent = currentDay?.name || `Day ${state.activeDayIndex + 1}`;
+  }
+
   newSpotInputEl.placeholder =
     isDeparture
       ? '例: 東京駅'
@@ -789,7 +795,7 @@ function renderTabs(): void {
       if (scrollTimeoutId) clearTimeout(scrollTimeoutId);
       scrollTimeoutId = setTimeout(() => {
         isScrollingToTab = false;
-      }, 800);
+      }, 1200);
 
       scrollToDay(index);
       renderAddSpotOptions();
@@ -1745,7 +1751,7 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
     if (scrollTimeoutId) clearTimeout(scrollTimeoutId);
     scrollTimeoutId = setTimeout(() => {
       isScrollingToTab = false;
-    }, 800);
+    }, 1200);
 
     setTimeout(() => {
       scrollToDay(dayIndex);
@@ -1899,10 +1905,31 @@ function renderAccommodation(): void {
   accommodationScopeNextDayEl.style.color = '';
 }
 
+function isInputFocused(): boolean {
+  const active = document.activeElement;
+  if (!active) return false;
+  const tag = active.tagName.toLowerCase();
+  return tag === 'input' || tag === 'textarea' || (active as HTMLElement).isContentEditable;
+}
+
 function updateActiveDayFromScroll(): void {
-  if (isScrollingToTab) return;
+  if (isScrollingToTab || isInputFocused()) return;
   const sections = [...document.querySelectorAll<HTMLElement>('#timeline details[data-day-index]')];
   if (sections.length === 0) return;
+
+  // ページ最下部付近にスクロールしている場合は、最後の日程をアクティブとする
+  const isAtBottom =
+    window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 48;
+  if (isAtBottom) {
+    const lastSection = sections[sections.length - 1];
+    const lastDayIndex = Number(lastSection.dataset.dayIndex);
+    if (lastDayIndex !== state.activeDayIndex) {
+      state.activeDayIndex = lastDayIndex;
+      renderAddSpotOptions();
+      renderTabs();
+    }
+    return;
+  }
 
   const panelRect = lpSlotWrapperEl ? lpSlotWrapperEl.getBoundingClientRect() : null;
   const targetY = panelRect ? Math.round(panelRect.bottom + 16) : 140;
@@ -2479,6 +2506,37 @@ function setupEventListeners(): void {
       const isScrolled = window.scrollY > 15;
       lpSlotWrapperEl.classList.toggle('scrolled', isScrolled);
     }
+  }
+
+  // ユーザーが自発的に指やホイールで画面をスクロールした場合は、スクロール保護を解除して連動判定を許可
+  const handleUserManualScroll = () => {
+    if (isScrollingToTab && !isInputFocused()) {
+      isScrollingToTab = false;
+      if (scrollTimeoutId) {
+        clearTimeout(scrollTimeoutId);
+        scrollTimeoutId = null;
+      }
+    }
+  };
+  window.addEventListener('wheel', handleUserManualScroll, { passive: true });
+  window.addEventListener('touchmove', handleUserManualScroll, { passive: true });
+
+  // スポット入力欄フォーカス時はキーボード出現による画面押し上げでタブが変わらないよう保護
+  newSpotInputEl?.addEventListener('focus', () => {
+    isScrollingToTab = true;
+  });
+  newSpotInputEl?.addEventListener('blur', () => {
+    setTimeout(() => {
+      isScrollingToTab = false;
+    }, 300);
+  });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      if (isInputFocused()) {
+        isScrollingToTab = true;
+      }
+    });
   }
 
   window.addEventListener('scroll', handleScroll, { passive: true });
