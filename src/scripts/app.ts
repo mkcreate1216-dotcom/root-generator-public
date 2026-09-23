@@ -423,7 +423,7 @@ function renderTripComboboxMenu(): void {
     if (trip.isShared || trip.shareId) {
       const sharedBadge = document.createElement('span');
       sharedBadge.className =
-        'inline-flex shrink-0 items-center rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold text-sky-600 border border-sky-200/60';
+        'inline-flex shrink-0 items-center rounded bg-slate-900 px-1.5 py-0.5 text-[10px] font-bold text-white leading-none';
       sharedBadge.textContent = '共有';
       titleRow.appendChild(sharedBadge);
     }
