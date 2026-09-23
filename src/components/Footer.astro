@@ -1,0 +1,177 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+const currentYear = new Date().getFullYear();
+const displayYear = currentYear >= 2026 ? currentYear : 2026;
+---
+
+<footer id="app-footer" class={`w-full max-w-5xl mx-auto px-3 sm:px-6 pt-2 pb-14 sm:pb-12 text-slate-600 ${className}`}>
+  <div class="footer-card clay-sunken rounded-3xl p-5 sm:p-7 transition-all duration-200">
+    <div class="flex flex-col md:flex-row md:items-start justify-between gap-5 sm:gap-6 pb-5 border-b border-slate-200/60">
+      <!-- サービス情報 -->
+      <div class="space-y-2 text-center md:text-left">
+        <div class="inline-flex items-center gap-2">
+          <span class="text-lg font-black tracking-tight text-slate-800">たびおり</span>
+          <span class="text-[11px] font-medium px-2 py-0.5 rounded-full clay-pill text-slate-500">β版</span>
+        </div>
+        <p class="text-xs text-slate-500 max-w-md leading-relaxed">
+          予定を縦糸に、想い出を横糸に。スポットや宿泊地を並べるだけで、旅程作成からルート確認・共有まで手軽に行える旅のしおり作成ツールです。
+        </p>
+      </div>
+
+      <!-- お問い合わせ（X / 旧Twitter） -->
+      <div class="flex flex-col items-center md:items-end gap-2 shrink-0">
+        <span class="text-xs font-semibold text-slate-700">お問い合わせ・フィードバック</span>
+        <a
+          href="https://x.com/fukumimi1216"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="x-contact-btn clay-btn group inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl text-xs font-semibold text-slate-800 transition-all duration-150 cursor-pointer"
+          aria-label="X (旧Twitter) @fukumimi1216 のDMで問い合わせる（新しいタブで開く）"
+        >
+          <!-- X 公式ロゴ SVG -->
+          <svg class="h-3.5 w-3.5 fill-current text-slate-800 transition-transform group-hover:scale-110" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+          <span>@fukumimi1216</span>
+          <span class="text-[10px] font-normal text-slate-500 group-hover:text-slate-700">（DMへ）</span>
+        </a>
+        <p class="text-[11px] text-slate-500 text-center md:text-right">
+          ご意見・ご要望・不具合報告はXのDMまでお気軽にどうぞ
+        </p>
+      </div>
+    </div>
+
+    <!-- 権利関係・免責事項アコーディオン -->
+    <div class="pt-5 pb-3">
+      <details class="disclaimer-details group text-xs text-slate-500">
+        <summary class="flex items-center justify-between gap-2 cursor-pointer list-none py-1 select-none font-medium hover:text-slate-800 transition-colors">
+          <span class="flex items-center gap-1.5">
+            <svg class="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            免責事項・権利表記について
+          </span>
+          <span class="summary-arrow text-[10px] text-slate-400 transition-transform duration-200">
+            ▼
+          </span>
+        </summary>
+        <div class="disclaimer-content mt-3 p-4 rounded-2xl bg-white/70 border border-slate-200/50 space-y-3.5 leading-relaxed text-[11px] text-slate-600">
+          <div>
+            <h4 class="font-bold text-slate-700 mb-1">【免責事項】</h4>
+            <p>
+              本サービス「たびおり」で表示・提供される経路、所要時間、地図情報、施設情報等の正確性・完全性・最新性についてはいかなる保証もいたしません。実際の道路状況、天候、各施設の営業状況や交通機関の運行ダイヤはお客様ご自身で事前にお確かめの上、安全に十分配慮してご利用ください。
+            </p>
+            <p class="mt-1">
+              本サービスの利用、または一時停止・終了等によって生じたいかなる損害・事故・トラブル（旅程の遅延やキャンセル料の発生、データの消失等を含みます）について、当運営は一切の責任を負いかねます。
+            </p>
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-700 mb-1">【権利帰属】</h4>
+            <p>
+              本サービスで連携・参照している外部地図サービス（Google Maps / Apple Maps等）、各種API、アイコン、ライブラリの著作権・商標権その他の知的財産権は、それぞれの権利者に帰属します。
+            </p>
+            <p class="mt-1">
+              本サービス独自のコンテンツ、デザイン、プログラムの著作権は Fukumimi に帰属します。
+            </p>
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-700 mb-1">【サービスの変更等】</h4>
+            <p>
+              本サービスは、ユーザーへの事前の通知なく仕様の変更、メンテナンスに伴う一時停止、または提供の終了を行う場合があります。
+            </p>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <!-- コピーライトと下部クレジット -->
+    <div class="pt-4 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-[11px] text-slate-500">
+      <p class="font-medium tracking-wide">
+        &copy; {displayYear} Fukumimi
+      </p>
+      <div class="flex items-center gap-4">
+        <span>たびおり (tabi-ori)</span>
+        <span class="text-slate-300">•</span>
+        <a
+          href="https://x.com/fukumimi1216"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="hover:text-slate-800 transition-colors"
+        >
+          運営者 X
+        </a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<style>
+  /* 凹みスタイル調整（フッター用） */
+  .clay-sunken {
+    background: #f8fafc;
+    box-shadow:
+      inset 0 2px 4px rgba(15, 23, 42, 0.05),
+      inset 0 1px 2px rgba(15, 23, 42, 0.03),
+      0 1px 1px rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+  }
+
+  /* 問い合わせボタンホバー効果 */
+  .x-contact-btn {
+    text-decoration: none;
+    box-shadow:
+      0 4px 10px -2px rgba(15, 23, 42, 0.06),
+      0 1px 3px -1px rgba(15, 23, 42, 0.03),
+      inset 0 1.5px 2px rgba(255, 255, 255, 1),
+      inset 0 -2px 4px rgba(15, 23, 42, 0.05);
+  }
+
+  .x-contact-btn:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 6px 14px -2px rgba(15, 23, 42, 0.1),
+      0 2px 5px -1px rgba(15, 23, 42, 0.04),
+      inset 0 1.5px 2px rgba(255, 255, 255, 1),
+      inset 0 -2px 4px rgba(15, 23, 42, 0.06);
+  }
+
+  .x-contact-btn:active {
+    transform: translateY(0);
+    box-shadow:
+      0 1px 2px 0 rgba(15, 23, 42, 0.04),
+      inset 0 2px 4px rgba(15, 23, 42, 0.1),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.6);
+  }
+
+  /* アコーディオンの矢印アニメーション */
+  .disclaimer-details[open] .summary-arrow {
+    transform: rotate(180deg);
+  }
+
+  /* summaryのデフォルト三角マーカーを非表示 */
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* 開閉時のアニメーション */
+  .disclaimer-details[open] .disclaimer-content {
+    animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
