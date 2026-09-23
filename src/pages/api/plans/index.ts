@@ -1,6 +1,14 @@
 import type { APIRoute } from 'astro';
+import { getClientIp, checkRateLimit, createRateLimitResponse } from '../../../utils/rateLimit';
+import { parseSafeJson } from '../../../utils/requestHelper';
 
 export const prerender = false;
+
+// 新規作成APIのレート制限設定: 1つのIPあたり10秒間に最大5回まで
+const RATE_LIMIT_CONFIG = {
+  limit: 5,
+  windowMs: 10 * 1000,
+};
 
 // 扱いやすい10文字の英数字IDをセキュアに生成
 function generatePlanId(length = 10): string {
@@ -11,6 +19,29 @@ function generatePlanId(length = 10): string {
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
+  // 1. IPベースのレートリミット検証（D1アクセス前に遮断）
+  const clientIp = getClientIp(request);
+  const rateLimitResult = checkRateLimit(`create_plan:${clientIp}`, RATE_LIMIT_CONFIG);
+  if (!rateLimitResult.allowed) {
+    return createRateLimitResponse(rateLimitResult);
+  }
+
+  // 2. ペイロードサイズ制限と安全なJSONパース（D1アクセス前に遮断）
+  const parseResult = await parseSafeJson<{ title?: unknown; data?: unknown }>(request);
+  if (!parseResult.success || !parseResult.data) {
+    return parseResult.response!;
+  }
+
+  const { title, data } = parseResult.data;
+
+  // 3. データバリデーション
+  if (!data || typeof data !== 'object') {
+    return new Response(JSON.stringify({ error: 'data is required and must be an object' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const db = locals.runtime.env.DB;
     if (!db) {
@@ -20,19 +51,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
-    const body = await request.json();
-    const { title, data } = body;
-
-    if (!data) {
-      return new Response(JSON.stringify({ error: 'data is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     const id = generatePlanId();
     const version = 1;
-    const planTitle = typeof title === 'string' ? title.trim() : '無題の旅程';
+    // タイトルの正規化と最大長制限（100文字）
+    const planTitle = typeof title === 'string' ? title.trim().slice(0, 100) : '無題の旅程';
 
     await db
       .prepare(
