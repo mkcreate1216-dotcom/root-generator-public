@@ -1,0 +1,230 @@
+---
+import { getAdsForPlacement, type AdPlacementId } from '../config/ads';
+
+interface Props {
+  slotId?: AdPlacementId;
+  class?: string;
+}
+
+const { slotId = 'itinerary_bottom', class: className = '' } = Astro.props;
+const { placement, ads } = getAdsForPlacement(slotId);
+
+// 掲載枠が無効または表示対象の広告がない場合はレンダリングしない
+if (!placement || ads.length === 0) {
+  return null;
+}
+
+const hasMultipleAds = ads.length > 1;
+const uniqueSlotKey = `ad-slot-${slotId}`;
+---
+
+<aside
+  id={uniqueSlotKey}
+  data-ad-slot-container
+  class={`w-full max-w-5xl mx-auto mt-6 mb-1 pt-4 pb-0 border-t border-slate-200/80 select-none ${className}`}
+  aria-label="プロモーション"
+>
+  <!-- 控えめなPR表記 -->
+  <div class="flex items-center justify-between gap-2 mb-2 px-1 text-slate-400 text-[11px] font-medium">
+    <div class="flex items-center gap-1.5">
+      <span aria-hidden="true" class="text-xs">{placement.icon}</span>
+      <span class="ad-label-text">{placement.label}</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <!-- ページネーション ドット（複数広告時のみ） -->
+      {hasMultipleAds && (
+        <div class="flex items-center gap-1" aria-label="スライド切り替え">
+          {ads.map((ad, index) => (
+            <button
+              type="button"
+              class={`ad-dot w-2 h-2 rounded-full transition-all p-0 border-0 cursor-pointer ${index === 0 ? 'bg-slate-400' : 'bg-slate-200'}`}
+              aria-label={`${index + 1}つ目の広告（${ad.name}）を表示`}
+              data-dot-index={index}
+            ></button>
+          ))}
+        </div>
+      )}
+      <span class="text-[10px] tracking-wider text-slate-500 font-bold bg-slate-200/70 px-1.5 py-0.5 rounded">PR</span>
+    </div>
+  </div>
+
+  <!-- 広告表示エリア（左右に切り替えボタンを独立配置し誤タップを防止） -->
+  <div class="flex items-center justify-center gap-1 sm:gap-2.5 w-full">
+    <!-- 前へボタン（＜）（複数広告時のみ） -->
+    {hasMultipleAds ? (
+      <button
+        type="button"
+        class="ad-prev-btn shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200/80 active:scale-95 text-slate-500 hover:text-slate-800 transition-all border border-slate-200/60 shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+        aria-label="前のプロモーションを表示"
+        title="前のプロモーション"
+      >
+        <svg class="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m15 18-6-6 6-6"/>
+        </svg>
+      </button>
+    ) : (
+      <div class="w-7 sm:w-8 shrink-0 opacity-0 pointer-events-none" aria-hidden="true" />
+    )}
+
+    <!-- 1枠ローテーションバナー（最大320×60・中央揃えで比率の違いを吸収） -->
+    <div
+      class="ad-rotator relative w-full max-w-[320px] h-[60px] overflow-hidden rounded bg-transparent shrink"
+    >
+      {ads.map((ad, index) => (
+        <div
+          class={`ad-slide absolute inset-0 flex items-center justify-center transition-opacity duration-700 ${
+            index === 0 ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0'
+          }`}
+          data-index={index}
+        >
+          <a
+            href={ad.linkUrl}
+            rel="nofollow noopener noreferrer"
+            target="_blank"
+            class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
+          >
+            <img
+              src={ad.imageUrl}
+              border="0"
+              width={ad.width}
+              height={ad.height}
+              alt={ad.alt}
+              loading="lazy"
+              class="rounded max-w-full h-auto block"
+            />
+          </a>
+          {ad.trackingPixelUrl && (
+            <img
+              border="0"
+              width="1"
+              height="1"
+              src={ad.trackingPixelUrl}
+              alt=""
+              class="inline"
+            />
+          )}
+        </div>
+      ))}
+    </div>
+
+    <!-- 次へボタン（＞）（複数広告時のみ） -->
+    {hasMultipleAds ? (
+      <button
+        type="button"
+        class="ad-next-btn shrink-0 w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200/80 active:scale-95 text-slate-500 hover:text-slate-800 transition-all border border-slate-200/60 shadow-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+        aria-label="次のプロモーションを表示"
+        title="次のプロモーション"
+      >
+        <svg class="w-3.5 h-3.5 stroke-[2.5]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m9 18 6-6-6-6"/>
+        </svg>
+      </button>
+    ) : (
+      <div class="w-7 sm:w-8 shrink-0 opacity-0 pointer-events-none" aria-hidden="true" />
+    )}
+  </div>
+</aside>
+
+<script>
+  function setupAllAdRotators() {
+    const containers = document.querySelectorAll<HTMLElement>('[data-ad-slot-container]');
+
+    containers.forEach((container) => {
+      if (container.dataset.initialized === 'true') return;
+      container.dataset.initialized = 'true';
+
+      const rotator = container.querySelector<HTMLElement>('.ad-rotator');
+      if (!rotator) return;
+
+      const slides = rotator.querySelectorAll<HTMLElement>('.ad-slide');
+      const dots = container.querySelectorAll<HTMLElement>('.ad-dot');
+      const prevBtn = container.querySelector<HTMLElement>('.ad-prev-btn');
+      const nextBtn = container.querySelector<HTMLElement>('.ad-next-btn');
+
+      if (slides.length <= 1) {
+        return;
+      }
+
+      let currentIndex = 0;
+      let timerId: ReturnType<typeof setInterval> | null = null;
+      const intervalMs = 6000;
+
+      function showSlide(index: number) {
+        slides.forEach((slide, i) => {
+          const isActive = i === index;
+          slide.classList.toggle('opacity-100', isActive);
+          slide.classList.toggle('opacity-0', !isActive);
+          slide.classList.toggle('pointer-events-none', !isActive);
+          slide.classList.toggle('z-10', isActive);
+          slide.classList.toggle('z-0', !isActive);
+        });
+
+        dots.forEach((dot, i) => {
+          const isActive = i === index;
+          dot.classList.toggle('bg-slate-400', isActive);
+          dot.classList.toggle('bg-slate-200', !isActive);
+        });
+
+        currentIndex = index;
+      }
+
+      function nextSlide() {
+        const nextIndex = (currentIndex + 1) % slides.length;
+        showSlide(nextIndex);
+      }
+
+      function prevSlide() {
+        const prevIndex = (currentIndex - 1 + slides.length) % slides.length;
+        showSlide(prevIndex);
+      }
+
+      function startTimer() {
+        stopTimer();
+        timerId = setInterval(nextSlide, intervalMs);
+      }
+
+      function stopTimer() {
+        if (timerId) {
+          clearInterval(timerId);
+          timerId = null;
+        }
+      }
+
+      if (nextBtn) {
+        nextBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          nextSlide();
+          startTimer();
+        });
+      }
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          prevSlide();
+          startTimer();
+        });
+      }
+
+      dots.forEach((dot, i) => {
+        dot.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showSlide(i);
+          startTimer();
+        });
+      });
+
+      rotator.addEventListener('mouseenter', stopTimer);
+      rotator.addEventListener('mouseleave', startTimer);
+      rotator.addEventListener('touchstart', stopTimer, { passive: true });
+
+      startTimer();
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupAllAdRotators);
+  } else {
+    setupAllAdRotators();
+  }
+</script>

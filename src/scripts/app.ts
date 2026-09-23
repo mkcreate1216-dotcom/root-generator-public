@@ -773,6 +773,15 @@ function renderTabs(): void {
     button.addEventListener('click', () => {
       state.activeDayIndex = index;
       state.openRouteMenuIndex = null;
+      if (collapsedDays.has(index)) {
+        collapsedDays.delete(index);
+        const targetDetails = document.getElementById(`day-section-${index}`) as HTMLDetailsElement | null;
+        if (targetDetails) {
+          targetDetails.open = true;
+          const routeSummary = targetDetails.querySelector<HTMLElement>('summary > div');
+          if (routeSummary) routeSummary.classList.add('hidden');
+        }
+      }
       saveState();
 
       isScrollingToTab = true;
@@ -1657,9 +1666,7 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
   const details = document.createElement('details');
   details.id = `day-section-${dayIndex}`;
   details.dataset.dayIndex = String(dayIndex);
-  details.className = `border-t border-slate-200 py-2 first:border-t-0 first:pt-0 ${
-    isLastDay ? 'min-h-[calc(100vh-var(--total-sticky-height,150px)-2rem)]' : ''
-  }`;
+  details.className = 'border-t border-slate-200 py-2 first:border-t-0 first:pt-0';
   details.style.scrollMarginTop = 'calc(var(--total-sticky-height, 150px) + 8px)';
   details.open = !collapsedDays.has(dayIndex);
 
@@ -1723,9 +1730,29 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
       collapsedDays.add(dayIndex);
     }
     routeSummary.classList.toggle('hidden', details.open);
+    updateActiveDayFromScroll();
   });
 
-  details.addEventListener('click', () => {
+  summary.addEventListener('click', () => {
+    state.activeDayIndex = dayIndex;
+    state.openRouteMenuIndex = null;
+    saveState();
+    renderAddSpotOptions();
+    renderTabs();
+
+    isScrollingToTab = true;
+    if (scrollTimeoutId) clearTimeout(scrollTimeoutId);
+    scrollTimeoutId = setTimeout(() => {
+      isScrollingToTab = false;
+    }, 800);
+
+    setTimeout(() => {
+      scrollToDay(dayIndex);
+    }, 50);
+  });
+
+  details.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement)?.closest('summary')) return;
     if (state.activeDayIndex !== dayIndex) {
       state.activeDayIndex = dayIndex;
       saveState();
@@ -1758,7 +1785,7 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
   details.appendChild(summary);
 
   const body = document.createElement('div');
-  body.className = `pt-2 ${isLastDay ? 'pb-20' : ''}`;
+  body.className = 'pt-2';
 
   if (items.length === 0) {
     const empty = document.createElement('div');
@@ -1873,7 +1900,7 @@ function renderAccommodation(): void {
 
 function updateActiveDayFromScroll(): void {
   if (isScrollingToTab) return;
-  const sections = [...document.querySelectorAll<HTMLElement>('[data-day-index]')];
+  const sections = [...document.querySelectorAll<HTMLElement>('#timeline details[data-day-index]')];
   if (sections.length === 0) return;
 
   const panelRect = lpSlotWrapperEl ? lpSlotWrapperEl.getBoundingClientRect() : null;
@@ -1889,11 +1916,24 @@ function updateActiveDayFromScroll(): void {
   }
 
   if (!currentSection) {
-    currentSection = sections.reduce((closest, section) => {
-      const rect = section.getBoundingClientRect();
-      const closestRect = closest.getBoundingClientRect();
-      return Math.abs(rect.top - targetY) < Math.abs(closestRect.top - targetY) ? section : closest;
-    });
+    const firstSection = sections[0];
+    const lastSection = sections[sections.length - 1];
+    if (firstSection && firstSection.getBoundingClientRect().top > targetY) {
+      currentSection = firstSection;
+    } else if (lastSection && lastSection.getBoundingClientRect().bottom <= targetY) {
+      const isLastOpen = (lastSection as HTMLDetailsElement).open;
+      if (isLastOpen) {
+        currentSection = lastSection;
+      } else {
+        currentSection = sections.find((s) => Number(s.dataset.dayIndex) === state.activeDayIndex) || lastSection;
+      }
+    } else {
+      currentSection = sections.reduce((closest, section) => {
+        const rect = section.getBoundingClientRect();
+        const closestRect = closest.getBoundingClientRect();
+        return Math.abs(rect.top - targetY) < Math.abs(closestRect.top - targetY) ? section : closest;
+      });
+    }
   }
 
   const dayIndex = Number(currentSection.dataset.dayIndex);
@@ -2309,16 +2349,6 @@ function setupEventListeners(): void {
 
   tripConfirmBtnEl?.addEventListener('click', () => {
     confirmTrip();
-  });
-
-  document.querySelectorAll<HTMLElement>('[data-sample-trip]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const val = btn.dataset.sampleTrip;
-      if (val && tripNameInputEl) {
-        tripNameInputEl.value = val;
-        confirmTrip();
-      }
-    });
   });
 
 
