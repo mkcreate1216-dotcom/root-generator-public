@@ -560,6 +560,22 @@ details[open] summary .day-chevron {
   will-change: transform, opacity, max-height, margin-top;
 }
 
+/* iOS Safari等でのフォーカス時オートズーム防止（16px未満で発生する挙動への対策） */
+@media (max-width: 639px) {
+  input:not([type]),
+  input[type='text'],
+  input[type='search'],
+  input[type='url'],
+  input[type='tel'],
+  input[type='email'],
+  input[type='password'],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+
 
 
 
