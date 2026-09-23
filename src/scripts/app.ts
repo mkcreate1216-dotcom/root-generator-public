@@ -1666,9 +1666,6 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
   const details = document.createElement('details');
   details.id = `day-section-${dayIndex}`;
   details.dataset.dayIndex = String(dayIndex);
-  details.className = `border-t border-slate-200 py-2 first:border-t-0 first:pt-0 ${
-    isLastDay ? 'min-h-[calc(100vh-var(--total-sticky-height,150px)-2rem)]' : ''
-  }`;
   details.className = 'border-t border-slate-200 py-2 first:border-t-0 first:pt-0';
   details.style.scrollMarginTop = 'calc(var(--total-sticky-height, 150px) + 8px)';
   details.open = !collapsedDays.has(dayIndex);
@@ -1769,7 +1766,6 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
   details.appendChild(summary);
 
   const body = document.createElement('div');
-  body.className = `pt-2 ${isLastDay ? 'pb-20' : ''}`;
   body.className = 'pt-2';
 
   if (items.length === 0) {
@@ -1885,7 +1881,6 @@ function renderAccommodation(): void {
 
 function updateActiveDayFromScroll(): void {
   if (isScrollingToTab) return;
-  const sections = [...document.querySelectorAll<HTMLElement>('[data-day-index]')];
   const sections = [...document.querySelectorAll<HTMLElement>('#timeline details[data-day-index]')];
   if (sections.length === 0) return;
 
@@ -1902,11 +1897,6 @@ function updateActiveDayFromScroll(): void {
   }
 
   if (!currentSection) {
-    currentSection = sections.reduce((closest, section) => {
-      const rect = section.getBoundingClientRect();
-      const closestRect = closest.getBoundingClientRect();
-      return Math.abs(rect.top - targetY) < Math.abs(closestRect.top - targetY) ? section : closest;
-    });
     const firstSection = sections[0];
     const lastSection = sections[sections.length - 1];
     if (firstSection && firstSection.getBoundingClientRect().top > targetY) {
