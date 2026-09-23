@@ -20,48 +20,48 @@ const { class: className = '' } = Astro.props;
     <span class="text-[10px] tracking-wider text-slate-400 font-semibold">PR</span>
   </div>
 
-  <!-- バナー配置（高さを揃えてバランスよく配置） -->
+  <!-- バナー配置（両方300×60の完全一致サイズ） -->
   <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 py-1">
-    <!-- 楽天トラベル -->
-    <div class="w-full sm:w-[280px] flex items-center justify-center">
+    <!-- 楽天トラベル（300×60） -->
+    <div class="flex items-center justify-center">
       <a
-        href="https://rpx.a8.net/svt/ejp?a8mat=4BCHZL+CEJ596+2HOM+6JJXT&rakuten=y&a8ejpredirect=http%3A%2F%2Fhb.afl.rakuten.co.jp%2Fhgc%2F0eb4779e.5d30c5ba.0eb4779f.b871e4e3%2Fa26092361755_4BCHZL_CEJ596_2HOM_6JJXT%3Fpc%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F%26m%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F"
+        href="https://rpx.a8.net/svt/ejp?a8mat=4BCHZL+CEJ596+2HOM+6JZDD&rakuten=y&a8ejpredirect=http%3A%2F%2Fhb.afl.rakuten.co.jp%2Fhgc%2F0eb4779e.5d30c5ba.0eb4779f.b871e4e3%2Fa26092361755_4BCHZL_CEJ596_2HOM_6JZDD%3Fpc%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F%26m%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F"
         rel="nofollow noopener noreferrer"
         target="_blank"
-        class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
+        class="inline-block transition-opacity duration-150 hover:opacity-80 active:opacity-70"
       >
         <img
-          src="https://hbb.afl.rakuten.co.jp/hsb/0ea7f9ad.06b21de0.0ea7f99d.1ac92fca/153145/"
+          src="https://hbb.afl.rakuten.co.jp/hsb/0ea7f9c5.e8977d11.0ea7f99d.1ac92fca/153145/"
           border="0"
           alt="楽天トラベルでホテル・宿を探す"
           loading="lazy"
-          class="rounded h-[38px] sm:h-[42px] w-auto max-w-full object-contain"
+          class="rounded max-w-full h-auto"
         />
       </a>
       <img
         border="0"
         width="1"
         height="1"
-        src="https://www15.a8.net/0.gif?a8mat=4BCHZL+CEJ596+2HOM+6JJXT"
+        src="https://www15.a8.net/0.gif?a8mat=4BCHZL+CEJ596+2HOM+6JZDD"
         alt=""
         class="inline"
       />
     </div>
 
-    <!-- レンタカー予約（楽天トラベルレンタカー） -->
-    <div class="w-full sm:w-[280px] flex items-center justify-center">
+    <!-- レンタカー予約（楽天トラベルレンタカー 300×60） -->
+    <div class="flex items-center justify-center">
       <a
         href="https://rpx.a8.net/svt/ejp?a8mat=4BCHZL+CEJ4HE+2HOM+6O1Z5&rakuten=y&a8ejpredirect=http%3A%2F%2Fhb.afl.rakuten.co.jp%2Fhsc%2F0ea81083.052227c6.0ea81082.5814e1a7%2Fa26092361755_4BCHZL_CEJ4HE_2HOM_6O1Z5"
         rel="nofollow noopener noreferrer"
         target="_blank"
-        class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
+        class="inline-block transition-opacity duration-150 hover:opacity-80 active:opacity-70"
       >
         <img
           src="https://hbb.afl.rakuten.co.jp/hsb/0ea8108d.e9282def.0ea81082.5814e1a7/"
           border="0"
           alt="楽天トラベルでレンタカーを予約する"
           loading="lazy"
-          class="rounded h-[38px] sm:h-[42px] w-auto max-w-full object-contain"
+          class="rounded max-w-full h-auto"
         />
       </a>
       <img
