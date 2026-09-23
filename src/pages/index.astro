@@ -5,6 +5,7 @@ import TripCombobox from '../components/TripCombobox.astro';
 import SpotAddForm from '../components/SpotAddForm.astro';
 import DayTabs from '../components/DayTabs.astro';
 import Tooltip from '../components/Tooltip.astro';
+import TravelBookingAd from '../components/TravelBookingAd.astro';
 ---
 
 <Layout>
@@ -42,7 +43,12 @@ import Tooltip from '../components/Tooltip.astro';
 
       <!-- 日程セクション（旅行名入力後に展開） -->
       <section id="itinerary-section" class="hidden w-full p-4 pt-2 sm:p-6 sm:pt-2">
-        <div id="timeline" class="space-y-0 pb-12 pr-[3.75rem] sm:pr-0"></div>
+        <div id="timeline" class="space-y-0 pb-6 pr-[3.75rem] sm:pr-0"></div>
+
+        <!-- 旅の準備（宿泊・レンタカー予約プロモーション） -->
+        <div class="pr-[3.75rem] sm:pr-0">
+          <TravelBookingAd />
+        </div>
 
         <div id="endpoint-section" class="hidden mt-6 clay-sunken p-3.5 sm:p-5">
           <div id="departure-field">
