@@ -343,6 +343,15 @@ body::before {
   margin-top: 0.5rem;
 }
 
+/* 旅行名切り替えアイコン: ホバー時・アクティブ時も含め垂直中央（Y位置）を完全固定 */
+#trip-combobox-toggle,
+#trip-combobox-toggle:hover,
+#trip-combobox-toggle:focus,
+#trip-combobox-toggle:active {
+  transform: translateY(-50%) !important;
+  margin: 0 !important;
+}
+
 /* 旅行名入力コンテナ: アプリ表示時の左寄せモード */
 #trip-combobox-container.app-mode {
   max-width: 100% !important;
@@ -550,6 +559,22 @@ details[open] summary .day-chevron {
   pointer-events: none !important;
   will-change: transform, opacity, max-height, margin-top;
 }
+
+/* iOS Safari等でのフォーカス時オートズーム防止（16px未満で発生する挙動への対策） */
+@media (max-width: 639px) {
+  input:not([type]),
+  input[type='text'],
+  input[type='search'],
+  input[type='url'],
+  input[type='tel'],
+  input[type='email'],
+  input[type='password'],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
 
 
 

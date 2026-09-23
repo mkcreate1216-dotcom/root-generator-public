@@ -916,14 +916,14 @@ function renderTabs(): void {
     const isUnsaved = collabState.hasUnsavedChanges;
     saveButton.className = `relative flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full p-0 transition-all duration-75 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
       isUnsaved
-        ? 'clay-btn-dark text-white ring-2 ring-amber-400'
+        ? 'clay-btn text-amber-500 ring-2 ring-amber-400'
         : 'clay-btn text-slate-700'
     }`;
     const saveTooltip = isUnsaved ? '変更を保存（未保存の変更あり）' : '変更を保存済み';
     saveButton.setAttribute('aria-label', saveTooltip);
     saveButton.setAttribute('data-tooltip', saveTooltip);
     saveButton.setAttribute('data-tooltip-pos', 'left');
-    saveButton.innerHTML = `<i data-lucide="save" class="h-3.5 w-3.5 sm:h-4 sm:w-4 ${isUnsaved ? 'text-amber-400' : ''}"></i>`;
+    saveButton.innerHTML = `<i data-lucide="save" class="h-3.5 w-3.5 sm:h-4 sm:w-4 ${isUnsaved ? 'text-amber-500' : ''}"></i>`;
     if (isUnsaved) {
       const dot = document.createElement('span');
       dot.className = 'absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-amber-500 ring-2 ring-white';
@@ -1045,7 +1045,7 @@ function createMemoComponent(options: {
     if (isEditing) {
       const editBox = document.createElement('div');
       editBox.className =
-        'rounded-2xl clay-sunken p-2.5 transition-all focus-within:ring-2 focus-within:ring-slate-900';
+        'rounded-lg border border-slate-300 bg-white p-2 shadow-xs transition-all focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200';
 
       const textarea = document.createElement('textarea');
       textarea.value = currentMemo;
@@ -1064,7 +1064,7 @@ function createMemoComponent(options: {
       const finishBtn = document.createElement('button');
       finishBtn.type = 'button';
       finishBtn.className =
-        'clay-btn-dark rounded-xl px-3 py-1 text-[11px] font-bold text-white cursor-pointer select-none';
+        'rounded bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white transition-colors duration-75 hover:bg-slate-800 cursor-pointer select-none';
       finishBtn.textContent = '完了';
 
       let isFinished = false;
@@ -1110,11 +1110,11 @@ function createMemoComponent(options: {
     const parsed = parseMemo(currentMemo);
 
     if (!parsed.firstLine.trim() && !parsed.hasRest) {
-      // メモが未設定の場合
+      // メモが未設定の場合（控えめなテキストボタン）
       const addBtn = document.createElement('button');
       addBtn.type = 'button';
       addBtn.className =
-        'inline-flex items-center gap-1.5 rounded-xl clay-btn px-2.5 py-1 text-[11px] font-semibold text-slate-500 hover:text-slate-800 cursor-pointer select-none';
+        'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-slate-400 transition-colors duration-75 hover:bg-slate-100 hover:text-slate-700 cursor-pointer select-none';
       addBtn.innerHTML = '<i data-lucide="file-text" class="h-3 w-3"></i><span>+ メモを追加</span>';
       addBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1126,10 +1126,10 @@ function createMemoComponent(options: {
       return;
     }
 
-    // メモが存在する場合
+    // メモが存在する場合（控えめな枠線と背景のシンプルUI）
     const previewBox = document.createElement('div');
     previewBox.className =
-      'group rounded-xl clay-sunken p-2.5 text-xs transition-all';
+      'group rounded-lg border border-slate-200/80 bg-slate-50/80 p-2 text-xs transition-colors duration-75 hover:border-slate-300 hover:bg-slate-50';
 
     // 1行目表示行
     const headerRow = document.createElement('div');
@@ -1150,7 +1150,7 @@ function createMemoComponent(options: {
     clockIcon.className = 'h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors';
 
     const firstLineSpan = document.createElement('span');
-    firstLineSpan.className = 'truncate font-medium text-slate-800';
+    firstLineSpan.className = 'truncate font-normal text-slate-700';
     firstLineSpan.textContent = parsed.firstLine || '(メモ)';
 
     firstLineContent.append(clockIcon, firstLineSpan);
@@ -1158,12 +1158,12 @@ function createMemoComponent(options: {
     const btnGroup = document.createElement('div');
     btnGroup.className = 'flex shrink-0 items-center gap-1';
 
-    // 2行目以降がある場合のみアコーディオン展開ボタンを表示（要件3, 4）
+    // 2行目以降がある場合のみアコーディオン展開ボタンを表示
     if (parsed.hasRest) {
       const toggleBtn = document.createElement('button');
       toggleBtn.type = 'button';
       toggleBtn.className =
-        'inline-flex items-center gap-1 rounded-lg clay-btn px-2 py-0.5 text-[10px] font-medium text-slate-600 cursor-pointer select-none';
+        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 transition-colors duration-75 hover:bg-slate-200/70 hover:text-slate-800 cursor-pointer select-none';
       toggleBtn.innerHTML = isExpanded
         ? '<span>閉じる</span><i data-lucide="chevron-up" class="h-3 w-3"></i>'
         : '<span>詳細</span><i data-lucide="chevron-down" class="h-3 w-3"></i>';
@@ -1182,7 +1182,7 @@ function createMemoComponent(options: {
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
     editBtn.className =
-      'rounded-lg p-1 text-slate-400 hover:text-slate-800 transition-all cursor-pointer';
+      'rounded p-1 text-slate-400 opacity-60 transition-all duration-75 hover:bg-slate-200/70 hover:text-slate-700 hover:opacity-100 group-hover:opacity-100 cursor-pointer';
     editBtn.title = 'メモを編集';
     editBtn.innerHTML = '<i data-lucide="pencil" class="h-3 w-3"></i>';
     editBtn.addEventListener('click', (e) => {
@@ -1319,12 +1319,12 @@ function createSpotCard(
   controls.className = 'mt-2 flex items-center justify-between gap-2';
 
   const moveGroup = document.createElement('div');
-  moveGroup.className = 'flex items-center gap-1';
+  moveGroup.className = 'flex items-center gap-0.5';
 
   const upBtn = document.createElement('button');
   upBtn.type = 'button';
   upBtn.className =
-    'rounded-xl clay-btn p-1.5 text-slate-600 transition-all duration-75 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer';
+    'rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
   upBtn.innerHTML = '<i data-lucide="arrow-up" class="h-3.5 w-3.5"></i>';
   upBtn.setAttribute('aria-label', '上に移動');
   upBtn.setAttribute('data-tooltip', '上に移動');
@@ -1335,7 +1335,7 @@ function createSpotCard(
   const downBtn = document.createElement('button');
   downBtn.type = 'button';
   downBtn.className =
-    'rounded-xl clay-btn p-1.5 text-slate-600 transition-all duration-75 disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer';
+    'rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
   downBtn.innerHTML = '<i data-lucide="arrow-down" class="h-3.5 w-3.5"></i>';
   downBtn.setAttribute('aria-label', '下に移動');
   downBtn.setAttribute('data-tooltip', '下に移動');
@@ -1346,14 +1346,14 @@ function createSpotCard(
   moveGroup.append(upBtn, downBtn);
 
   const hint = document.createElement('span');
-  hint.className = 'flex-1 text-xs text-slate-500';
+  hint.className = 'flex-1 text-xs text-slate-400';
   hint.textContent =
     dayIndex > 0 && index === 0 && state.days[dayIndex].autoStart ? '前日の宿泊地を反映中' : '';
 
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
   removeBtn.className =
-    'rounded-xl clay-btn px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-red-600 transition-all duration-75 cursor-pointer';
+    'rounded-lg px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer';
   removeBtn.textContent = '削除';
   removeBtn.setAttribute('aria-label', 'スポットを削除');
   removeBtn.setAttribute('data-tooltip', 'スポットを削除');
@@ -1467,7 +1467,7 @@ function createAccommodationCard(
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
   removeBtn.className =
-    'rounded-xl clay-btn px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-red-600 transition-all duration-75 cursor-pointer';
+    'rounded-lg px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer';
   removeBtn.textContent = '削除';
   removeBtn.setAttribute('aria-label', '宿泊地を削除');
   removeBtn.setAttribute('data-tooltip', '宿泊地を削除');
@@ -1585,7 +1585,7 @@ function createEndpointCard(
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
   removeBtn.className =
-    'rounded-xl clay-btn px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-red-600 transition-all duration-75 cursor-pointer';
+    'rounded-lg px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer';
   removeBtn.textContent = '削除';
   removeBtn.setAttribute('aria-label', `${label}を削除`);
   removeBtn.setAttribute('data-tooltip', `${label}を削除`);
@@ -1624,19 +1624,19 @@ function createRouteConnector(
   _dayIndex = state.activeDayIndex
 ): HTMLElement {
   const wrap = document.createElement('div');
-  wrap.className = 'relative z-0 flex flex-col items-center py-3';
+  wrap.className = 'relative z-0 flex flex-col items-center py-2.5';
 
   const line = document.createElement('div');
   line.className =
-    'pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 border-l-2 border-dashed border-slate-200';
+    'pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 border-l-2 border-dashed border-slate-300';
 
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.setAttribute('data-route-btn', 'true');
   const mapLabel = state.mapType === 'apple' ? 'Apple' : 'Google';
   btn.className =
-    'relative z-10 inline-flex items-center gap-1.5 rounded-full clay-btn px-3.5 py-1.5 text-xs font-semibold text-slate-700 cursor-pointer select-none transition-all duration-75';
-  btn.innerHTML = '<i data-lucide="route" class="h-3.5 w-3.5"></i>ルート';
+    'relative z-10 inline-flex items-center gap-1.5 rounded-full clay-btn-dark px-4 py-1.5 text-xs font-bold text-white shadow-md hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
+  btn.innerHTML = '<i data-lucide="route" class="h-3.5 w-3.5 text-slate-200"></i><span>ルート検索</span>';
   btn.setAttribute('data-tooltip', `${mapLabel}でルートを開く`);
   btn.setAttribute('data-tooltip-pos', 'bottom');
   btn.addEventListener('click', (e) => {
