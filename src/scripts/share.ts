@@ -64,7 +64,7 @@ export function getDayItems(day: Day, dayIndex: number, state: AppState): DayIte
     const spotMemo = typeof spot === 'string' ? '' : spot.memo || '';
     items.push({ type: 'spot', value: spotName, memo: spotMemo, spotIndex: index });
   });
-  if (accommodation && !isLastDay) {
+  if (accommodation) {
     items.push({ type: 'accommodation', value: accommodation, memo: accommodationMemo });
   }
   if (arrival) {
