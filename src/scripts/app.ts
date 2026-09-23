@@ -1733,7 +1733,26 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
     updateActiveDayFromScroll();
   });
 
-  details.addEventListener('click', () => {
+  summary.addEventListener('click', () => {
+    state.activeDayIndex = dayIndex;
+    state.openRouteMenuIndex = null;
+    saveState();
+    renderAddSpotOptions();
+    renderTabs();
+
+    isScrollingToTab = true;
+    if (scrollTimeoutId) clearTimeout(scrollTimeoutId);
+    scrollTimeoutId = setTimeout(() => {
+      isScrollingToTab = false;
+    }, 800);
+
+    setTimeout(() => {
+      scrollToDay(dayIndex);
+    }, 50);
+  });
+
+  details.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement)?.closest('summary')) return;
     if (state.activeDayIndex !== dayIndex) {
       state.activeDayIndex = dayIndex;
       saveState();
