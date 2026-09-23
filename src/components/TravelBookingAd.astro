@@ -8,110 +8,70 @@ const { class: className = '' } = Astro.props;
 
 <aside
   id="travel-booking-ad"
-  class={`travel-booking-ad-card clay-sunken rounded-3xl p-4 sm:p-6 mt-8 mb-6 transition-all duration-200 select-none ${className}`}
-  aria-label="旅の準備・プロモーション"
+  class={`w-full max-w-2xl mx-auto mt-10 mb-4 pt-6 border-t border-slate-200/80 select-none ${className}`}
+  aria-label="プロモーション"
 >
-  <!-- ヘッダー -->
-  <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-200/70">
-    <div class="flex items-center gap-2">
-      <span class="text-base sm:text-lg" aria-hidden="true">✈️</span>
-      <h3 class="text-xs sm:text-sm font-bold text-slate-800 tracking-tight">
-        旅の準備はお済みですか？
-      </h3>
+  <!-- 控えめなPR表記 -->
+  <div class="flex items-center justify-between gap-2 mb-3 px-1 text-slate-400 text-[11px] font-medium">
+    <div class="flex items-center gap-1.5">
+      <span aria-hidden="true" class="text-xs">✈️</span>
+      <span>旅の準備（宿泊・レンタカー）</span>
     </div>
-    <span
-      class="text-[10px] font-semibold text-slate-500 bg-white/80 border border-slate-200/80 px-2 py-0.5 rounded-full clay-pill"
-      title="広告・プロモーション"
-    >
-      PR
-    </span>
+    <span class="text-[10px] tracking-wider text-slate-400 font-semibold">PR</span>
   </div>
 
-  <p class="text-[11px] sm:text-xs text-slate-700 mt-2 mb-4 leading-relaxed">
-    旅程のスポットが決まったら、ホテル・旅館やレンタカーの予約をお忘れなく。
-  </p>
-
-  <!-- 広告バナーグリッド（PC: 2カラム横並び / スマホ: 1カラム縦並び） -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-    <!-- 宿泊・ホテル予約（楽天トラベル） -->
-    <div class="clay-item bg-white/90 rounded-2xl p-3.5 sm:p-4 flex flex-col items-center justify-between gap-3 text-center transition-all hover:bg-white">
-      <div class="space-y-1">
-        <div class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800">
-          <span aria-hidden="true">🏨</span>
-          <span>ホテル・宿の予約</span>
-        </div>
-        <p class="text-[11px] text-slate-700">全国の温泉旅館・ホテルをお得に検索</p>
-      </div>
-
-      <div class="ad-banner-wrapper min-h-[60px] flex items-center justify-center">
-        <!-- 楽天トラベル A8.net コード -->
-        <a
-          href="https://rpx.a8.net/svt/ejp?a8mat=4BCHZL+CEJ596+2HOM+6JJXT&rakuten=y&a8ejpredirect=http%3A%2F%2Fhb.afl.rakuten.co.jp%2Fhgc%2F0eb4779e.5d30c5ba.0eb4779f.b871e4e3%2Fa26092361755_4BCHZL_CEJ596_2HOM_6JJXT%3Fpc%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F%26m%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F"
-          rel="nofollow noopener noreferrer"
-          target="_blank"
-          class="inline-block transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <img
-            src="https://hbb.afl.rakuten.co.jp/hsb/0ea7f9ad.06b21de0.0ea7f99d.1ac92fca/153145/"
-            border="0"
-            alt="楽天トラベルでホテル・宿を探す"
-            loading="lazy"
-            class="rounded-lg max-w-full h-auto"
-          />
-        </a>
+  <!-- バナー配置（高さを揃えてバランスよく配置） -->
+  <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 py-1">
+    <!-- 楽天トラベル -->
+    <div class="w-full sm:w-[280px] flex items-center justify-center">
+      <a
+        href="https://rpx.a8.net/svt/ejp?a8mat=4BCHZL+CEJ596+2HOM+6JJXT&rakuten=y&a8ejpredirect=http%3A%2F%2Fhb.afl.rakuten.co.jp%2Fhgc%2F0eb4779e.5d30c5ba.0eb4779f.b871e4e3%2Fa26092361755_4BCHZL_CEJ596_2HOM_6JJXT%3Fpc%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F%26m%3Dhttp%253A%252F%252Ftravel.rakuten.co.jp%252F"
+        rel="nofollow noopener noreferrer"
+        target="_blank"
+        class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
+      >
         <img
+          src="https://hbb.afl.rakuten.co.jp/hsb/0ea7f9ad.06b21de0.0ea7f99d.1ac92fca/153145/"
           border="0"
-          width="1"
-          height="1"
-          src="https://www15.a8.net/0.gif?a8mat=4BCHZL+CEJ596+2HOM+6JJXT"
-          alt=""
-          class="inline"
+          alt="楽天トラベルでホテル・宿を探す"
+          loading="lazy"
+          class="rounded h-[38px] sm:h-[42px] w-auto max-w-full object-contain"
         />
-      </div>
+      </a>
+      <img
+        border="0"
+        width="1"
+        height="1"
+        src="https://www15.a8.net/0.gif?a8mat=4BCHZL+CEJ596+2HOM+6JJXT"
+        alt=""
+        class="inline"
+      />
     </div>
 
     <!-- レンタカー予約（楽天トラベルレンタカー） -->
-    <div class="clay-item bg-white/90 rounded-2xl p-3.5 sm:p-4 flex flex-col items-center justify-between gap-3 text-center transition-all hover:bg-white">
-      <div class="space-y-1">
-        <div class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-800">
-          <span aria-hidden="true">🚗</span>
-          <span>レンタカーの予約</span>
-        </div>
-        <p class="text-[11px] text-slate-700">旅先の移動に便利なレンタカーを比較・予約</p>
-      </div>
-
-      <div class="ad-banner-wrapper min-h-[60px] flex items-center justify-center">
-        <!-- 楽天トラベル レンタカー A8.net コード -->
-        <a
-          href="https://rpx.a8.net/svt/ejp?a8mat=4BCHZL+CEJ4HE+2HOM+6O1Z5&rakuten=y&a8ejpredirect=http%3A%2F%2Fhb.afl.rakuten.co.jp%2Fhsc%2F0ea81083.052227c6.0ea81082.5814e1a7%2Fa26092361755_4BCHZL_CEJ4HE_2HOM_6O1Z5"
-          rel="nofollow noopener noreferrer"
-          target="_blank"
-          class="inline-block transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <img
-            src="https://hbb.afl.rakuten.co.jp/hsb/0ea8108d.e9282def.0ea81082.5814e1a7/"
-            border="0"
-            alt="楽天トラベルでレンタカーを予約する"
-            loading="lazy"
-            class="rounded-lg max-w-full h-auto"
-          />
-        </a>
+    <div class="w-full sm:w-[280px] flex items-center justify-center">
+      <a
+        href="https://rpx.a8.net/svt/ejp?a8mat=4BCHZL+CEJ4HE+2HOM+6O1Z5&rakuten=y&a8ejpredirect=http%3A%2F%2Fhb.afl.rakuten.co.jp%2Fhsc%2F0ea81083.052227c6.0ea81082.5814e1a7%2Fa26092361755_4BCHZL_CEJ4HE_2HOM_6O1Z5"
+        rel="nofollow noopener noreferrer"
+        target="_blank"
+        class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
+      >
         <img
+          src="https://hbb.afl.rakuten.co.jp/hsb/0ea8108d.e9282def.0ea81082.5814e1a7/"
           border="0"
-          width="1"
-          height="1"
-          src="https://www14.a8.net/0.gif?a8mat=4BCHZL+CEJ4HE+2HOM+6O1Z5"
-          alt=""
-          class="inline"
+          alt="楽天トラベルでレンタカーを予約する"
+          loading="lazy"
+          class="rounded h-[38px] sm:h-[42px] w-auto max-w-full object-contain"
         />
-      </div>
+      </a>
+      <img
+        border="0"
+        width="1"
+        height="1"
+        src="https://www14.a8.net/0.gif?a8mat=4BCHZL+CEJ4HE+2HOM+6O1Z5"
+        alt=""
+        class="inline"
+      />
     </div>
   </div>
 </aside>
-
-<style>
-  .ad-banner-wrapper img:not([width="1"]) {
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-  }
-</style>
-

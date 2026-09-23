@@ -8,7 +8,8 @@
     "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "check": "tsc --noEmit",
+    "check:specs": "node ./scripts/verify-specs.mjs",
+    "check": "node ./scripts/verify-specs.mjs && tsc --noEmit",
     "astro": "astro",
     "d1:apply:local": "wrangler d1 execute tabiori-db --local --file=./db/schema.sql",
     "d1:apply:remote": "wrangler d1 execute tabiori-db --remote --file=./db/schema.sql"

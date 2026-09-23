@@ -26,18 +26,19 @@ import TravelBookingAd from '../components/TravelBookingAd.astro';
       </div>
 
       <!-- LP下部: サンプルタグ（縦に3つ並べる） -->
+      <!-- 【重要仕様 / 改修禁止】このサンプルタグは静的な例示用です。クリック可能（buttonタグ等）にしたり、入力・開始イベントを勝手に追加しないでください。 -->
       <div id="lp-samples-section" class="w-full max-w-xs mx-auto mt-6 text-center transition-all duration-200">
         <p class="text-xs text-slate-500 mb-2.5 select-none font-medium">例:</p>
         <div class="flex flex-col items-center gap-2.5 select-none">
-          <button type="button" data-sample-trip="京都 2泊3日" class="clay-btn w-full rounded-full py-2 px-4 text-xs font-medium text-slate-600 text-center transition-all cursor-pointer hover:text-slate-900">
+          <span class="clay-pill w-full rounded-full py-2 px-4 text-xs font-medium text-slate-500 text-center select-none pointer-events-none">
             京都 2泊3日
-          </button>
-          <button type="button" data-sample-trip="北海道ドライブ" class="clay-btn w-full rounded-full py-2 px-4 text-xs font-medium text-slate-600 text-center transition-all cursor-pointer hover:text-slate-900">
+          </span>
+          <span class="clay-pill w-full rounded-full py-2 px-4 text-xs font-medium text-slate-500 text-center select-none pointer-events-none">
             北海道ドライブ
-          </button>
-          <button type="button" data-sample-trip="金沢 週末ひとり旅" class="clay-btn w-full rounded-full py-2 px-4 text-xs font-medium text-slate-600 text-center transition-all cursor-pointer hover:text-slate-900">
+          </span>
+          <span class="clay-pill w-full rounded-full py-2 px-4 text-xs font-medium text-slate-500 text-center select-none pointer-events-none">
             金沢 週末ひとり旅
-          </button>
+          </span>
         </div>
       </div>
 

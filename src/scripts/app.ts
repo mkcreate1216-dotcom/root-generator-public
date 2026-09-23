@@ -2311,16 +2311,6 @@ function setupEventListeners(): void {
     confirmTrip();
   });
 
-  document.querySelectorAll<HTMLElement>('[data-sample-trip]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const val = btn.dataset.sampleTrip;
-      if (val && tripNameInputEl) {
-        tripNameInputEl.value = val;
-        confirmTrip();
-      }
-    });
-  });
-
 
   if (tripComboboxToggleEl) {
     tripComboboxToggleEl.addEventListener('click', (e) => {
