@@ -18,21 +18,34 @@ export interface AdItem {
   active: boolean;
 }
 
-export type AdPlacementId = 'itinerary_bottom' | 'footer_top';
+export type AdSlotSize = 'compact' | 'medium' | 'rectangle' | 'leaderboard' | 'custom';
+
+export const AD_SIZE_PRESETS: Record<AdSlotSize, { label: string; width: number; height: number }> = {
+  compact: { label: 'コンパクト (320×60)', width: 320, height: 60 },
+  medium: { label: 'モバイルラージ (320×100)', width: 320, height: 100 },
+  rectangle: { label: 'レクタングル (300×250)', width: 300, height: 250 },
+  leaderboard: { label: 'リーダーボード (728×90)', width: 728, height: 90 },
+  custom: { label: 'カスタム', width: 320, height: 60 },
+};
+
+export type AdPlacementId = 'itinerary_bottom' | 'footer_top' | 'lp_hero_bottom' | (string & {});
 
 export interface AdPlacementConfig {
-  id: AdPlacementId;
+  id: string;
   name: string;
   description: string;
   enabled: boolean;
   label: string;
   icon: string;
+  sizePreset: AdSlotSize;
+  maxWidth: number;
+  maxHeight: number;
   adIds: string[];
 }
 
 export interface AdsConfiguration {
   items: AdItem[];
-  placements: Record<AdPlacementId, AdPlacementConfig>;
+  placements: Record<string, AdPlacementConfig>;
 }
 
 export const adsConfig: AdsConfiguration = {
@@ -70,6 +83,9 @@ export const adsConfig: AdsConfiguration = {
       enabled: true,
       label: '旅の準備（宿泊・レンタカー）',
       icon: '✈️',
+      sizePreset: 'compact',
+      maxWidth: 320,
+      maxHeight: 60,
       adIds: ['rakuten-travel-300x60', 'airtrip-car-320x50'],
     },
     footer_top: {
@@ -79,7 +95,22 @@ export const adsConfig: AdsConfiguration = {
       enabled: false,
       label: 'おすすめの旅サービス',
       icon: '🧳',
+      sizePreset: 'compact',
+      maxWidth: 320,
+      maxHeight: 60,
       adIds: ['rakuten-travel-300x60', 'airtrip-car-320x50'],
+    },
+    lp_hero_bottom: {
+      id: 'lp_hero_bottom',
+      name: 'LPヒーロー直下枠',
+      description: 'LPのタイトル・特徴と入力バーの間に表示されるPR枠',
+      enabled: false,
+      label: 'ピックアッププロモーション',
+      icon: '🌟',
+      sizePreset: 'compact',
+      maxWidth: 320,
+      maxHeight: 60,
+      adIds: ['rakuten-travel-300x60'],
     },
   },
 };
@@ -87,7 +118,7 @@ export const adsConfig: AdsConfiguration = {
 /**
  * 指定した掲載枠に表示すべき有効な広告アイテムのリストを取得します。
  */
-export function getAdsForPlacement(placementId: AdPlacementId): {
+export function getAdsForPlacement(placementId: string): {
   placement: AdPlacementConfig | null;
   ads: AdItem[];
 } {

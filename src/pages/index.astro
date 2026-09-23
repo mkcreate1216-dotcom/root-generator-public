@@ -19,6 +19,9 @@ import TravelBookingAd from '../components/TravelBookingAd.astro';
       <!-- LPヒーロー（タイトル・特徴） -->
       <LpHero />
 
+      <!-- LPヒーロー直下プロモーション枠（設定で有効化時のみ表示） -->
+      <TravelBookingAd slotId="lp_hero_bottom" />
+
       <!-- 一体型スマートパネル: 旅行タイトル入力バー + スポット追加フォーム（LP時は中央、アプリ時は上部固定） -->
       <div id="lp-slot-wrapper" class="w-full max-w-xl mx-auto my-1 transition-all duration-300">
         <TripCombobox />

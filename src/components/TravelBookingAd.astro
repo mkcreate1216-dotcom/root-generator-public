@@ -1,8 +1,8 @@
 ---
-import { getAdsForPlacement, type AdPlacementId } from '../config/ads';
+import { getAdsForPlacement } from '../config/ads';
 
 interface Props {
-  slotId?: AdPlacementId;
+  slotId?: string;
   class?: string;
 }
 
@@ -16,6 +16,9 @@ if (!placement || ads.length === 0) {
 
 const hasMultipleAds = ads.length > 1;
 const uniqueSlotKey = `ad-slot-${slotId}`;
+
+const maxWidthPx = placement.maxWidth || 320;
+const maxHeightPx = placement.maxHeight || 60;
 ---
 
 <aside
@@ -24,13 +27,16 @@ const uniqueSlotKey = `ad-slot-${slotId}`;
   class={`w-full max-w-5xl mx-auto mt-6 mb-1 pt-4 pb-0 border-t border-slate-200/80 select-none ${className}`}
   aria-label="プロモーション"
 >
-  <!-- 控えめなPR表記 -->
-  <div class="flex items-center justify-between gap-2 mb-2 px-1 text-slate-400 text-[11px] font-medium">
-    <div class="flex items-center gap-1.5">
-      <span aria-hidden="true" class="text-xs">{placement.icon}</span>
-      <span class="ad-label-text">{placement.label}</span>
+  <!-- 控えめなPR表記（バナー幅に合わせて適度に配置） -->
+  <div
+    class="flex items-center justify-between gap-2 mb-2 px-1 text-slate-400 text-[11px] font-medium mx-auto"
+    style={`max-width: ${maxWidthPx + (hasMultipleAds ? 80 : 0)}px;`}
+  >
+    <div class="flex items-center gap-1.5 truncate">
+      <span aria-hidden="true" class="text-xs shrink-0">{placement.icon}</span>
+      <span class="ad-label-text truncate">{placement.label}</span>
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2 shrink-0">
       <!-- ページネーション ドット（複数広告時のみ） -->
       {hasMultipleAds && (
         <div class="flex items-center gap-1" aria-label="スライド切り替え">
@@ -49,7 +55,7 @@ const uniqueSlotKey = `ad-slot-${slotId}`;
   </div>
 
   <!-- 広告表示エリア（左右に切り替えボタンを独立配置し誤タップを防止） -->
-  <div class="flex items-center justify-center gap-1 sm:gap-2.5 w-full">
+  <div class="flex items-center justify-center gap-1.5 sm:gap-3 w-full">
     <!-- 前へボタン（＜）（複数広告時のみ） -->
     {hasMultipleAds ? (
       <button
@@ -66,9 +72,10 @@ const uniqueSlotKey = `ad-slot-${slotId}`;
       <div class="w-7 sm:w-8 shrink-0 opacity-0 pointer-events-none" aria-hidden="true" />
     )}
 
-    <!-- 1枠ローテーションバナー（最大320×60・中央揃えで比率の違いを吸収） -->
+    <!-- ローテーションバナー（動的サイズ対応・中央揃えで比率の違いを吸収） -->
     <div
-      class="ad-rotator relative w-full max-w-[320px] h-[60px] overflow-hidden rounded bg-transparent shrink"
+      class="ad-rotator relative w-full overflow-hidden rounded bg-transparent shrink flex items-center justify-center"
+      style={`max-width: ${maxWidthPx}px; height: ${maxHeightPx}px;`}
     >
       {ads.map((ad, index) => (
         <div
@@ -81,7 +88,7 @@ const uniqueSlotKey = `ad-slot-${slotId}`;
             href={ad.linkUrl}
             rel="nofollow noopener noreferrer"
             target="_blank"
-            class="inline-flex items-center justify-center transition-opacity duration-150 hover:opacity-80 active:opacity-70"
+            class="inline-flex items-center justify-center max-w-full max-h-full transition-opacity duration-150 hover:opacity-80 active:opacity-70"
           >
             <img
               src={ad.imageUrl}
@@ -90,7 +97,7 @@ const uniqueSlotKey = `ad-slot-${slotId}`;
               height={ad.height}
               alt={ad.alt}
               loading="lazy"
-              class="rounded max-w-full h-auto block"
+              class="rounded max-w-full max-h-full object-contain block"
             />
           </a>
           {ad.trackingPixelUrl && (

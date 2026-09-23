@@ -3,7 +3,29 @@ import type { AppState, Day, MapType, Trip } from './types';
 export const STORAGE_KEY = 'travel-itinerary-mvp-v1';
 export const MAP_TYPE_STORAGE_KEY = 'travel-itinerary-map-type';
 export const TRIPS_STORAGE_KEY = 'travel-itinerary-trips-v1';
-export const MAX_TRIPS = 3;
+export const MAX_TRIPS = Infinity;
+
+export function formatTripDate(isoString?: string): string {
+  if (!isoString) return '';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}/${month}/${day}`;
+  } catch {
+    return '';
+  }
+}
+
+export function sortTripsByCreatedAt(trips: Trip[]): Trip[] {
+  return [...trips].sort((a, b) => {
+    const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return timeB - timeA;
+  });
+}
 
 export function getStoredMapType(): MapType {
   try {
@@ -30,11 +52,15 @@ export function generateTripId(): string {
   return `trip-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function createTripEntry(tripName = ''): Trip {
+export function createTripEntry(tripName = '', isShared = false): Trip {
+  const now = new Date().toISOString();
   return {
     id: generateTripId(),
     shareId: undefined,
     tripName: tripName || '',
+    createdAt: now,
+    updatedAt: now,
+    isShared,
     days: [createDay(1)],
     activeDayIndex: 0,
     departure: '',
@@ -99,6 +125,27 @@ export function sanitizeTrip(trip: any): Trip {
     typeof sanitized.autoArrival === 'boolean'
       ? sanitized.autoArrival
       : !sanitized.arrival || sanitized.arrival === sanitized.departure;
+
+  // 作成日の復元 (既存データは trip.id のタイムスタンプから復元、または現在時刻)
+  let createdAt = typeof sanitized.createdAt === 'string' && sanitized.createdAt ? sanitized.createdAt : '';
+  if (!createdAt) {
+    const match = typeof sanitized.id === 'string' ? sanitized.id.match(/^trip-(\d+)/) : null;
+    if (match && match[1]) {
+      const ts = Number(match[1]);
+      if (!isNaN(ts) && ts > 0) {
+        createdAt = new Date(ts).toISOString();
+      }
+    }
+  }
+  if (!createdAt) {
+    createdAt = new Date().toISOString();
+  }
+  sanitized.createdAt = createdAt;
+  sanitized.updatedAt =
+    typeof sanitized.updatedAt === 'string' && sanitized.updatedAt ? sanitized.updatedAt : createdAt;
+  sanitized.isShared =
+    typeof sanitized.isShared === 'boolean' ? sanitized.isShared : Boolean(sanitized.shareId);
+
   return sanitized as Trip;
 }
 
@@ -123,7 +170,7 @@ export class TripStore {
         const parsed = JSON.parse(raw);
         this.trips =
           Array.isArray(parsed.trips) && parsed.trips.length
-            ? parsed.trips.slice(0, MAX_TRIPS).map(sanitizeTrip)
+            ? sortTripsByCreatedAt(parsed.trips.map(sanitizeTrip))
             : [];
         if (!this.trips.length) this.trips = [createTripEntry('')];
         this.activeTripId = this.trips.some((t) => t.id === parsed.activeTripId)
@@ -175,14 +222,19 @@ export class TripStore {
     trip.arrivalMemo = state.arrivalMemo || '';
     trip.autoArrival = state.autoArrival;
     trip.mapType = state.mapType;
+    trip.updatedAt = new Date().toISOString();
   }
 
   save(state: AppState): void {
     this.persistActiveTripFromState(state);
-    localStorage.setItem(
-      TRIPS_STORAGE_KEY,
-      JSON.stringify({ trips: this.trips, activeTripId: this.activeTripId })
-    );
+    try {
+      localStorage.setItem(
+        TRIPS_STORAGE_KEY,
+        JSON.stringify({ trips: this.trips, activeTripId: this.activeTripId })
+      );
+    } catch (e) {
+      console.warn('Failed to save trips to localStorage:', e);
+    }
   }
 }
 

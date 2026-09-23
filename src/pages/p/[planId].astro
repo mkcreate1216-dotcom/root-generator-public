@@ -39,7 +39,7 @@ if (!initialPlanData) {
   return Astro.redirect('/?notfound=1');
 }
 
-const pageTitle = `${initialPlanData.title} - たびおり`;
+const pageTitle = `${initialPlanData.title} - たびろーむ`;
 ---
 
 <Layout title={pageTitle}>
@@ -52,6 +52,9 @@ const pageTitle = `${initialPlanData.title} - たびおり`;
 
       <!-- LPヒーロー（共有URL経由時はJS側ですぐアプリ画面に切り替わります） -->
       <LpHero />
+
+      <!-- LPヒーロー直下プロモーション枠（設定で有効化時のみ表示） -->
+      <TravelBookingAd slotId="lp_hero_bottom" />
 
       <!-- 一体型スマートパネル: 旅行タイトル入力バー + スポット追加フォーム -->
       <div id="lp-slot-wrapper" class="w-full max-w-xl mx-auto my-1 transition-all duration-300">

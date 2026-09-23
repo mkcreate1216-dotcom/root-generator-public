@@ -1,4 +1,4 @@
--- D1 schema for tabi-ori plans
+-- D1 schema for tabirome plans
 CREATE TABLE IF NOT EXISTS plans (
   id TEXT PRIMARY KEY,
   title TEXT NOT NULL DEFAULT '',

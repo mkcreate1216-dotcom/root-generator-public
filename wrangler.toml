@@ -10,5 +10,5 @@ binding = "ASSETS"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "tabiori-db"
-database_id = "1d39c9b7-1121-4670-a423-5cc25f1ee4aa"
+database_name = "tabirome-db"
+database_id = "ac767fff-28ce-4a23-b81f-f87259ef97c9"
