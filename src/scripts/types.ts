@@ -24,6 +24,9 @@ export interface Trip {
   id: string;
   shareId?: string;
   tripName: string;
+  createdAt?: string;
+  updatedAt?: string;
+  isShared?: boolean;
   days: Day[];
   activeDayIndex: number;
   departure: string;

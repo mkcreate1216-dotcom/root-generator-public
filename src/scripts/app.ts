@@ -23,10 +23,11 @@ import type { AppState, Day, MapType } from './types';
 import {
   TripStore,
   MAP_TYPE_STORAGE_KEY,
-  MAX_TRIPS,
   createDay,
   createTripEntry,
   getStoredMapType,
+  formatTripDate,
+  sortTripsByCreatedAt,
 } from './storage';
 import { getDayRouteUrl, openRoute } from './maps';
 import { copyShareItinerary, extractDataFromUrl, parseShareUrlData, getDayItems, showToast } from './share';
@@ -333,13 +334,10 @@ function syncCollabStateWithActiveTrip(): void {
 }
 
 function createNewTrip(): void {
-  if (tripStore.trips.length >= MAX_TRIPS) {
-    alert(`旅行は最大${MAX_TRIPS}件までしか作成できません。`);
-    return;
-  }
   saveState();
   const newTrip = createTripEntry('');
-  tripStore.trips.push(newTrip);
+  // 最新の旅程が一番上に来るように先頭に登録
+  tripStore.trips.unshift(newTrip);
   tripStore.activeTripId = newTrip.id;
   tripStore.applyActiveTripToState(state);
   syncCollabStateWithActiveTrip();
@@ -380,17 +378,21 @@ function deleteTrip(tripId: string): void {
 function renderTripComboboxMenu(): void {
   if (!tripComboboxMenuEl) return;
   tripComboboxMenuEl.innerHTML = '';
+
+  // 常に最新（作成日の降順）で並ぶように保証
+  tripStore.trips = sortTripsByCreatedAt(tripStore.trips);
+
   tripStore.trips.forEach((trip, index) => {
     const item = document.createElement('li');
     const isSelected = trip.id === tripStore.activeTripId;
-    item.className = `flex cursor-pointer items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 text-sm transition-all duration-75 ${
+    item.className = `flex cursor-pointer items-center justify-between gap-2.5 rounded-xl px-3.5 py-2 text-sm transition-all duration-75 ${
       isSelected ? 'clay-sunken font-bold text-slate-900' : 'hover:bg-slate-100 text-slate-700'
     }`;
     item.setAttribute('role', 'option');
     item.setAttribute('aria-selected', String(isSelected));
 
     const labelArea = document.createElement('div');
-    labelArea.className = 'flex min-w-0 flex-1 items-center gap-2';
+    labelArea.className = 'flex min-w-0 flex-1 items-center gap-2.5';
 
     if (isSelected) {
       const check = document.createElement('i');
@@ -403,13 +405,37 @@ function renderTripComboboxMenu(): void {
       labelArea.appendChild(spacer);
     }
 
+    const textContainer = document.createElement('div');
+    textContainer.className = 'flex min-w-0 flex-1 flex-col';
+
+    const titleRow = document.createElement('div');
+    titleRow.className = 'flex items-center gap-1.5 min-w-0';
+
     const displayName =
       trip.tripName && trip.tripName.trim() ? trip.tripName : `旅行${index + 1}（名称未設定）`;
     const label = document.createElement('span');
-    label.className = 'truncate';
+    label.className = `truncate ${isSelected ? 'font-bold text-slate-900' : 'font-medium text-slate-800'}`;
     label.textContent = displayName;
-    labelArea.appendChild(label);
+    titleRow.appendChild(label);
 
+    if (trip.isShared || trip.shareId) {
+      const sharedBadge = document.createElement('span');
+      sharedBadge.className =
+        'inline-flex shrink-0 items-center rounded bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold text-sky-600 border border-sky-200/60';
+      sharedBadge.textContent = '共有';
+      titleRow.appendChild(sharedBadge);
+    }
+    textContainer.appendChild(titleRow);
+
+    const formattedDate = formatTripDate(trip.createdAt);
+    if (formattedDate) {
+      const dateLabel = document.createElement('span');
+      dateLabel.className = 'text-[11px] text-slate-400 font-normal leading-tight';
+      dateLabel.textContent = `${formattedDate} 作成`;
+      textContainer.appendChild(dateLabel);
+    }
+
+    labelArea.appendChild(textContainer);
     item.appendChild(labelArea);
 
     const deleteBtn = document.createElement('button');
@@ -460,23 +486,14 @@ function renderTripComboboxMenu(): void {
   const addActionItem = document.createElement('li');
   const addBtn = document.createElement('button');
   addBtn.type = 'button';
-  const isMaxTrips = tripStore.trips.length >= MAX_TRIPS;
-  addBtn.className = `flex w-full items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all duration-75 ${
-    isMaxTrips
-      ? 'cursor-not-allowed text-slate-400'
-      : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer'
-  }`;
+  addBtn.className =
+    'flex w-full items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-semibold transition-all duration-75 text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer';
   addBtn.innerHTML = '<i data-lucide="plus" class="h-4 w-4 shrink-0"></i><span>新しい旅程を作成</span>';
-  if (isMaxTrips) {
-    addBtn.disabled = true;
-    addBtn.title = `旅行は最大${MAX_TRIPS}件まで作成できます`;
-  } else {
-    addBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      createNewTrip();
-      toggleTripMenu(false);
-    });
-  }
+  addBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    createNewTrip();
+    toggleTripMenu(false);
+  });
   addActionItem.appendChild(addBtn);
   tripComboboxMenuEl.appendChild(addActionItem);
 
@@ -2540,18 +2557,15 @@ export function init(): void {
   const urlPlanId = initialPlan ? initialPlan.id : pathMatch && pathMatch[1] ? pathMatch[1] : null;
 
   if (urlPlanId) {
-    // 共有URLから開いた場合: ローカル3件枠に紐付け・同期
+    // 共有URLから開いた場合: ローカル一覧に紐付け・同期
     const existingIndex = tripStore.trips.findIndex((t) => t.shareId === urlPlanId);
     if (existingIndex >= 0) {
       tripStore.activeTripId = tripStore.trips[existingIndex].id;
     } else {
-      // 3件枠の先頭に新しく登録
-      const newTripEntry = createTripEntry(initialPlan?.title || '');
+      // 一覧の先頭に新しく登録
+      const newTripEntry = createTripEntry(initialPlan?.title || '', true);
       newTripEntry.shareId = urlPlanId;
       tripStore.trips.unshift(newTripEntry);
-      if (tripStore.trips.length > MAX_TRIPS) {
-        tripStore.trips = tripStore.trips.slice(0, MAX_TRIPS);
-      }
       tripStore.activeTripId = newTripEntry.id;
     }
 
@@ -2600,14 +2614,12 @@ export function init(): void {
     const sharedTrip = rawShareData ? parseShareUrlData(rawShareData) : null;
 
     if (sharedTrip) {
+      sharedTrip.isShared = true;
       const existingIndex = tripStore.trips.findIndex((t) => t.id === sharedTrip.id);
       if (existingIndex >= 0) {
         tripStore.trips[existingIndex] = sharedTrip;
       } else {
         tripStore.trips.unshift(sharedTrip);
-        if (tripStore.trips.length > MAX_TRIPS) {
-          tripStore.trips = tripStore.trips.slice(0, MAX_TRIPS);
-        }
       }
       tripStore.activeTripId = sharedTrip.id;
       tripStore.applyActiveTripToState(state);
