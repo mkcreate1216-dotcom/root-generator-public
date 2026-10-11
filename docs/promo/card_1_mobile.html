@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1080px;
+    height: 1350px;
+    overflow: hidden;
+    background: #f1f5f9;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", "Yu Gothic", sans-serif;
+    color: #0f172a;
+    position: relative;
+    padding: 56px 52px 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    -webkit-font-smoothing: antialiased;
+  }
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image: 
+      radial-gradient(#94a3b8 1.4px, transparent 1.4px),
+      radial-gradient(#cbd5e1 1.4px, #f1f5f9 1.4px);
+    background-size: 28px 28px;
+    background-position: 0 0, 14px 14px;
+    opacity: 0.55;
+    z-index: 0;
+  }
+  .content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  /* 上部ヘッダー */
+  .top-header {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+  .header-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 18px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 9999px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: #0284c7;
+  }
+  .step-num {
+    background: #0284c7;
+    color: #ffffff;
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 9999px;
+    font-weight: 900;
+  }
+  .device-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: #0f172a;
+    color: #ffffff;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+  .main-title {
+    font-size: 44px;
+    font-weight: 900;
+    line-height: 1.25;
+    color: #0f172a;
+    letter-spacing: -0.025em;
+  }
+  .sub-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #475569;
+    line-height: 1.4;
+  }
+
+  /* iPhone 18 Pro モックアップ (極薄ベゼル & Dynamic Island & チタニウムフレーム) */
+  .device-mockup-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px 0;
+  }
+  .iphone-18-pro {
+    width: 390px;
+    height: 780px;
+    background: #090d16;
+    border-radius: 54px;
+    padding: 10px;
+    box-shadow: 
+      0 32px 80px -16px rgba(15, 23, 42, 0.35),
+      0 12px 30px -4px rgba(15, 23, 42, 0.15),
+      inset 0 0 0 2px rgba(255, 255, 255, 0.35),
+      inset 0 0 0 6px #1e293b;
+    position: relative;
+    overflow: hidden;
+  }
+  /* スクリーン本体 */
+  .iphone-screen {
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    border-radius: 46px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Dynamic Island */
+  .dynamic-island {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 108px;
+    height: 28px;
+    background: #000000;
+    border-radius: 9999px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+  }
+  .dynamic-camera {
+    width: 11px;
+    height: 11px;
+    background: #111e38;
+    border-radius: 50%;
+    box-shadow: inset 0 0 2px rgba(255,255,255,0.4);
+  }
+  .dynamic-sensor {
+    width: 8px;
+    height: 8px;
+    background: #0a0e17;
+    border-radius: 50%;
+  }
+  /* ステータスバー */
+  .status-bar {
+    width: 100%;
+    height: 48px;
+    padding: 12px 26px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    z-index: 90;
+    position: relative;
+  }
+  .status-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+  }
+  /* ホームインジケーター */
+  .home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 130px;
+    height: 4.5px;
+    background: #0f172a;
+    border-radius: 9999px;
+    z-index: 100;
+    opacity: 0.8;
+  }
+
+  /* 画面周りのフローティング吹き出し */
+  .callout-bubble {
+    position: absolute;
+    background: #0f172a;
+    color: #ffffff;
+    padding: 12px 20px;
+    border-radius: 18px;
+    font-size: 15px;
+    font-weight: 800;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.25);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 50;
+    white-space: nowrap;
+  }
+  .callout-bubble::after {
+    content: '';
+    position: absolute;
+    border: 8px solid transparent;
+  }
+  .bubble-left {
+    left: -200px;
+    top: 240px;
+  }
+  .bubble-left::after {
+    right: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-left-color: #0f172a;
+  }
+  .bubble-right {
+    right: -200px;
+    top: 380px;
+  }
+  .bubble-right::after {
+    left: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-right-color: #0f172a;
+  }
+  .bubble-accent {
+    background: #0284c7;
+  }
+  .bubble-accent::after {
+    border-left-color: #0284c7 !important;
+    border-right-color: #0284c7 !important;
+  }
+  .bubble-green {
+    background: #059669;
+  }
+  .bubble-green::after {
+    border-left-color: #059669 !important;
+    border-right-color: #059669 !important;
+  }
+
+  /* 下部ハイライトカード（3分割） */
+  .bottom-features {
+    width: 100%;
+    display: flex;
+    gap: 16px;
+  }
+  .bottom-card {
+    flex: 1;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 16px 18px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .bottom-card-icon {
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+  .bottom-card-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .bottom-card-desc {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.35;
+  }
+
+  /* クレイモーフィズム・パーツ */
+  .clay-card-mini {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 
+      0 8px 18px -4px rgba(15, 23, 42, 0.08),
+      inset 0 1px 1px rgba(255, 255, 255, 0.9);
+    border: 1px solid #e2e8f0;
+  }
+  .pill-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .pill-blue { background: #e0f2fe; color: #0284c7; }
+  .pill-green { background: #dcfce7; color: #15803d; }
+  .pill-amber { background: #fef3c7; color: #b45309; }
+  .pill-slate { background: #f1f5f9; color: #334155; }
+
+.app-screen-inner {
+  padding: 12px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  background: #f8fafc;
+}
+.hero-tag {
+  display: inline-flex;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  background: #f1f5f9;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  margin-top: 10px;
+}
+.hero-logo {
+  font-size: 28px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+.hero-copy {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+.input-box-mock {
+  width: 100%;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #cbd5e1;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: inset 0 2px 4px rgba(15,23,42,0.04);
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.btn-start-mock {
+  width: 100%;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 12px;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(15,23,42,0.25);
+}
+.samples-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+.sample-pill-item {
+  width: 100%;
+  padding: 8px;
+  background: #ffffff;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="content">
+  <div class="top-header">
+    <div class="header-badge-row">
+      <div class="step-badge">
+        <span class="step-num">01</span>
+        <span>OVERVIEW / アプリ紹介</span>
+      </div>
+      <div class="device-tag">📱 iPhone 18 Pro 最適化</div>
+    </div>
+    <h1 class="main-title">旅行の計画、もう迷わない。<br>旅程作成アプリ『たびろーむ』</h1>
+    <p class="sub-title">スポットを入れるだけで直感タイムライン完成！ルート確認・LINE共有まで完結</p>
+  </div>
+
+  <div class="device-mockup-wrapper">
+    <div class="callout-bubble bubble-left">
+      ⚡️ 完全無料・登録不要！
+    </div>
+
+    <div class="iphone-18-pro">
+      <div class="iphone-screen">
+        <div class="dynamic-island">
+          <div class="dynamic-camera"></div>
+          <div class="dynamic-sensor"></div>
+        </div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-right">
+            <span>5G</span>
+            <span>100%</span>
+          </div>
+        </div>
+
+        <div class="app-screen-inner">
+          <div class="hero-tag">旅程作成アプリ</div>
+          <div class="hero-logo">たびろーむ</div>
+          <div class="hero-copy">道草を楽しむ、気ままな旅へ。</div>
+
+          <div style="width: 100%; display: flex; justify-content: center; gap: 8px; font-size: 10px; color: #64748b;">
+            <span>① スポット登録</span>
+            <span>② ルート案内</span>
+            <span>③ URL共有</span>
+          </div>
+
+          <div style="width: 100%; margin-top: 10px;">
+            <div class="input-box-mock">
+              <span>京都 2泊3日 気まま旅</span>
+              <span style="color: #94a3b8; font-size: 11px;">▼</span>
+            </div>
+          </div>
+
+          <div class="btn-start-mock">
+            旅程を作成する
+          </div>
+
+          <div class="samples-container">
+            <span style="font-size: 10px; color: #94a3b8;">入力例:</span>
+            <div class="sample-pill-item">京都 2泊3日</div>
+            <div class="sample-pill-item">北海道ドライブ</div>
+            <div class="sample-pill-item">金沢 週末ひとり旅</div>
+          </div>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+
+    <div class="callout-bubble bubble-right bubble-accent">
+      ✨ ブラウザですぐ使える！
+    </div>
+  </div>
+
+  <div class="bottom-features">
+    <div class="bottom-card">
+      <div class="bottom-card-icon">⚡️</div>
+      <div class="bottom-card-title">登録不要・完全無料</div>
+      <div class="bottom-card-desc">ログインなしでブラウザを開けばすぐ開始。データは自動保存されます。</div>
+    </div>
+    <div class="bottom-card">
+      <div class="bottom-card-icon">📍</div>
+      <div class="bottom-card-title">直感タイムライン</div>
+      <div class="bottom-card-desc">行きたい場所をポンポン追加。宿泊地を入れると翌朝に自動反映！</div>
+    </div>
+    <div class="bottom-card">
+      <div class="bottom-card-icon">🗺️</div>
+      <div class="bottom-card-title">地図アプリ直通連携</div>
+      <div class="bottom-card-desc">GoogleマップもAppleマップもワンクリックでルート案内が起動。</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

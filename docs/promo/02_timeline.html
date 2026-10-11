@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1080px;
+    height: 1350px;
+    overflow: hidden;
+    background: #f1f5f9;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", "Yu Gothic", sans-serif;
+    color: #0f172a;
+    position: relative;
+    padding: 60px 56px 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    -webkit-font-smoothing: antialiased;
+  }
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image: 
+      radial-gradient(#94a3b8 1.8px, transparent 1.8px),
+      radial-gradient(#cbd5e1 1.8px, #f1f5f9 1.8px);
+    background-size: 32px 32px;
+    background-position: 0 0, 16px 16px;
+    opacity: 0.55;
+    z-index: 0;
+  }
+  .content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  
+  /* ヘッダー */
+  .header-badges {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 24px;
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 9999px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    color: #0284c7;
+  }
+  .step-num {
+    background: #0284c7;
+    color: #ffffff;
+    font-size: 20px;
+    padding: 4px 14px;
+    border-radius: 9999px;
+    font-weight: 900;
+  }
+  .brand-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 24px;
+    background: #0f172a;
+    color: #ffffff;
+    border-radius: 9999px;
+    font-size: 22px;
+    font-weight: 800;
+  }
+
+  /* 特大タイトル */
+  .title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .main-title {
+    font-size: 72px;
+    font-weight: 900;
+    line-height: 1.18;
+    color: #0f172a;
+    letter-spacing: -0.03em;
+  }
+  .main-title span.highlight {
+    color: #0284c7;
+  }
+  .sub-title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #475569;
+    line-height: 1.35;
+  }
+
+  /* メインコンテンツカード */
+  .main-panel {
+    flex: 1;
+    background: #ffffff;
+    border-radius: 36px;
+    border: 3px solid #e2e8f0;
+    box-shadow: 
+      0 24px 60px -12px rgba(15, 23, 42, 0.12),
+      0 8px 24px -4px rgba(15, 23, 42, 0.06);
+    padding: 34px 38px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 特大吹き出し */
+  .callout-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 18px;
+    font-size: 26px;
+    font-weight: 900;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+    width: fit-content;
+  }
+  .callout-dark { background: #0f172a; color: #ffffff; }
+  .callout-blue { background: #0284c7; color: #ffffff; }
+  .callout-green { background: #059669; color: #ffffff; }
+  .callout-amber { background: #d97706; color: #ffffff; }
+
+  /* 下部フッター */
+  .footer-row {
+    margin-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 18px;
+    border-top: 2px solid #cbd5e1;
+    font-size: 22px;
+    font-weight: 800;
+    color: #475569;
+  }
+
+.timeline-list-large {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.timeline-card-large {
+  background: #f8fafc;
+  border: 3px solid #e2e8f0;
+  border-radius: 24px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 4px 12px rgba(15,23,42,0.04);
+}
+.timeline-card-large.dragged {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 10px 24px rgba(2, 132, 199, 0.2);
+}
+.timeline-card-large.hotel {
+  border: 3px dashed #f59e0b;
+  background: #fffbeb;
+}
+.spot-num-large {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #0f172a;
+  color: #fff;
+  font-size: 26px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.spot-num-hotel {
+  background: #b45309;
+}
+.spot-info-large {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.spot-name-large {
+  font-size: 34px;
+  font-weight: 900;
+  color: #0f172a;
+}
+.spot-memo-large {
+  font-size: 22px;
+  font-weight: 700;
+  color: #64748b;
+}
+.route-row-large {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #94a3b8;
+  padding: 4px 0;
+}
+.route-btn-pill-large {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 8px 22px;
+  border-radius: 9999px;
+  font-size: 22px;
+  font-weight: 900;
+}
+.tag-drag-large {
+  background: #0284c7;
+  color: #ffffff;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-size: 20px;
+  font-weight: 900;
+}
+.tag-hotel-large {
+  background: #fef3c7;
+  color: #b45309;
+  border: 2px solid #f59e0b;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-size: 22px;
+  font-weight: 900;
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="content">
+  <div>
+    <div class="header-badges">
+      <div class="step-badge">
+        <span class="step-num">02</span>
+        <span>FEATURE 1 / 直感タイムライン</span>
+      </div>
+      <div class="brand-badge">たびろーむ</div>
+    </div>
+
+    <div class="title-group">
+      <h1 class="main-title">スポットを入れるだけ。<br><span class="highlight">並び替えも自由自在。</span></h1>
+      <p class="sub-title">ドラッグ＆ドロップ対応。宿泊地は翌日に自動連動！</p>
+    </div>
+  </div>
+
+  <div class="main-panel">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <span style="font-size: 26px; font-weight: 900; color: #0f172a;">京都 2泊3日 気まま旅 (Day 1)</span>
+      <span class="callout-tag callout-dark" style="font-size: 22px; padding: 8px 18px;">
+        👆 指でサッと並び替え！
+      </span>
+    </div>
+
+    <div class="timeline-list-large">
+      <div class="timeline-card-large">
+        <div class="spot-num-large">1</div>
+        <div class="spot-info-large">
+          <div class="spot-name-large">京都駅</div>
+          <div class="spot-memo-large">新幹線中央口に集合</div>
+        </div>
+        <span style="font-size: 22px; font-weight: 800; color: #64748b; background: #e2e8f0; padding: 6px 14px; border-radius: 9999px;">出発地点</span>
+      </div>
+
+      <div class="route-row-large">
+        <span>↓</span>
+        <span class="route-btn-pill-large">🗺️ ルート検索</span>
+        <span>↓</span>
+      </div>
+
+      <div class="timeline-card-large dragged">
+        <div class="spot-num-large">2</div>
+        <div class="spot-info-large">
+          <div class="spot-name-large">伏見稲荷大社 ⛩️</div>
+          <div class="spot-memo-large">千本鳥居を散策・写真撮影</div>
+        </div>
+        <span class="tag-drag-large">ドラッグ中</span>
+      </div>
+
+      <div class="route-row-large">
+        <span>↓</span>
+        <span class="route-btn-pill-large">🗺️ ルート検索</span>
+        <span>↓</span>
+      </div>
+
+      <div class="timeline-card-large hotel">
+        <div class="spot-num-large spot-num-hotel">🏨</div>
+        <div class="spot-info-large">
+          <div class="spot-name-large">四条烏丸のホテル</div>
+          <div class="spot-memo-large">チェックイン 19:00</div>
+        </div>
+        <span class="tag-hotel-large">翌日の出発地点に自動反映！</span>
+      </div>
+    </div>
+
+    <div style="background: #fffbeb; border: 2px solid #fde68a; border-radius: 20px; padding: 18px 24px; margin-top: 14px; display: flex; align-items: center; gap: 14px;">
+      <span style="font-size: 32px;">💡</span>
+      <span style="font-size: 24px; font-weight: 800; color: #92400e;">
+        Day 1のホテルを入れるだけで、Day 2の先頭に自動セット！二重入力の手間ゼロ。
+      </span>
+    </div>
+  </div>
+
+  <div class="footer-row">
+    <div>↩️ 削除しても安心の「元に戻す（アンドゥ）」対応</div>
+    <div>複数日程もタブで一瞬切り替え ↗</div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1080px;
+    height: 1350px;
+    overflow: hidden;
+    background: #f1f5f9;
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "BIZ UDPGothic", "Yu Gothic", sans-serif;
+    color: #0f172a;
+    position: relative;
+    padding: 56px 52px 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    -webkit-font-smoothing: antialiased;
+  }
+  .bg-grid {
+    position: absolute;
+    inset: 0;
+    background-image: 
+      radial-gradient(#94a3b8 1.4px, transparent 1.4px),
+      radial-gradient(#cbd5e1 1.4px, #f1f5f9 1.4px);
+    background-size: 28px 28px;
+    background-position: 0 0, 14px 14px;
+    opacity: 0.55;
+    z-index: 0;
+  }
+  .content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  /* 上部ヘッダー */
+  .top-header {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+  .header-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 18px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 9999px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: #0284c7;
+  }
+  .step-num {
+    background: #0284c7;
+    color: #ffffff;
+    font-size: 12px;
+    padding: 3px 9px;
+    border-radius: 9999px;
+    font-weight: 900;
+  }
+  .device-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: #0f172a;
+    color: #ffffff;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+  }
+  .main-title {
+    font-size: 44px;
+    font-weight: 900;
+    line-height: 1.25;
+    color: #0f172a;
+    letter-spacing: -0.025em;
+  }
+  .sub-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #475569;
+    line-height: 1.4;
+  }
+
+  /* iPhone 18 Pro モックアップ (極薄ベゼル & Dynamic Island & チタニウムフレーム) */
+  .device-mockup-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 10px 0;
+  }
+  .iphone-18-pro {
+    width: 390px;
+    height: 780px;
+    background: #090d16;
+    border-radius: 54px;
+    padding: 10px;
+    box-shadow: 
+      0 32px 80px -16px rgba(15, 23, 42, 0.35),
+      0 12px 30px -4px rgba(15, 23, 42, 0.15),
+      inset 0 0 0 2px rgba(255, 255, 255, 0.35),
+      inset 0 0 0 6px #1e293b;
+    position: relative;
+    overflow: hidden;
+  }
+  /* スクリーン本体 */
+  .iphone-screen {
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    border-radius: 46px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Dynamic Island */
+  .dynamic-island {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 108px;
+    height: 28px;
+    background: #000000;
+    border-radius: 9999px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px;
+  }
+  .dynamic-camera {
+    width: 11px;
+    height: 11px;
+    background: #111e38;
+    border-radius: 50%;
+    box-shadow: inset 0 0 2px rgba(255,255,255,0.4);
+  }
+  .dynamic-sensor {
+    width: 8px;
+    height: 8px;
+    background: #0a0e17;
+    border-radius: 50%;
+  }
+  /* ステータスバー */
+  .status-bar {
+    width: 100%;
+    height: 48px;
+    padding: 12px 26px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+    z-index: 90;
+    position: relative;
+  }
+  .status-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+  }
+  /* ホームインジケーター */
+  .home-indicator {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 130px;
+    height: 4.5px;
+    background: #0f172a;
+    border-radius: 9999px;
+    z-index: 100;
+    opacity: 0.8;
+  }
+
+  /* 画面周りのフローティング吹き出し */
+  .callout-bubble {
+    position: absolute;
+    background: #0f172a;
+    color: #ffffff;
+    padding: 12px 20px;
+    border-radius: 18px;
+    font-size: 15px;
+    font-weight: 800;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.25);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 50;
+    white-space: nowrap;
+  }
+  .callout-bubble::after {
+    content: '';
+    position: absolute;
+    border: 8px solid transparent;
+  }
+  .bubble-left {
+    left: -200px;
+    top: 240px;
+  }
+  .bubble-left::after {
+    right: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-left-color: #0f172a;
+  }
+  .bubble-right {
+    right: -200px;
+    top: 380px;
+  }
+  .bubble-right::after {
+    left: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-right-color: #0f172a;
+  }
+  .bubble-accent {
+    background: #0284c7;
+  }
+  .bubble-accent::after {
+    border-left-color: #0284c7 !important;
+    border-right-color: #0284c7 !important;
+  }
+  .bubble-green {
+    background: #059669;
+  }
+  .bubble-green::after {
+    border-left-color: #059669 !important;
+    border-right-color: #059669 !important;
+  }
+
+  /* 下部ハイライトカード（3分割） */
+  .bottom-features {
+    width: 100%;
+    display: flex;
+    gap: 16px;
+  }
+  .bottom-card {
+    flex: 1;
+    background: #ffffff;
+    border-radius: 18px;
+    padding: 16px 18px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .bottom-card-icon {
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+  .bottom-card-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .bottom-card-desc {
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.35;
+  }
+
+  /* クレイモーフィズム・パーツ */
+  .clay-card-mini {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 
+      0 8px 18px -4px rgba(15, 23, 42, 0.08),
+      inset 0 1px 1px rgba(255, 255, 255, 0.9);
+    border: 1px solid #e2e8f0;
+  }
+  .pill-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .pill-blue { background: #e0f2fe; color: #0284c7; }
+  .pill-green { background: #dcfce7; color: #15803d; }
+  .pill-amber { background: #fef3c7; color: #b45309; }
+  .pill-slate { background: #f1f5f9; color: #334155; }
+
+.app-screen-timeline {
+  padding: 8px 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  height: 100%;
+  background: #f8fafc;
+  overflow: hidden;
+}
+.trip-header-mini {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px 6px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.trip-title-mini {
+  font-size: 14px;
+  font-weight: 900;
+  color: #0f172a;
+}
+.day-tab-mini {
+  background: #0f172a;
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+.timeline-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+.card-dragged {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.18);
+}
+.spot-num-circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0f172a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.spot-info-col {
+  flex: 1;
+}
+.spot-title-text {
+  font-size: 12px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.spot-memo-text {
+  font-size: 10px;
+  color: #64748b;
+}
+.route-row-mini {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 9px;
+  color: #94a3b8;
+  padding: 1px 0;
+}
+.route-btn-mini {
+  background: #0f172a;
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="content">
+  <div class="top-header">
+    <div class="header-badge-row">
+      <div class="step-badge">
+        <span class="step-num">02</span>
+        <span>FEATURE 1 / 直感タイムライン</span>
+      </div>
+      <div class="device-tag">📱 iPhone 18 Pro 最適化</div>
+    </div>
+    <h1 class="main-title">スポットをポンポン追加。<br>並び替えも自由自在</h1>
+    <p class="sub-title">ドラッグ＆ドロップ対応。宿泊地を入れると翌日のスタート地点に自動連動！</p>
+  </div>
+
+  <div class="device-mockup-wrapper">
+    <div class="callout-bubble bubble-left">
+      👆 指一本でサッと並び替え！
+    </div>
+
+    <div class="iphone-18-pro">
+      <div class="iphone-screen">
+        <div class="dynamic-island">
+          <div class="dynamic-camera"></div>
+          <div class="dynamic-sensor"></div>
+        </div>
+        <div class="status-bar">
+          <span>9:41</span>
+          <div class="status-right">
+            <span>5G</span>
+            <span>100%</span>
+          </div>
+        </div>
+
+        <div class="app-screen-timeline">
+          <div class="trip-header-mini">
+            <span class="trip-title-mini">京都 2泊3日 気まま旅</span>
+            <span class="day-tab-mini">Day 1</span>
+          </div>
+
+          <!-- スポット1 -->
+          <div class="timeline-card">
+            <div class="spot-num-circle">1</div>
+            <div class="spot-info-col">
+              <div class="spot-title-text">京都駅</div>
+              <div class="spot-memo-text">新幹線中央口 10:30集合</div>
+            </div>
+            <span class="pill-mini pill-slate">出発地点</span>
+          </div>
+
+          <div class="route-row-mini">
+            <span>↓</span>
+            <span class="route-btn-mini">🗺️ ルート検索</span>
+            <span>↓</span>
+          </div>
+
+          <!-- スポット2 (ドラッグ中) -->
+          <div class="timeline-card card-dragged">
+            <div class="spot-num-circle">2</div>
+            <div class="spot-info-col">
+              <div class="spot-title-text">伏見稲荷大社 ⛩️</div>
+              <div class="spot-memo-text">千本鳥居を散策・写真撮影</div>
+            </div>
+            <span class="pill-mini pill-blue">ドラッグ中</span>
+          </div>
+
+          <div class="route-row-mini">
+            <span>↓</span>
+            <span class="route-btn-mini">🗺️ ルート検索</span>
+            <span>↓</span>
+          </div>
+
+          <!-- スポット3 -->
+          <div class="timeline-card">
+            <div class="spot-num-circle">3</div>
+            <div class="spot-info-col">
+              <div class="spot-title-text">清水寺 🍂</div>
+              <div class="spot-memo-text">夕暮れの清水の舞台を一望</div>
+            </div>
+          </div>
+
+          <div class="route-row-mini">
+            <span>↓</span>
+            <span class="route-btn-mini">🗺️ ルート検索</span>
+            <span>↓</span>
+          </div>
+
+          <!-- 宿泊地 -->
+          <div class="timeline-card" style="border: 2px dashed #f59e0b; background: #fffbeb;">
+            <div class="spot-num-circle" style="background: #b45309;">🏨</div>
+            <div class="spot-info-col">
+              <div class="spot-title-text">四条烏丸の町家ホテル</div>
+              <div class="spot-memo-text">チェックイン 19:00</div>
+            </div>
+            <span class="pill-mini pill-amber">翌日の出発地点に自動反映</span>
+          </div>
+        </div>
+
+        <div class="home-indicator"></div>
+      </div>
+    </div>
+
+    <div class="callout-bubble bubble-right bubble-accent">
+      ✨ 宿泊地の翌日連動が神機能！
+    </div>
+  </div>
+
+  <div class="bottom-features">
+    <div class="bottom-card">
+      <div class="bottom-card-icon">👆</div>
+      <div class="bottom-card-title">ドラッグ＆ドロップ並び替え</div>
+      <div class="bottom-card-desc">指一本でサッと順序変更。FLIPアニメーションでヌルヌル動きます。</div>
+    </div>
+    <div class="bottom-card">
+      <div class="bottom-card-icon">🏨</div>
+      <div class="bottom-card-title">宿泊地の自動連動</div>
+      <div class="bottom-card-desc">Day 1のホテルがDay 2の出発地点に自動反映。再入力の手間ゼロ。</div>
+    </div>
+    <div class="bottom-card">
+      <div class="bottom-card-icon">↩️</div>
+      <div class="bottom-card-title">安心のアンドゥ対応</div>
+      <div class="bottom-card-desc">間違えて削除しても大丈夫。「元に戻す」トースト通知ですぐ復元。</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
