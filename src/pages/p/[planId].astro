@@ -6,6 +6,7 @@ import SpotAddForm from '../../components/SpotAddForm.astro';
 import DayTabs from '../../components/DayTabs.astro';
 import Tooltip from '../../components/Tooltip.astro';
 import TravelBookingAd from '../../components/TravelBookingAd.astro';
+import McpConnectModal from '../../components/McpConnectModal.astro';
 
 export const prerender = false;
 
@@ -122,6 +123,7 @@ const pageTitle = `${initialPlanData.title} - たびろーむ`;
 
   <DayTabs />
   <Tooltip />
+  <McpConnectModal />
 
   <script define:vars={{ initialPlanData }}>
     window.__INITIAL_PLAN__ = initialPlanData;
