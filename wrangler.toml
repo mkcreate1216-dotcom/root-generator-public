@@ -1,4 +1,4 @@
-name = "root-generator-public"
+name = "tabirome"
 compatibility_date = "2024-09-19"
 compatibility_flags = ["nodejs_compat"]
 
@@ -18,8 +18,4 @@ enabled = true
 
   [observability.logs]
   head_sampling_rate = 1
-
-  [observability.traces]
-  enabled = true
-  head_sampling_rate = 0.01
 
