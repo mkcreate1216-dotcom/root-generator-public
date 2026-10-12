@@ -1,0 +1,225 @@
+---
+---
+
+<div
+  id="mcp-connect-modal"
+  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-200"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="mcp-modal-title"
+>
+  <div
+    class="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-7 clay-card shadow-2xl border border-slate-100 transform scale-95 transition-transform duration-200"
+    id="mcp-modal-content"
+  >
+    <!-- ヘッダー -->
+    <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+      <div class="flex items-center gap-2.5">
+        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-white text-xs font-bold shadow-sm">
+          ✦
+        </span>
+        <h2 id="mcp-modal-title" class="text-base sm:text-lg font-bold text-slate-800">
+          スマホAIアプリ連携 (MCP)
+        </h2>
+      </div>
+      <button
+        id="mcp-modal-close-btn"
+        type="button"
+        class="h-8 w-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+        aria-label="閉じる"
+      >
+        ✕
+      </button>
+    </div>
+
+    <!-- 概要説明 -->
+    <p class="text-xs sm:text-sm text-slate-600 leading-relaxed mb-4">
+      ClaudeアプリやChatGPTなどのAIアプリにこの連携URLを登録すると、AIとチャットしながらたびろーむの旅程作成やスポット追加が行えます。
+    </p>
+
+    <!-- URL取得・コピーセクション -->
+    <div class="clay-sunken p-3.5 sm:p-4 rounded-2xl mb-4">
+      <label class="block text-xs font-semibold text-slate-700 mb-1.5" for="mcp-url-input">
+        MCP連携URL（あなた専用・トークン付き）
+      </label>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input
+          id="mcp-url-input"
+          type="text"
+          readonly
+          placeholder="連携URLを発行中..."
+          class="w-full clay-input px-3.5 py-2 text-xs font-mono text-slate-600 select-all outline-none bg-white"
+        />
+        <button
+          id="mcp-copy-url-btn"
+          type="button"
+          class="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shadow-sm active:scale-95"
+        >
+          <span id="mcp-copy-btn-text">URLをコピー</span>
+        </button>
+      </div>
+
+      <div class="mt-2.5 flex items-center justify-between text-[11px] text-slate-500">
+        <span id="mcp-status-text" class="inline-flex items-center gap-1 text-emerald-600 font-medium">
+          ● 連携準備完了
+        </span>
+        <button
+          id="mcp-regenerate-btn"
+          type="button"
+          class="text-slate-400 hover:text-slate-600 underline cursor-pointer"
+        >
+          新しいURLを再発行
+        </button>
+      </div>
+    </div>
+
+    <!-- かんたん3ステップ -->
+    <div class="space-y-2 mb-4 text-xs text-slate-600">
+      <p class="font-semibold text-slate-700 text-xs">📱 使い方 (かんたん3ステップ):</p>
+      <div class="grid grid-cols-1 gap-1.5 pl-1">
+        <div class="flex items-start gap-2">
+          <span class="flex-shrink-0 flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-700">1</span>
+          <span>上の「<strong>URLをコピー</strong>」をタップします。</span>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="flex-shrink-0 flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-700">2</span>
+          <span>スマホのClaudeアプリ等のMCP設定にこのURLを登録します。</span>
+        </div>
+        <div class="flex items-start gap-2">
+          <span class="flex-shrink-0 flex h-4 w-4 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-700">3</span>
+          <span>「<strong>京都の2泊3日プラン作って！</strong>」と話しかけるだけで、旅程が自動作成されます。</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ご利用にあたっての案内 -->
+    <div class="rounded-xl bg-slate-50/80 p-3 border border-slate-100 text-[11px] text-slate-500 space-y-1">
+      <div class="flex items-center gap-1.5 font-semibold text-slate-700">
+        <span>💡 ご利用のヒント</span>
+      </div>
+      <p>・1日に作成・調整できる回数は最大200回です。</p>
+      <p>・完成した旅程はAIから案内されるWebリンクで、いつでも地図ルート確認やLINE共有ができます。</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // MCPモーダルの制御スクリプト
+  const modal = document.getElementById('mcp-connect-modal');
+  const modalContent = document.getElementById('mcp-modal-content');
+  const closeBtn = document.getElementById('mcp-modal-close-btn');
+  const urlInput = document.getElementById('mcp-url-input') as HTMLInputElement | null;
+  const copyBtn = document.getElementById('mcp-copy-url-btn');
+  const copyBtnText = document.getElementById('mcp-copy-btn-text');
+  const regenerateBtn = document.getElementById('mcp-regenerate-btn');
+  const statusText = document.getElementById('mcp-status-text');
+
+  const STORAGE_KEY_TOKEN = 'tabirome_mcp_token';
+  const STORAGE_KEY_URL = 'tabirome_mcp_url';
+
+  // モーダルを開く
+  export function openMcpModal() {
+    if (!modal || !modalContent) return;
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+    modalContent.classList.remove('scale-95');
+    modalContent.classList.add('scale-100');
+
+    // キャッシュされたトークン/URLがあれば表示、なければ新規発行
+    let cachedUrl: string | null = null;
+    try {
+      cachedUrl = localStorage.getItem(STORAGE_KEY_URL);
+    } catch (e) {
+      console.warn('localStorage not accessible:', e);
+    }
+
+    if (cachedUrl && urlInput) {
+      urlInput.value = cachedUrl;
+    } else {
+      fetchMcpToken();
+    }
+  }
+
+  // モーダルを閉じる
+  export function closeMcpModal() {
+    if (!modal || !modalContent) return;
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    modalContent.classList.remove('scale-100');
+    modalContent.classList.add('scale-95');
+  }
+
+  // トークン・連携URLをAPIから取得
+  async function fetchMcpToken(forceRefresh = false) {
+    if (!urlInput) return;
+    if (statusText) statusText.textContent = 'トークン発行中...';
+    urlInput.value = '発行中...';
+
+    try {
+      const res = await fetch('/api/mcp/tokens', { method: 'POST' });
+      if (!res.ok) {
+        throw new Error(`HTTP error ${res.status}`);
+      }
+      const data = await res.json();
+      if (data.success && data.mcpUrl) {
+        urlInput.value = data.mcpUrl;
+        try {
+          localStorage.setItem(STORAGE_KEY_TOKEN, data.token);
+          localStorage.setItem(STORAGE_KEY_URL, data.mcpUrl);
+        } catch (e) {
+          console.warn('Failed to save to localStorage:', e);
+        }
+        if (statusText) {
+          statusText.innerHTML = '<span class="text-emerald-600 font-medium">● 連携準備完了</span>';
+        }
+      } else {
+        throw new Error(data.error || 'Failed to generate token');
+      }
+    } catch (err) {
+      console.error('Failed to fetch MCP token:', err);
+      if (urlInput) urlInput.value = '発行に失敗しました';
+      if (statusText) {
+        statusText.innerHTML = '<span class="text-rose-500 font-medium">✕ 発行エラー。再試行してください</span>';
+      }
+    }
+  }
+
+  // URLをクリップボードにコピー
+  async function copyMcpUrl() {
+    if (!urlInput || !urlInput.value || urlInput.value.startsWith('発行中')) return;
+    try {
+      await navigator.clipboard.writeText(urlInput.value);
+      if (copyBtnText) {
+        copyBtnText.textContent = 'コピーしました！';
+        setTimeout(() => {
+          if (copyBtnText) copyBtnText.textContent = 'URLをコピー';
+        }, 2000);
+      }
+    } catch (err) {
+      // フォールバック: テキスト選択
+      urlInput.select();
+      document.execCommand('copy');
+      if (copyBtnText) {
+        copyBtnText.textContent = 'コピーしました！';
+        setTimeout(() => {
+          if (copyBtnText) copyBtnText.textContent = 'URLをコピー';
+        }, 2000);
+      }
+    }
+  }
+
+  // イベント登録
+  closeBtn?.addEventListener('click', closeMcpModal);
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) closeMcpModal();
+  });
+  copyBtn?.addEventListener('click', copyMcpUrl);
+  regenerateBtn?.addEventListener('click', () => {
+    if (confirm('新しいMCP連携URLを再発行しますか？（古いURLは無効になります）')) {
+      fetchMcpToken(true);
+    }
+  });
+
+  // グローバルにモーダル開閉関数を公開
+  (window as any).openTabiromeMcpModal = openMcpModal;
+  (window as any).closeTabiromeMcpModal = closeMcpModal;
+</script>
+

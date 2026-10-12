@@ -17,7 +17,7 @@
 </div>
 
 <!-- 特徴3点（矢印なし、スポット登録、枠なし簡素表示） -->
-<div id="lp-features-section" class="w-full max-w-lg mx-auto mb-6 sm:mb-7 transition-all duration-200">
+<div id="lp-features-section" class="w-full max-w-lg mx-auto mb-5 sm:mb-6 transition-all duration-200">
   <div class="flex items-center justify-center gap-5 sm:gap-8 text-xs text-slate-500 select-none">
     <div class="flex items-center gap-2">
       <span class="flex h-5 w-5 items-center justify-center rounded-full clay-pill text-[10px] font-bold text-slate-800">1</span>
@@ -33,3 +33,25 @@
     </div>
   </div>
 </div>
+
+<!-- MCP連携クイック導線（LPからワンタップで連携URL取得） -->
+<div id="lp-mcp-section" class="w-full flex justify-center mb-6 sm:mb-7 transition-all duration-200">
+  <button
+    id="lp-mcp-open-btn"
+    type="button"
+    class="inline-flex items-center gap-2 px-4 py-2 rounded-full clay-btn text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-200/60 shadow-sm transition-all cursor-pointer active:scale-95"
+  >
+    <span class="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+    <span>✨ スマホAIアプリと連携して作る (MCP)</span>
+  </button>
+</div>
+
+<script>
+  const mcpBtn = document.getElementById('lp-mcp-open-btn');
+  mcpBtn?.addEventListener('click', () => {
+    if (typeof (window as any).openTabiromeMcpModal === 'function') {
+      (window as any).openTabiromeMcpModal();
+    }
+  });
+</script>
+
