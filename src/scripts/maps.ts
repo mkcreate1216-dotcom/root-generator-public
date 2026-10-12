@@ -38,7 +38,7 @@ export function getDayRouteUrl(locations: string[], mapType: MapType): string {
   if (mapType === 'apple') {
     if (waypoints.length > 0) {
       const waypointsParams = waypoints.map((wp) => `waypoint=${encodeURIComponent(wp)}`).join('&');
-      return `https://maps.apple.com/directions?source=${origin}&destination=${destination}&${waypointsParams}`;
+      return `https://maps.apple.com/directions?mode=driving&source=${origin}&${waypointsParams}&destination=${destination}`;
     }
     return `https://maps.apple.com/?saddr=${origin}&daddr=${destination}`;
   }

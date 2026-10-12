@@ -12,3 +12,14 @@ binding = "ASSETS"
 binding = "DB"
 database_name = "tabirome-db"
 database_id = "ac767fff-28ce-4a23-b81f-f87259ef97c9"
+
+[observability]
+enabled = true
+
+  [observability.logs]
+  head_sampling_rate = 1
+
+  [observability.traces]
+  enabled = true
+  head_sampling_rate = 0.01
+
