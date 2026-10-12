@@ -113,6 +113,10 @@ const addTypeDefaultHintEl = document.getElementById('add-type-default-hint') as
 const addAccommodationScopeEl = document.getElementById('add-accommodation-scope') as HTMLDivElement;
 const addAccommodationScopeAllEl = document.getElementById('add-accommodation-scope-all') as HTMLButtonElement;
 const addAccommodationScopeTodayEl = document.getElementById('add-accommodation-scope-today') as HTMLButtonElement;
+const toggleSpotFormBtnEl = document.getElementById('toggle-spot-form-btn') as HTMLButtonElement | null;
+const toggleSpotFormIconEl = document.getElementById('toggle-spot-form-icon') as SVGElement | null;
+const addSpotFormBodyEl = document.getElementById('add-spot-form-body') as HTMLDivElement | null;
+let isSpotFormCollapsed = false;
 const itinerarySectionEl = document.getElementById('itinerary-section') as HTMLDivElement | null;
 const headerMapSelectorEl = document.getElementById('header-map-selector-container') as HTMLDivElement | null;
 const appWrapperEl = document.getElementById('app-wrapper') as HTMLDivElement | null;
@@ -231,8 +235,30 @@ function scrollToDay(index: number): void {
 
 function moveSpot(dayIndex: number, index: number, direction: number): void {
   const day = state.days[dayIndex];
+  if (!day) return;
   const targetIndex = index + direction;
-  if (targetIndex < 0 || targetIndex >= day.spots.length) return;
+
+  // 前日への移動（先頭で上移動）
+  if (targetIndex < 0) {
+    if (dayIndex > 0) {
+      const prevDayIndex = dayIndex - 1;
+      const prevDay = state.days[prevDayIndex];
+      if (prevDay) {
+        moveSpotTo(dayIndex, index, prevDayIndex, prevDay.spots.length);
+      }
+    }
+    return;
+  }
+
+  // 翌日への移動（末尾で下移動）
+  if (targetIndex >= day.spots.length) {
+    if (dayIndex < state.days.length - 1) {
+      const nextDayIndex = dayIndex + 1;
+      moveSpotTo(dayIndex, index, nextDayIndex, 0);
+    }
+    return;
+  }
+
   animateSpotReorder(
     dayIndex,
     () => {
@@ -576,8 +602,33 @@ function renderAddSpotOptions(): void {
   if (addTypeDepartureEl) {
     addTypeDepartureEl.checked = state.addLocationType === 'departure';
   }
+
+  const isLastDay = state.activeDayIndex === state.days.length - 1;
+  const hasArrivalOnLastDay = isLastDay && Boolean(state.arrival && state.arrival.trim().length > 0);
+
   if (addTypeAccommodationEl) {
-    addTypeAccommodationEl.checked = state.addLocationType === 'accommodation';
+    if (hasArrivalOnLastDay) {
+      addTypeAccommodationEl.disabled = true;
+      addTypeAccommodationEl.checked = false;
+      if (state.addLocationType === 'accommodation') {
+        state.addLocationType = 'spot';
+      }
+      const parentLabel = addTypeAccommodationEl.closest('label');
+      if (parentLabel) {
+        parentLabel.classList.add('opacity-40', 'cursor-not-allowed');
+        parentLabel.setAttribute('data-tooltip', '最終日に到着地点があるため宿泊地は設定できません');
+        parentLabel.setAttribute('data-tooltip-pos', 'top');
+      }
+    } else {
+      addTypeAccommodationEl.disabled = false;
+      addTypeAccommodationEl.checked = state.addLocationType === 'accommodation';
+      const parentLabel = addTypeAccommodationEl.closest('label');
+      if (parentLabel) {
+        parentLabel.classList.remove('opacity-40', 'cursor-not-allowed');
+        parentLabel.removeAttribute('data-tooltip');
+        parentLabel.removeAttribute('data-tooltip-pos');
+      }
+    }
   }
 
   const isAccommodation = state.addLocationType === 'accommodation';
@@ -626,6 +677,11 @@ function addSpot(): void {
     state.arrival = value;
     state.autoArrival = true;
   } else if (state.addLocationType === 'accommodation') {
+    const isLastDay = state.activeDayIndex === state.days.length - 1;
+    if (isLastDay && state.arrival && state.arrival.trim().length > 0) {
+      showToast('最終日に到着地点が設定されているため宿泊地は登録できません');
+      return;
+    }
     const nextDay = state.days[state.activeDayIndex + 1];
     day.accommodation = value;
     day.autoAccommodation = false;
@@ -633,9 +689,11 @@ function addSpot(): void {
       for (let i = state.activeDayIndex + 1; i < state.days.length; i++) {
         state.days[i].autoAccommodation = true;
       }
-    } else if (nextDay) {
-      nextDay.accommodation = value;
-      nextDay.autoAccommodation = false;
+    } else {
+      // 「当日のみ」の場合は翌日以降にコピーせず、翌日の自動同期も無効化
+      if (nextDay) {
+        nextDay.autoAccommodation = false;
+      }
     }
     syncAutoStarts();
   } else {
@@ -1316,8 +1374,12 @@ function createSpotCard(
         day.autoStartSlot = shouldKeepAuto && !!previousAccommodation;
         day.autoStartValue = shouldKeepAuto ? previousAccommodation : '';
       }
+      card.dataset.spotValue = (e.target as HTMLInputElement).value;
       saveState();
     }
+  });
+  input.addEventListener('blur', () => {
+    render();
   });
 
   const memoComponent = createMemoComponent({
@@ -1337,15 +1399,23 @@ function createSpotCard(
   const moveGroup = document.createElement('div');
   moveGroup.className = 'flex items-center gap-0.5';
 
+  const isFirstSpotOverall = dayIndex === 0 && index === 0;
+  const isLastSpotOverall = dayIndex === state.days.length - 1 && index === state.days[dayIndex].spots.length - 1;
+  const isFirstInDay = index === 0;
+  const isLastInDay = index === state.days[dayIndex].spots.length - 1;
+
+  const upTooltip = isFirstInDay && dayIndex > 0 ? '前の日へ移動' : '上に移動';
+  const downTooltip = isLastInDay && dayIndex < state.days.length - 1 ? '次の日へ移動' : '下に移動';
+
   const upBtn = document.createElement('button');
   upBtn.type = 'button';
   upBtn.className =
     'rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
   upBtn.innerHTML = '<i data-lucide="arrow-up" class="h-3.5 w-3.5"></i>';
-  upBtn.setAttribute('aria-label', '上に移動');
-  upBtn.setAttribute('data-tooltip', '上に移動');
+  upBtn.setAttribute('aria-label', upTooltip);
+  upBtn.setAttribute('data-tooltip', upTooltip);
   upBtn.setAttribute('data-tooltip-pos', 'top');
-  upBtn.disabled = index === 0;
+  upBtn.disabled = isFirstSpotOverall;
   upBtn.addEventListener('click', () => moveSpot(dayIndex, index, -1));
 
   const downBtn = document.createElement('button');
@@ -1353,10 +1423,10 @@ function createSpotCard(
   downBtn.className =
     'rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
   downBtn.innerHTML = '<i data-lucide="arrow-down" class="h-3.5 w-3.5"></i>';
-  downBtn.setAttribute('aria-label', '下に移動');
-  downBtn.setAttribute('data-tooltip', '下に移動');
+  downBtn.setAttribute('aria-label', downTooltip);
+  downBtn.setAttribute('data-tooltip', downTooltip);
   downBtn.setAttribute('data-tooltip-pos', 'top');
-  downBtn.disabled = index === state.days[dayIndex].spots.length - 1;
+  downBtn.disabled = isLastSpotOverall;
   downBtn.addEventListener('click', () => moveSpot(dayIndex, index, 1));
 
   moveGroup.append(upBtn, downBtn);
@@ -2032,6 +2102,16 @@ function updateItineraryVisibility(): void {
   if (addSpotFormEl) {
     addSpotFormEl.classList.toggle('hidden', !showItinerary);
   }
+  if (addSpotFormBodyEl) {
+    addSpotFormBodyEl.classList.toggle('hidden', isSpotFormCollapsed);
+  }
+  if (toggleSpotFormBtnEl) {
+    toggleSpotFormBtnEl.setAttribute('aria-expanded', String(!isSpotFormCollapsed));
+    toggleSpotFormBtnEl.setAttribute('data-tooltip', isSpotFormCollapsed ? '入力欄を開く' : '入力欄を折りたたむ');
+  }
+  if (toggleSpotFormIconEl) {
+    toggleSpotFormIconEl.style.transform = isSpotFormCollapsed ? 'rotate(180deg)' : '';
+  }
 
   // 日程セクションと固定日程タブ・マップセレクター（アプリ時は独立クレイカード app-card を付与）
   if (itinerarySectionEl) {
@@ -2449,6 +2529,12 @@ function setupEventListeners(): void {
   addAccommodationScopeTodayEl?.addEventListener('click', () => {
     state.addAccommodationScope = 'today';
     renderAddSpotOptions();
+  });
+
+  toggleSpotFormBtnEl?.addEventListener('click', () => {
+    isSpotFormCollapsed = !isSpotFormCollapsed;
+    updateItineraryVisibility();
+    updateStickyOffsets();
   });
 
   accommodationInputEl?.addEventListener('input', (e) => {

@@ -8,60 +8,77 @@
 
   <div class="mb-1.5 flex items-center justify-between gap-2">
     <label class="block text-xs font-medium text-slate-700" for="new-spot-input"><span id="add-spot-target-day" class="font-bold text-slate-900">Day 1</span> にスポット・地点を追加</label>
-    <div class="hidden items-center gap-2 transition-opacity duration-200 ml-auto" id="header-map-selector-container">
-      <div
-        id="map-selector-group"
-        class="inline-flex items-center gap-1 rounded-2xl clay-pill p-1 text-xs font-medium text-slate-700"
-        role="radiogroup"
-        aria-label="地図アプリ選択"
-      >
-        <span class="flex items-center gap-1 pl-2 pr-0.5 text-slate-500 select-none" title="地図アプリ選択">
-          <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
-            <line x1="9" x2="9" y1="3" y2="18"/>
-            <line x1="15" x2="15" y1="6" y2="21"/>
-          </svg>
-          <span class="text-xs font-medium text-slate-600">マップ</span>
-        </span>
-        <div class="inline-flex items-center rounded-xl clay-sunken p-0.5">
-          <label
-            class="map-type-label flex cursor-pointer items-center rounded-lg px-2.5 py-1 text-xs font-semibold transition-all select-none clay-btn text-slate-900"
-            data-map-type="google"
-          >
-            <input type="radio" name="map-type-radio" value="google" class="sr-only" checked />
-            <span>Google</span>
-          </label>
-          <label
-            class="map-type-label flex cursor-pointer items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-all select-none text-slate-500 hover:text-slate-900"
-            data-map-type="apple"
-          >
-            <input type="radio" name="map-type-radio" value="apple" class="sr-only" />
-            <span>Apple</span>
-          </label>
+    <div class="flex items-center gap-1.5 ml-auto">
+      <div class="hidden items-center gap-2 transition-opacity duration-200" id="header-map-selector-container">
+        <div
+          id="map-selector-group"
+          class="inline-flex items-center gap-1 rounded-2xl clay-pill p-1 text-xs font-medium text-slate-700"
+          role="radiogroup"
+          aria-label="地図アプリ選択"
+        >
+          <span class="flex items-center gap-1 pl-2 pr-0.5 text-slate-500 select-none" title="地図アプリ選択">
+            <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+              <line x1="9" x2="9" y1="3" y2="18"/>
+              <line x1="15" x2="15" y1="6" y2="21"/>
+            </svg>
+            <span class="text-xs font-medium text-slate-600">マップ</span>
+          </span>
+          <div class="inline-flex items-center rounded-xl clay-sunken p-0.5">
+            <label
+              class="map-type-label flex cursor-pointer items-center rounded-lg px-2.5 py-1 text-xs font-semibold transition-all select-none clay-btn text-slate-900"
+              data-map-type="google"
+            >
+              <input type="radio" name="map-type-radio" value="google" class="sr-only" checked />
+              <span>Google</span>
+            </label>
+            <label
+              class="map-type-label flex cursor-pointer items-center rounded-lg px-2.5 py-1 text-xs font-medium transition-all select-none text-slate-500 hover:text-slate-900"
+              data-map-type="apple"
+            >
+              <input type="radio" name="map-type-radio" value="apple" class="sr-only" />
+              <span>Apple</span>
+            </label>
+          </div>
         </div>
       </div>
+      <button
+        id="toggle-spot-form-btn"
+        type="button"
+        aria-label="入力欄を折りたたむ"
+        aria-expanded="true"
+        data-tooltip="入力欄を折りたたむ"
+        data-tooltip-pos="bottom"
+        class="flex h-7 w-7 items-center justify-center rounded-full clay-btn p-1 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer shrink-0"
+      >
+        <svg id="toggle-spot-form-icon" class="h-3.5 w-3.5 transition-transform duration-200" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m18 15-6-6-6 6"/>
+        </svg>
+      </button>
     </div>
   </div>
-  <div class="flex items-center gap-2">
-    <input
-      id="new-spot-input"
-      type="text"
-      placeholder="例: 浅草寺"
-      class="min-w-0 flex-1 rounded-2xl clay-input px-4 py-2.5 text-sm outline-none transition-all duration-75"
-    />
-    <button
-      id="add-spot-btn"
-      type="submit"
-      aria-label="追加"
-      title="追加"
-      class="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl clay-btn-dark text-white transition-all duration-75 cursor-pointer"
-    >
-      <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
-        <circle cx="12" cy="10" r="3"/>
-      </svg>
-    </button>
-  </div>
+
+  <div id="add-spot-form-body" class="w-full">
+    <div class="flex items-center gap-2">
+      <input
+        id="new-spot-input"
+        type="text"
+        placeholder="例: 浅草寺"
+        class="min-w-0 flex-1 rounded-2xl clay-input px-4 py-2.5 text-sm outline-none transition-all duration-75"
+      />
+      <button
+        id="add-spot-btn"
+        type="submit"
+        aria-label="追加"
+        title="追加"
+        class="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-2xl clay-btn-dark text-white transition-all duration-75 cursor-pointer"
+      >
+        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </button>
+    </div>
 
   <div class="mt-2.5 flex items-center gap-x-3 sm:gap-x-4 min-h-[28px] overflow-x-auto">
     <label class="inline-flex items-center gap-1.5 cursor-pointer text-xs font-medium text-slate-600 hover:text-slate-900 select-none shrink-0 h-5">
@@ -104,6 +121,7 @@
         当日のみ
       </button>
     </div>
+  </div>
   </div>
 </form>
 
