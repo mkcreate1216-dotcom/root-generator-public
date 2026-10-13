@@ -2,7 +2,19 @@
 import Layout from '../../layouts/Layout.astro';
 import { adsConfig, AD_SIZE_PRESETS, type AdSlotSize } from '../../config/ads';
 
-export const prerender = true;
+export const prerender = false;
+
+const envAdminKey =
+  Astro.locals.runtime?.env?.ADMIN_PASSWORD ||
+  Astro.locals.runtime?.env?.ADMIN_KEY ||
+  'tabirome-dev-2026';
+
+const cookieSession = Astro.cookies.get('tabirome_admin_session')?.value;
+const queryKey = Astro.url.searchParams.get('key');
+
+if (cookieSession !== envAdminKey && queryKey !== envAdminKey) {
+  return Astro.redirect('/admin');
+}
 ---
 
 <Layout title="広告管理・プレビュー | たびろーむ" showFooterAd={false}>
@@ -25,6 +37,13 @@ export const prerender = true;
       </div>
 
       <div class="flex items-center gap-2">
+        <a
+          href="/admin"
+          class="clay-btn text-xs font-semibold px-4 py-2 rounded-xl text-slate-700 hover:text-slate-900 inline-flex items-center gap-1.5 transition-all"
+        >
+          <span>📊</span>
+          ダッシュボードへ戻る
+        </a>
         <a
           href="/"
           class="clay-btn text-xs font-semibold px-4 py-2 rounded-xl text-slate-700 hover:text-slate-900 inline-flex items-center gap-1.5 transition-all"

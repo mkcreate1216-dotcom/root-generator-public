@@ -1107,7 +1107,7 @@ function createMemoComponent(options: {
   onSave: (newMemo: string) => void;
 }): HTMLElement {
   const wrap = document.createElement('div');
-  wrap.className = 'mt-1.5 w-full';
+  wrap.className = 'mt-1.5 w-full min-w-0';
 
   let currentMemo = options.memo || '';
   let isEditing = false;
@@ -1119,14 +1119,14 @@ function createMemoComponent(options: {
     if (isEditing) {
       const editBox = document.createElement('div');
       editBox.className =
-        'rounded-lg border border-slate-300 bg-white p-2 shadow-xs transition-all focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200';
+        'min-w-0 rounded-lg border border-slate-300 bg-white p-2 shadow-xs transition-all focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200';
 
       const textarea = document.createElement('textarea');
       textarea.value = currentMemo;
       textarea.placeholder = '1行目: 時間や短い見出し（例: 10:00〜）\n2行目以降: 住所、持ち物、詳細メモなど';
       textarea.rows = Math.max(3, currentMemo.split('\n').length);
       textarea.className =
-        'w-full resize-y bg-transparent text-xs text-slate-800 outline-none leading-relaxed placeholder:text-slate-400';
+        'w-full min-w-0 resize-y bg-transparent text-xs text-slate-800 outline-none leading-relaxed placeholder:text-slate-400';
 
       const actionRow = document.createElement('div');
       actionRow.className = 'mt-1.5 flex items-center justify-between gap-2 border-t border-slate-100 pt-1.5';
@@ -1203,11 +1203,11 @@ function createMemoComponent(options: {
     // メモが存在する場合（控えめな枠線と背景のシンプルUI）
     const previewBox = document.createElement('div');
     previewBox.className =
-      'group rounded-lg border border-slate-200/80 bg-slate-50/80 p-2 text-xs transition-colors duration-75 hover:border-slate-300 hover:bg-slate-50';
+      'group min-w-0 overflow-hidden rounded-lg border border-slate-200/80 bg-slate-50/80 p-2 text-xs transition-colors duration-75 hover:border-slate-300 hover:bg-slate-50';
 
     // 1行目表示行
     const headerRow = document.createElement('div');
-    headerRow.className = 'flex items-center justify-between gap-2';
+    headerRow.className = 'flex items-center justify-between gap-2 min-w-0';
 
     const firstLineContent = document.createElement('div');
     firstLineContent.className =
@@ -1354,14 +1354,14 @@ function createSpotCard(
   marker.textContent = String(markerIndex + 1);
 
   const content = document.createElement('div');
-  content.className = 'w-full';
+  content.className = 'min-w-0 flex-1';
 
   const input = document.createElement('input');
   input.type = 'text';
   input.value = spotValue;
   input.placeholder = 'スポット名';
   input.className =
-    'w-full rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
+    'w-full min-w-0 rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
   input.addEventListener('input', (e) => {
     const day = state.days[dayIndex];
     if (day && day.spots[index]) {
@@ -1508,14 +1508,14 @@ function createAccommodationCard(
   marker.textContent = String(index + 1);
 
   const content = document.createElement('div');
-  content.className = 'w-full';
+  content.className = 'min-w-0 flex-1';
 
   const input = document.createElement('input');
   input.type = 'text';
   input.value = accommodation;
   input.placeholder = '宿泊地を入力';
   input.className =
-    'w-full rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
+    'w-full min-w-0 rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
   input.addEventListener('input', (e) => {
     const day = state.days[dayIndex];
     if (day) {
@@ -1624,14 +1624,14 @@ function createEndpointCard(
   marker.textContent = String(index + 1);
 
   const content = document.createElement('div');
-  content.className = 'w-full';
+  content.className = 'min-w-0 flex-1';
 
   const input = document.createElement('input');
   input.type = 'text';
   input.value = location;
   input.placeholder = `${label}を入力`;
   input.className =
-    'w-full rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
+    'w-full min-w-0 rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
   input.addEventListener('input', (e) => {
     if (label === '出発地点') {
       state.departure = (e.target as HTMLInputElement).value;
