@@ -31,6 +31,27 @@ const {
     </main>
     {showFooterAd && <TravelBookingAd slotId="footer_top" class="mb-4" />}
     <Footer />
+
+    <script is:inline>
+      // 軽量アクセス解析トラッキング（開発者ダッシュボード可視化用）
+      window.addEventListener('load', () => {
+        if (location.pathname.startsWith('/admin')) return;
+        const payload = JSON.stringify({
+          path: location.pathname,
+          referer: document.referrer || '',
+        });
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/analytics/track', new Blob([payload], { type: 'application/json' }));
+        } else {
+          fetch('/api/analytics/track', {
+            method: 'POST',
+            body: payload,
+            headers: { 'Content-Type': 'application/json' },
+            keepalive: true,
+          }).catch(() => {});
+        }
+      });
+    </script>
   </body>
 </html>
 
