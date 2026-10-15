@@ -70,15 +70,12 @@ interface DeviceStat {
   count: number;
 }
 interface PlanSummary {
-  id: string;
-  title: string;
   version: number;
   created_at: string;
   updated_at: string;
 }
 interface McpTokenSummary {
   token_prefix: string;
-  client_ip: string | null;
   created_at: string;
   last_used_at: string | null;
   request_count_today: number;
@@ -160,7 +157,7 @@ if (isAuthenticated && db) {
 
     const recentPlansResult = await db
       .prepare(
-        `SELECT id, title, version, created_at, updated_at 
+        `SELECT version, created_at, updated_at 
          FROM plans 
          ORDER BY updated_at DESC 
          LIMIT 6`
@@ -185,7 +182,7 @@ if (isAuthenticated && db) {
 
     const mcpTokensResult = await db
       .prepare(
-        `SELECT token_prefix, client_ip, created_at, last_used_at, request_count_today, request_count_total 
+        `SELECT token_prefix, created_at, last_used_at, request_count_today, request_count_total 
          FROM api_tokens 
          ORDER BY created_at DESC 
          LIMIT 5`
@@ -499,29 +496,16 @@ const tabletPct = 100 - mobilePct - desktopPct;
               <p class="text-xs text-slate-400">保存されたプランはありません。</p>
             ) : (
               <div class="space-y-2.5">
-                {recentPlans.map((p) => (
+                {recentPlans.map((p, i) => (
                   <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between gap-3 text-xs">
                     <div class="min-w-0 flex-1">
-                      <a
-                        href={`/p/${p.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="font-semibold text-slate-800 hover:text-indigo-600 transition-colors truncate block"
-                      >
-                        {p.title || '(無題の旅程)'}
-                      </a>
+                      <span class="font-semibold text-slate-800 truncate block">
+                        旅程プラン #{i + 1}（内容は非表示）
+                      </span>
                       <div class="text-[10px] text-slate-400 font-mono mt-0.5">
-                        ID: {p.id} · v{p.version} · 更新: {p.updated_at}
+                        v{p.version} · 更新: {p.updated_at}
                       </div>
                     </div>
-                    <a
-                      href={`/p/${p.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="shrink-0 clay-btn px-2.5 py-1 text-[11px] font-medium text-slate-600 hover:text-slate-900 rounded-lg"
-                    >
-                      開く ↗
-                    </a>
                   </div>
                 ))}
               </div>

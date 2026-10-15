@@ -58,6 +58,23 @@ const checks = [
       }
       return errors;
     }
+  },
+  {
+    name: '管理画面でのユーザー旅程・IPの非表示チェック (admin/index.astro)',
+    file: 'src/pages/admin/index.astro',
+    validate: (content) => {
+      const errors = [];
+      if (/SELECT\s+id,\s*title/i.test(content) || /\bp\.title\b/.test(content)) {
+        errors.push('ユーザーの旅程タイトルを管理画面で取得・表示してはなりません。');
+      }
+      if (/\/p\/\$\{p\.id\}/.test(content) || /\bp\.id\b/.test(content)) {
+        errors.push('ユーザーの旅程ID/リンクを管理画面に表示してはなりません。');
+      }
+      if (/SELECT[^`]*client_ip/i.test(content) || /\bt\.client_ip\b/.test(content)) {
+        errors.push('クライアントIPを管理画面で取得・表示してはなりません。');
+      }
+      return errors;
+    }
   }
 ];
 
