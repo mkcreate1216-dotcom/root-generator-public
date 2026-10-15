@@ -6,7 +6,8 @@ import {
   getMcpQuota,
   MCP_CONSTANTS,
 } from '../../../utils/mcpAuth';
-import type { Trip, Day, Spot, MapType } from '../../../scripts/types';
+import type { Trip, Day, MapType } from '../../../scripts/types';
+import { getDayRouteUrl } from '../../../scripts/maps';
 
 export const prerender = false;
 
@@ -27,47 +28,53 @@ function createDefaultDay(name: string): Day {
     accommodationMemo: '',
     autoAccommodation: false, // 全日程に勝手に宿泊地がコピーされるのを防ぐため false
     autoStart: true,
-    autoStartSlot: true,
+    // 先頭スポットはまだ自動枠ではない。true のままだと Web 側 syncAutoStarts() が
+    // 前日宿泊地なしの日の先頭スポットを「自動枠」とみなして削除してしまうため false
+    autoStartSlot: false,
     autoStartValue: '',
   };
 }
 
-// Google / Apple Maps のルート案内URLを生成
-function buildRouteUrl(
-  departure: string,
-  spots: Spot[],
-  arrival: string,
-  mapType: MapType = 'google'
-): string {
-  const points: string[] = [];
-  if (departure.trim()) points.push(departure.trim());
-  spots.forEach((s) => {
-    if (s.name.trim()) points.push(s.name.trim());
-  });
-  if (arrival.trim()) points.push(arrival.trim());
+/**
+ * 宿泊地を設定し、Web UI（syncAutoStarts）と同じ仕様で翌日の先頭スポット（出発地点）へ連動させる。
+ * 翌日の spots[0] に宿泊地を挿入し autoStartValue で管理することで、ブラウザで開いた際に
+ * 「手動変更」と誤判定されて連動が解除されるのを防ぐ。
+ */
+function applyAccommodation(days: Day[], dayIndex: number, name: string, memo: string): void {
+  const day = days[dayIndex];
+  day.accommodation = name;
+  day.accommodationMemo = memo;
+  day.autoAccommodation = false;
 
-  if (points.length === 0) return '';
-  if (points.length === 1) {
-    const q = encodeURIComponent(points[0]);
+  const nextDay = days[dayIndex + 1];
+  if (!nextDay) return;
+  // 「当日のみ」相当: 翌々日以降へコピーされないよう翌日の自動宿泊地同期は無効化
+  nextDay.autoAccommodation = false;
+
+  const managed = (nextDay.autoStartValue || '').trim();
+  const currentFirst = (nextDay.spots[0]?.name || '').trim();
+  if (nextDay.autoStartSlot && managed && currentFirst === managed) {
+    // 既に自動枠がある場合は差し替え
+    nextDay.spots[0] = { name, memo: nextDay.spots[0]?.memo || '' };
+  } else {
+    nextDay.spots.unshift({ name, memo: '' });
+  }
+  nextDay.autoStart = true;
+  nextDay.autoStartSlot = true;
+  nextDay.autoStartValue = name;
+}
+
+// Google / Apple Maps のルート案内URLを生成（Web UI の getDayRouteUrl と同仕様）
+function buildRouteUrl(points: string[], mapType: MapType = 'google'): string {
+  const validPoints = points.map((p) => (p || '').trim()).filter(Boolean);
+  if (validPoints.length === 0) return '';
+  if (validPoints.length === 1) {
+    const q = encodeURIComponent(validPoints[0]);
     return mapType === 'apple'
       ? `https://maps.apple.com/?q=${q}`
       : `https://www.google.com/maps/search/?api=1&query=${q}`;
   }
-
-  const origin = encodeURIComponent(points[0]);
-  const destination = encodeURIComponent(points[points.length - 1]);
-  const waypoints = points.slice(1, -1);
-
-  if (mapType === 'apple') {
-    return `https://maps.apple.com/?saddr=${origin}&daddr=${destination}`;
-  }
-
-  // Google Maps
-  let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
-  if (waypoints.length > 0) {
-    url += `&waypoints=${waypoints.map(encodeURIComponent).join('|')}`;
-  }
-  return url;
+  return getDayRouteUrl(validPoints, mapType);
 }
 
 // MCPサーバーの基本設定と指示書（Instructions / Skills）
@@ -558,6 +565,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
           }
 
           // 初回スポットの追加
+          const warnings: string[] = [];
           if (Array.isArray(toolArgs.initial_spots)) {
             for (const sp of toolArgs.initial_spots) {
               const dIdx = Number(sp.day_index) || 0;
@@ -566,16 +574,18 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
               if (!name || dIdx < 0 || dIdx >= days.length) continue;
 
               const targetDay = days[dIdx];
-              if (targetDay.spots.length >= MCP_CONSTANTS.MAX_SPOTS_PER_DAY) continue;
 
               if (sp.is_accommodation) {
-                targetDay.accommodation = name;
-                targetDay.accommodationMemo = memo;
-                // 翌日が存在すれば自動反映
-                if (dIdx + 1 < days.length) {
-                  days[dIdx + 1].autoStartValue = name;
+                // Web UI と同様: 最終日に到着地点がある場合は宿泊地を登録しない
+                if (dIdx === days.length - 1 && arrival) {
+                  warnings.push(
+                    `「${name}」は最終日に到着地点が設定されているため宿泊地として登録しませんでした。`
+                  );
+                  continue;
                 }
+                applyAccommodation(days, dIdx, name, memo);
               } else {
+                if (targetDay.spots.length >= MCP_CONSTANTS.MAX_SPOTS_PER_DAY) continue;
                 targetDay.spots.push({ name, memo });
               }
             }
@@ -604,11 +614,12 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
             .run();
 
           const webUrl = `${baseUrl}/p/${planId}`;
+          const warningText = warnings.length ? `\n\n⚠️ 注意:\n${warnings.join('\n')}` : '';
           return makeJsonRpcResponse(id, {
             content: [
               {
                 type: 'text',
-                text: `✅ 旅行プラン「${title}」を作成しました！\n\n【旅程詳細】\n- プランID: ${planId}\n- 日数: ${dayCount}日間\n- 出発地点: ${departure || '未設定'}\n- 到着地点: ${arrival || '未設定'}\n\n📱 Web旅程URL (ブラウザで開いて確認・地図起動・LINE共有):\n${webUrl}`,
+                text: `✅ 旅行プラン「${title}」を作成しました！\n\n【旅程詳細】\n- プランID: ${planId}\n- 日数: ${dayCount}日間\n- 出発地点: ${departure || '未設定'}\n- 到着地点: ${arrival || '未設定'}${warningText}\n\n📱 Web旅程URL (ブラウザで開いて確認・地図起動・LINE共有):\n${webUrl}`,
               },
             ],
           });
@@ -685,6 +696,8 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
 
           const trip: Trip = JSON.parse(record.data);
           let addedCount = 0;
+          const warnings: string[] = [];
+          const hasArrival = Boolean((trip.arrival || '').trim());
 
           for (const sp of spotsToAdd) {
             const dIdx = Number(sp.day_index) || 0;
@@ -693,15 +706,18 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
             if (!name || dIdx < 0 || dIdx >= trip.days.length) continue;
 
             const targetDay = trip.days[dIdx];
-            if (targetDay.spots.length >= MCP_CONSTANTS.MAX_SPOTS_PER_DAY) continue;
 
             if (sp.is_accommodation) {
-              targetDay.accommodation = name;
-              targetDay.accommodationMemo = memo;
-              if (dIdx + 1 < trip.days.length) {
-                trip.days[dIdx + 1].autoStartValue = name;
+              // Web UI と同様: 最終日に到着地点がある場合は宿泊地を登録しない
+              if (dIdx === trip.days.length - 1 && hasArrival) {
+                warnings.push(
+                  `「${name}」は最終日に到着地点が設定されているため宿泊地として登録しませんでした。`
+                );
+                continue;
               }
+              applyAccommodation(trip.days, dIdx, name, memo);
             } else {
+              if (targetDay.spots.length >= MCP_CONSTANTS.MAX_SPOTS_PER_DAY) continue;
               targetDay.spots.push({ name, memo });
             }
             addedCount++;
@@ -722,7 +738,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
             content: [
               {
                 type: 'text',
-                text: `✅ ${addedCount}件のスポットを更新しました！\n\n📱 Web旅程URL: ${baseUrl}/p/${planId}`,
+                text: `✅ ${addedCount}件のスポットを更新しました！${warnings.length ? `\n\n⚠️ 注意:\n${warnings.join('\n')}` : ''}\n\n📱 Web旅程URL: ${baseUrl}/p/${planId}`,
               },
             ],
           });
@@ -843,9 +859,17 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
             });
           }
 
-          const departure = day.autoStartValue || trip.departure || '';
-          const arrival = day.accommodation || trip.arrival || '';
-          const routeUrl = buildRouteUrl(departure, day.spots, arrival, map_type);
+          // Web UI の getDayItems() と同じ地点構成
+          // （前日宿泊地からの出発地点は spots[0] に自動挿入済みのため別途付与しない）
+          const isFirstDay = Number(day_index) === 0;
+          const isLastDay = Number(day_index) === trip.days.length - 1;
+          const points = [
+            isFirstDay ? trip.departure || '' : '',
+            ...day.spots.map((s) => s.name),
+            day.accommodation || '',
+            isLastDay ? trip.arrival || '' : '',
+          ];
+          const routeUrl = buildRouteUrl(points, map_type);
 
           return makeJsonRpcResponse(id, {
             content: [
