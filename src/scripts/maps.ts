@@ -1,6 +1,33 @@
 import type { MapType } from './types';
 
 /**
+ * 単一地点のマップ検索URLを生成
+ */
+export function getSpotSearchUrl(location: string, mapType: MapType): string {
+  const trimmed = (location || '').trim();
+  if (!trimmed) return '';
+  const query = encodeURIComponent(trimmed);
+  if (mapType === 'apple') {
+    return `https://maps.apple.com/?q=${query}`;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+}
+
+/**
+ * 単一地点のマップ検索を新規タブまたは遷移で開く
+ */
+export function openSpotSearch(location: string, mapType: MapType): void {
+  const url = getSpotSearchUrl(location, mapType);
+  if (!url) return;
+  const mapWindow = window.open(url, '_blank');
+  if (mapWindow) {
+    mapWindow.opener = null;
+  } else {
+    window.location.assign(url);
+  }
+}
+
+/**
  * 2地点間のルート案内URLを生成
  */
 export function getRouteUrl(origin: string, destination: string, mapType: MapType): string {
