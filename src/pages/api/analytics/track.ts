@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { redactAnalyticsPath, redactAnalyticsReferer } from '../../../utils/analyticsPath';
 
 export const prerender = false;
 
@@ -25,7 +26,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
     }
 
-    const path = typeof body.path === 'string' ? body.path.slice(0, 200) : '/';
+    const path = redactAnalyticsPath(typeof body.path === 'string' ? body.path : '/');
     // 管理画面パスや内部APIはトラッキング対象外
     if (path.startsWith('/admin') || path.startsWith('/api')) {
       return new Response(JSON.stringify({ ok: true, skipped: true }), {
@@ -36,7 +37,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const userAgent = request.headers.get('user-agent') || '';
     const deviceType = detectDeviceType(userAgent);
-    const referer = (body.referer || request.headers.get('referer') || '').slice(0, 300);
+    const referer = redactAnalyticsReferer(body.referer || request.headers.get('referer') || '');
 
     const db = locals.runtime?.env?.DB;
     if (db) {
