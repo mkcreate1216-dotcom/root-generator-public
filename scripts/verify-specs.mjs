@@ -73,6 +73,20 @@ const checks = [
       if (/SELECT[^`]*client_ip/i.test(content) || /\bt\.client_ip\b/.test(content)) {
         errors.push('クライアントIPを管理画面で取得・表示してはなりません。');
       }
+      if (!/path LIKE '\/p\/%'/.test(content)) {
+        errors.push('人気ページの集計で /p/{id} を /p にまとめていません。共有プランIDは表示できません。');
+      }
+      return errors;
+    }
+  },
+  {
+    name: 'アクセス解析での共有プランID保存禁止 (analytics/track.ts)',
+    file: 'src/pages/api/analytics/track.ts',
+    validate: (content) => {
+      const errors = [];
+      if (!content.includes('redactAnalyticsPath') || !content.includes('redactAnalyticsReferer')) {
+        errors.push('計測パスと参照元は redactAnalyticsPath / redactAnalyticsReferer を通してから保存してください。');
+      }
       return errors;
     }
   }

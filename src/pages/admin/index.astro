@@ -127,12 +127,28 @@ if (isAuthenticated && db) {
     dailyViews = dailyResult.results || [];
 
     // 3. 人気パスランキング（トップ8）
+    // 保存済みの /p/{id} を /p に書き換えてから集計する。IDは共有ページの閲覧鍵になる。
+    await db.prepare(
+      `UPDATE page_views SET path = '/p' WHERE path LIKE '/p/%' OR path LIKE '/p?%'`
+    ).run();
+    await db.prepare(
+      `UPDATE page_views
+       SET referer = substr(referer, 1, instr(referer, '/p/') + 1)
+       WHERE referer LIKE ?`
+    )
+      .bind(`${Astro.url.origin}/p/%`)
+      .run();
     const topPathsResult = await db
       .prepare(
-        `SELECT path, COUNT(*) as count 
-         FROM page_views 
-         GROUP BY path 
-         ORDER BY count DESC 
+        `SELECT
+           CASE
+             WHEN path = '/p' OR path LIKE '/p/%' OR path LIKE '/p?%' THEN '/p'
+             ELSE path
+           END AS path,
+           COUNT(*) as count
+         FROM page_views
+         GROUP BY 1
+         ORDER BY count DESC
          LIMIT 8`
       )
       .all<TopPath>();
