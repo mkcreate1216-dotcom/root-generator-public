@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getClientIp, checkRateLimit, createRateLimitResponse } from '../../../utils/rateLimit';
 import { parseSafeJson } from '../../../utils/requestHelper';
+import { cleanupExpiredPlans, PLAN_RETENTION_DAYS } from '../../../utils/planCleanup';
 
 export const prerender = false;
 
@@ -51,6 +52,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
       });
     }
 
+    // 最終更新から90日経過した期限切れプランを自動削除
+    await cleanupExpiredPlans(db);
+
     const id = generatePlanId();
     const version = 1;
     // タイトルの正規化と最大長制限（100文字）
@@ -70,6 +74,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         title: planTitle,
         version,
         url: `/p/${id}`,
+        retentionDays: PLAN_RETENTION_DAYS,
       }),
       {
         status: 201,

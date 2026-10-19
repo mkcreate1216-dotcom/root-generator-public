@@ -7,6 +7,8 @@ import DayTabs from '../../components/DayTabs.astro';
 import Tooltip from '../../components/Tooltip.astro';
 import TravelBookingAd from '../../components/TravelBookingAd.astro';
 import McpConnectModal from '../../components/McpConnectModal.astro';
+import ItineraryFooterActions from '../../components/ItineraryFooterActions.astro';
+import { cleanupExpiredPlans, isPlanExpired } from '../../utils/planCleanup';
 
 export const prerender = false;
 
@@ -17,19 +19,25 @@ let initialPlanData: any = null;
 
 if (planId && db) {
   try {
+    await cleanupExpiredPlans(db);
+
     const plan = await db
       .prepare(`SELECT id, title, data, version, updated_at FROM plans WHERE id = ?`)
       .bind(planId)
       .first<{ id: string; title: string; data: string; version: number; updated_at: string }>();
 
     if (plan) {
-      initialPlanData = {
-        id: plan.id,
-        title: plan.title,
-        data: JSON.parse(plan.data),
-        version: plan.version,
-        updatedAt: plan.updated_at,
-      };
+      if (isPlanExpired(plan.updated_at)) {
+        await db.prepare(`DELETE FROM plans WHERE id = ?`).bind(planId).run();
+      } else {
+        initialPlanData = {
+          id: plan.id,
+          title: plan.title,
+          data: JSON.parse(plan.data),
+          version: plan.version,
+          updatedAt: plan.updated_at,
+        };
+      }
     }
   } catch (err) {
     console.error('Error fetching plan in SSR:', err);
@@ -86,6 +94,9 @@ const pageTitle = `${initialPlanData.title} - たびろーむ`;
 
         <!-- 旅の準備（宿泊・レンタカー予約プロモーション） -->
         <TravelBookingAd slotId="itinerary_bottom" />
+
+        <!-- 旅程の保存・バックアップ出力（画像/テキスト）＆削除 -->
+        <ItineraryFooterActions />
 
         <div id="endpoint-section" class="hidden mt-6 clay-sunken p-3.5 sm:p-5">
           <div id="departure-field">
