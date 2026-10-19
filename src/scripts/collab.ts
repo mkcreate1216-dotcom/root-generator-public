@@ -119,7 +119,7 @@ class CollabManager {
       window.history.pushState(null, '', res.url);
 
       await this.copyToClipboard(shareUrl);
-      showToast('共有リンクを発行してコピーしました！');
+      showToast('共有リンクを発行してコピーしました！（保存期間: 最終更新から90日）');
 
       return shareUrl;
     } catch (error) {
@@ -202,6 +202,30 @@ class CollabManager {
     } finally {
       this.state.isSaving = false;
       this.notify();
+    }
+  }
+
+  /**
+   * クラウド上の共有プランデータを完全に削除
+   */
+  public async deletePlan(targetPlanId?: string): Promise<boolean> {
+    const idToDelete = targetPlanId || this.state.planId;
+    if (!idToDelete) return true;
+
+    try {
+      const response = await fetch(`/api/plans/${encodeURIComponent(idToDelete)}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok && response.status !== 404) {
+        throw new Error(`Failed to delete plan (${response.status})`);
+      }
+      if (this.state.planId === idToDelete) {
+        this.reset();
+      }
+      return true;
+    } catch (error) {
+      console.error('Failed to delete remote plan:', error);
+      return false;
     }
   }
 

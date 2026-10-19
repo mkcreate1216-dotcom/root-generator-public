@@ -1,12 +1,19 @@
 import type { APIRoute } from 'astro';
 import { getClientIp, checkRateLimit, createRateLimitResponse } from '../../../utils/rateLimit';
 import { parseSafeJson } from '../../../utils/requestHelper';
+import { cleanupExpiredPlans, isPlanExpired, PLAN_RETENTION_DAYS } from '../../../utils/planCleanup';
 
 export const prerender = false;
 
 // 更新APIのレート制限設定: 1つのIPあたり60秒間に最大30回まで（通常の共同編集/オートセーブを妨げずに乱発を防止）
 const UPDATE_RATE_LIMIT_CONFIG = {
   limit: 30,
+  windowMs: 60 * 1000,
+};
+
+// 削除APIのレート制限設定: 1つのIPあたり60秒間に最大10回まで
+const DELETE_RATE_LIMIT_CONFIG = {
+  limit: 10,
   windowMs: 60 * 1000,
 };
 
@@ -38,6 +45,8 @@ export const GET: APIRoute = async ({ params, locals }) => {
       });
     }
 
+    await cleanupExpiredPlans(db);
+
     const plan = await db
       .prepare(`SELECT id, title, data, version, created_at, updated_at FROM plans WHERE id = ?`)
       .bind(id)
@@ -48,6 +57,20 @@ export const GET: APIRoute = async ({ params, locals }) => {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    if (isPlanExpired(plan.updated_at)) {
+      await db.prepare(`DELETE FROM plans WHERE id = ?`).bind(id).run();
+      return new Response(
+        JSON.stringify({
+          error: 'Plan expired',
+          message: `最終更新から${PLAN_RETENTION_DAYS}日を経過したため削除されました。`,
+        }),
+        {
+          status: 404,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     let parsedData: unknown = null;
@@ -65,6 +88,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
         version: plan.version,
         createdAt: plan.created_at,
         updatedAt: plan.updated_at,
+        retentionDays: PLAN_RETENTION_DAYS,
       }),
       {
         status: 200,
@@ -132,6 +156,8 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
       });
     }
 
+    await cleanupExpiredPlans(db);
+
     const planTitle = typeof title === 'string' ? title.trim().slice(0, 100) : '無題の旅程';
 
     // 楽観的ロック: id と version が一致する場合のみ更新し、version をインクリメント
@@ -190,4 +216,56 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     });
   }
 };
+
+// DELETE: クラウド上の共有プランを完全に削除
+export const DELETE: APIRoute = async ({ params, request, locals }) => {
+  const { id } = params;
+  if (!id) {
+    return new Response(JSON.stringify({ error: 'Plan ID is required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const clientIp = getClientIp(request);
+  const rateLimitResult = checkRateLimit(`delete_plan:${clientIp}`, DELETE_RATE_LIMIT_CONFIG);
+  if (!rateLimitResult.allowed) {
+    return createRateLimitResponse(rateLimitResult);
+  }
+
+  try {
+    const db = locals.runtime.env.DB;
+    if (!db) {
+      return new Response(JSON.stringify({ error: 'Database binding not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    await cleanupExpiredPlans(db);
+
+    const result = await db
+      .prepare(`DELETE FROM plans WHERE id = ?`)
+      .bind(id)
+      .run();
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        deleted: (result.meta?.changes || 0) > 0,
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  } catch (error) {
+    console.error('Failed to delete plan:', error);
+    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+};
+
 

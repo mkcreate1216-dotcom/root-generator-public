@@ -30,7 +30,15 @@ import {
   sortTripsByCreatedAt,
 } from './storage';
 import { getDayRouteUrl, openRoute } from './maps';
-import { copyShareItinerary, extractDataFromUrl, parseShareUrlData, getDayItems, showToast } from './share';
+import {
+  copyShareItinerary,
+  downloadItineraryText,
+  downloadItineraryImage,
+  extractDataFromUrl,
+  parseShareUrlData,
+  getDayItems,
+  showToast,
+} from './share';
 import { animateSpotReorder } from './flip';
 import { collabManager } from './collab';
 
@@ -86,6 +94,7 @@ let accommodationDebounceId: ReturnType<typeof setTimeout> | null = null;
 let pendingAccommodationSync: { dayIndex: number; value: string } | null = null;
 let isTripConfirmed = false;
 let isTransitioningToApp = false;
+let pendingDeleteTripId: string | null = null;
 const dayUndoStack: Array<{ index: number; day: Day }> = [];
 
 // DOM要素参照
@@ -133,6 +142,17 @@ const accommodationSectionEl = document.getElementById('accommodation-section') 
 const accommodationInputEl = document.getElementById('accommodation-input') as HTMLInputElement;
 const accommodationScopeAllEl = document.getElementById('accommodation-scope-all') as HTMLButtonElement;
 const accommodationScopeNextDayEl = document.getElementById('accommodation-scope-next-day') as HTMLButtonElement;
+const exportImageBtnEl = document.getElementById('export-image-btn') as HTMLButtonElement | null;
+const exportTextBtnEl = document.getElementById('export-text-btn') as HTMLButtonElement | null;
+const copyItineraryTextBtnEl = document.getElementById('copy-itinerary-text-btn') as HTMLButtonElement | null;
+const openDeleteTripBtnEl = document.getElementById('open-delete-trip-btn') as HTMLButtonElement | null;
+const deleteTripModalEl = document.getElementById('delete-trip-modal') as HTMLDivElement | null;
+const deleteTripModalNameEl = document.getElementById('delete-trip-modal-name') as HTMLSpanElement | null;
+const deleteTripCloudOptionEl = document.getElementById('delete-trip-cloud-option') as HTMLDivElement | null;
+const deleteTripCloudCheckboxEl = document.getElementById('delete-trip-cloud-checkbox') as HTMLInputElement | null;
+const deleteTripCancelBtnEl = document.getElementById('delete-trip-cancel-btn') as HTMLButtonElement | null;
+const deleteTripCloseBtnEl = document.getElementById('delete-trip-close-btn') as HTMLButtonElement | null;
+const deleteTripConfirmBtnEl = document.getElementById('delete-trip-confirm-btn') as HTMLButtonElement | null;
 
 function ensureValidState(): void {
   if (!Array.isArray(state.days) || state.days.length === 0) {
@@ -381,28 +401,109 @@ function createNewTrip(): void {
   }
 }
 
-function deleteTrip(tripId: string): void {
-  if (tripStore.trips.length <= 1) {
-    alert('最後の1件の旅行は削除できません。');
-    return;
+function closeDeleteTripModal(): void {
+  pendingDeleteTripId = null;
+  if (deleteTripModalEl) {
+    deleteTripModalEl.classList.add('hidden');
+    deleteTripModalEl.classList.remove('flex');
   }
+}
+
+function deleteTrip(tripId: string): void {
+  saveState(false);
   const index = tripStore.trips.findIndex((t) => t.id === tripId);
   if (index === -1) return;
   const targetTrip = tripStore.trips[index];
   const displayName =
     targetTrip.tripName && targetTrip.tripName.trim() ? targetTrip.tripName : `旅行${index + 1}（名称未設定）`;
-  if (!confirm(`「${displayName}」を削除しますか？この操作は取り消せません。`)) {
+  const shareId =
+    targetTrip.shareId || (tripId === tripStore.activeTripId ? state.shareId || collabManager.getState().planId : undefined);
+
+  if (!deleteTripModalEl) {
+    if (!confirm(`「${displayName}」を削除しますか？この操作は取り消せません。`)) {
+      return;
+    }
+    void executeDeleteTrip(tripId, Boolean(shareId));
     return;
   }
-  tripStore.trips.splice(index, 1);
-  if (tripId === tripStore.activeTripId) {
-    tripStore.activeTripId = tripStore.trips[Math.max(0, index - 1)].id;
-    tripStore.applyActiveTripToState(state);
-    syncCollabStateWithActiveTrip();
-    isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
+
+  pendingDeleteTripId = tripId;
+  if (deleteTripModalNameEl) {
+    deleteTripModalNameEl.textContent = displayName;
   }
-  saveState();
-  render();
+  if (deleteTripCloudOptionEl && deleteTripCloudCheckboxEl) {
+    const hasCloudData = Boolean(shareId);
+    deleteTripCloudOptionEl.classList.toggle('hidden', !hasCloudData);
+    deleteTripCloudCheckboxEl.checked = hasCloudData;
+  }
+  deleteTripModalEl.classList.remove('hidden');
+  deleteTripModalEl.classList.add('flex');
+}
+
+async function executeDeleteTrip(tripId: string, deleteFromCloud: boolean): Promise<void> {
+  const index = tripStore.trips.findIndex((t) => t.id === tripId);
+  if (index === -1) {
+    closeDeleteTripModal();
+    return;
+  }
+
+  const targetTrip = tripStore.trips[index];
+  const displayName =
+    targetTrip.tripName && targetTrip.tripName.trim() ? targetTrip.tripName : `旅行${index + 1}（名称未設定）`;
+  const shareId =
+    targetTrip.shareId ||
+    (tripId === tripStore.activeTripId ? state.shareId || collabManager.getState().planId || undefined : undefined);
+
+  if (deleteTripConfirmBtnEl) {
+    deleteTripConfirmBtnEl.disabled = true;
+  }
+
+  let cloudDeleted = false;
+  try {
+    if (deleteFromCloud && shareId) {
+      cloudDeleted = await collabManager.deletePlan(shareId);
+    }
+
+    tripStore.trips.splice(index, 1);
+
+    if (tripStore.trips.length === 0) {
+      const freshTrip = createTripEntry('');
+      tripStore.trips.push(freshTrip);
+      tripStore.activeTripId = freshTrip.id;
+      state.shareId = undefined;
+      tripStore.applyActiveTripToState(state);
+      collabManager.reset();
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.history.pushState(null, '', '/');
+      }
+      isTripConfirmed = false;
+      isTransitioningToApp = false;
+    } else if (tripId === tripStore.activeTripId) {
+      tripStore.activeTripId = tripStore.trips[Math.max(0, index - 1)].id;
+      tripStore.applyActiveTripToState(state);
+      syncCollabStateWithActiveTrip();
+      isTripConfirmed = Boolean(state.tripName && state.tripName.trim().length > 0);
+    }
+
+    saveState(false);
+    closeDeleteTripModal();
+    toggleTripMenu(false);
+    render();
+
+    if (deleteFromCloud && shareId) {
+      showToast(
+        cloudDeleted
+          ? `「${displayName}」をクラウド上の共有データを含めて完全に削除しました`
+          : `「${displayName}」をこの端末から削除しました（クラウド削除に失敗しました）`
+      );
+    } else {
+      showToast(`「${displayName}」を削除しました`);
+    }
+  } finally {
+    if (deleteTripConfirmBtnEl) {
+      deleteTripConfirmBtnEl.disabled = false;
+    }
+  }
 }
 
 function renderTripComboboxMenu(): void {
@@ -471,20 +572,13 @@ function renderTripComboboxMenu(): void {
     const deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.setAttribute('aria-label', `${displayName}を削除`);
-    const singleTrip = tripStore.trips.length <= 1;
-    if (singleTrip) {
-      deleteBtn.disabled = true;
-      deleteBtn.className = 'rounded-lg p-1.5 text-slate-200 cursor-not-allowed shrink-0';
-      deleteBtn.title = '最後の1件の旅行は削除できません';
-    } else {
-      deleteBtn.className =
-        'rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors duration-75 shrink-0 cursor-pointer';
-      deleteBtn.title = `${displayName}を削除`;
-      deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteTrip(trip.id);
-      });
-    }
+    deleteBtn.className =
+      'rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors duration-75 shrink-0 cursor-pointer';
+    deleteBtn.title = `${displayName}を削除`;
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      deleteTrip(trip.id);
+    });
     deleteBtn.innerHTML = '<i data-lucide="x" class="h-3.5 w-3.5"></i>';
     item.appendChild(deleteBtn);
 
@@ -524,10 +618,8 @@ function renderTripSwitcher(): void {
     tripSwitcherEl.value = tripStore.activeTripId;
   }
   if (tripDeleteBtnEl) {
-    const singleTrip = tripStore.trips.length <= 1;
-    tripDeleteBtnEl.disabled = singleTrip;
-    tripDeleteBtnEl.classList.toggle('opacity-50', singleTrip);
-    tripDeleteBtnEl.classList.toggle('cursor-not-allowed', singleTrip);
+    tripDeleteBtnEl.disabled = false;
+    tripDeleteBtnEl.classList.remove('opacity-50', 'cursor-not-allowed');
   }
   if (isTripMenuOpen) {
     renderTripComboboxMenu();
@@ -2686,11 +2778,50 @@ function setupEventListeners(): void {
       }
     });
   });
+
+  exportImageBtnEl?.addEventListener('click', () => {
+    void downloadItineraryImage(state);
+  });
+
+  exportTextBtnEl?.addEventListener('click', () => {
+    downloadItineraryText(state);
+  });
+
+  copyItineraryTextBtnEl?.addEventListener('click', () => {
+    void copyShareItinerary(copyItineraryTextBtnEl, state);
+  });
+
+  openDeleteTripBtnEl?.addEventListener('click', () => {
+    deleteTrip(tripStore.activeTripId);
+  });
+
+  deleteTripCancelBtnEl?.addEventListener('click', closeDeleteTripModal);
+  deleteTripCloseBtnEl?.addEventListener('click', closeDeleteTripModal);
+  deleteTripModalEl?.addEventListener('click', (e) => {
+    if (e.target === deleteTripModalEl) {
+      closeDeleteTripModal();
+    }
+  });
+  deleteTripConfirmBtnEl?.addEventListener('click', () => {
+    if (!pendingDeleteTripId) return;
+    const deleteCloud = deleteTripCloudCheckboxEl ? deleteTripCloudCheckboxEl.checked : true;
+    void executeDeleteTrip(pendingDeleteTripId, deleteCloud);
+  });
 }
 
 // アプリ初期化
 export function init(): void {
   tripStore.load();
+
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('notfound') === '1') {
+      showToast('指定された旅程は見つからないか、保存期間（最終更新から90日）を過ぎたため削除されました');
+      params.delete('notfound');
+      const nextSearch = params.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${nextSearch ? `?${nextSearch}` : ''}`);
+    }
+  }
 
   // 1. URLパス判定（/p/[planId] アクセス時）
   const initialPlan = typeof window !== 'undefined' ? (window as any).__INITIAL_PLAN__ : null;

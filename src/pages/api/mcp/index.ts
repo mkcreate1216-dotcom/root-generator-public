@@ -8,6 +8,7 @@ import {
 } from '../../../utils/mcpAuth';
 import type { Trip, Day, MapType } from '../../../scripts/types';
 import { getDayRouteUrl } from '../../../scripts/maps';
+import { cleanupExpiredPlans, isPlanExpired, PLAN_RETENTION_DAYS } from '../../../utils/planCleanup';
 
 export const prerender = false;
 
@@ -112,9 +113,10 @@ AIはこの挙動を正確に理解し、以下のルールを厳守して旅程
      - 最終到着地点: 小田原駅
      - 宿泊地: なし（最終日のため宿泊地は空のままにする）
 
-【クォータと制限仕様】
+【クォータと制限・保存期間仕様】
 - 1日のリクエスト上限: ${MCP_CONSTANTS.DAILY_REQUEST_LIMIT}回（AI暴走防止）
 - 保存可能なプラン数: 制限なし（無制限に作成・更新可能）
+- クラウド保存期間: 最終更新から${PLAN_RETENTION_DAYS}日間（${PLAN_RETENTION_DAYS}日経過で自動削除。Web画面下部からテキスト・画像でのバックアップ出力や完全削除も可能）
 - 1旅程の最大日数: 最大${MCP_CONSTANTS.MAX_DAYS_PER_PLAN}日
 - 1日あたりの最大スポット数: 最大${MCP_CONSTANTS.MAX_SPOTS_PER_DAY}件
 - 必要に応じて \`check_quota\` ツールを実行し、現在の利用枠を確認できます。
@@ -124,7 +126,7 @@ AIはこの挙動を正確に理解し、以下のルールを厳守して旅程
 ユーザーはそのURLをスマホやPCのブラウザで開くことで、以下のアクションがワンクリックで行えます：
 1. ドラッグ＆ドロップによる直感的な並び替え（FLIPアニメーション）
 2. Google Maps / Apple Mapsでのルート案内一括起動
-3. LINE共有用テキストのワンクリック生成`;
+3. LINE共有用テキストのワンクリック生成・テキスト/画像でのしおり保存`;
 
 // MCPツール定義リスト
 const MCP_TOOLS = [
@@ -263,6 +265,17 @@ const MCP_TOOLS = [
         spot_index: { type: 'number', description: 'スポット番号（0始まり）' },
       },
       required: ['plan_id', 'day_index', 'spot_index'],
+    },
+  },
+  {
+    name: 'delete_trip',
+    description: '指定した旅行プランをクラウド（D1データベース）から完全に削除します。この操作は取り消せません。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        plan_id: { type: 'string', description: '削除するプランID' },
+      },
+      required: ['plan_id'],
     },
   },
   {
@@ -605,6 +618,8 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
             updatedAt: new Date().toISOString(),
           };
 
+          await cleanupExpiredPlans(db);
+
           await db
             .prepare(
               `INSERT INTO plans (id, title, data, version, token_hash, created_at, updated_at) 
@@ -619,7 +634,7 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
             content: [
               {
                 type: 'text',
-                text: `✅ 旅行プラン「${title}」を作成しました！\n\n【旅程詳細】\n- プランID: ${planId}\n- 日数: ${dayCount}日間\n- 出発地点: ${departure || '未設定'}\n- 到着地点: ${arrival || '未設定'}${warningText}\n\n📱 Web旅程URL (ブラウザで開いて確認・地図起動・LINE共有):\n${webUrl}`,
+                text: `✅ 旅行プラン「${title}」を作成しました！\n\n【旅程詳細】\n- プランID: ${planId}\n- 日数: ${dayCount}日間\n- 出発地点: ${departure || '未設定'}\n- 到着地点: ${arrival || '未設定'}${warningText}\n\n📱 Web旅程URL (ブラウザで開いて確認・地図起動・テキスト/画像保存):\n${webUrl}\n※クラウド上の共有データは最終更新から${PLAN_RETENTION_DAYS}日間保存されます。`,
               },
             ],
           });
@@ -634,15 +649,20 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
             });
           }
 
+          await cleanupExpiredPlans(db);
+
           const record = await db
             .prepare(`SELECT id, title, data, updated_at FROM plans WHERE id = ?`)
             .bind(planId)
             .first<{ id: string; title: string; data: string; updated_at: string }>();
 
-          if (!record) {
+          if (!record || isPlanExpired(record.updated_at)) {
+            if (record) {
+              await db.prepare(`DELETE FROM plans WHERE id = ?`).bind(planId).run();
+            }
             return makeJsonRpcResponse(id, {
               isError: true,
-              content: [{ type: 'text', text: `エラー: プラン ID「${planId}」が見つかりません。` }],
+              content: [{ type: 'text', text: `エラー: プラン ID「${planId}」が見つからないか、保存期間（最終更新から${PLAN_RETENTION_DAYS}日）を経過しています。` }],
             });
           }
 
@@ -831,6 +851,39 @@ export const POST: APIRoute = async ({ request, locals, url }) => {
               {
                 type: 'text',
                 text: `🗑️ スポット「${deletedName}」を削除しました。\n📱 ${baseUrl}/p/${plan_id}`,
+              },
+            ],
+          });
+        }
+
+        if (toolName === 'delete_trip') {
+          const planId = typeof toolArgs.plan_id === 'string' ? toolArgs.plan_id.trim() : '';
+          if (!planId) {
+            return makeJsonRpcResponse(id, {
+              isError: true,
+              content: [{ type: 'text', text: 'エラー: plan_id が指定されていません。' }],
+            });
+          }
+
+          const record = await db
+            .prepare(`SELECT id, title FROM plans WHERE id = ?`)
+            .bind(planId)
+            .first<{ id: string; title: string }>();
+
+          if (!record) {
+            return makeJsonRpcResponse(id, {
+              isError: true,
+              content: [{ type: 'text', text: `エラー: プラン ID「${planId}」が見つかりません。` }],
+            });
+          }
+
+          await db.prepare(`DELETE FROM plans WHERE id = ?`).bind(planId).run();
+
+          return makeJsonRpcResponse(id, {
+            content: [
+              {
+                type: 'text',
+                text: `🗑️ 旅行プラン「${record.title}」（ID: ${planId}）をクラウドから完全に削除しました。`,
               },
             ],
           });
