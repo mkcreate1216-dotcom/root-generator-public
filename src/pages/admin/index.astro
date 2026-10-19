@@ -134,8 +134,10 @@ if (isAuthenticated && db) {
     await db.prepare(
       `UPDATE page_views
        SET referer = substr(referer, 1, instr(referer, '/p/') + 1)
-       WHERE instr(referer, '/p/') > 0`
-    ).run();
+       WHERE referer LIKE ?`
+    )
+      .bind(`${Astro.url.origin}/p/%`)
+      .run();
     const topPathsResult = await db
       .prepare(
         `SELECT

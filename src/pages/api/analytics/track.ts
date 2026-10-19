@@ -37,7 +37,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const userAgent = request.headers.get('user-agent') || '';
     const deviceType = detectDeviceType(userAgent);
-    const referer = redactAnalyticsReferer(body.referer || request.headers.get('referer') || '');
+    const referer = redactAnalyticsReferer(
+      body.referer || request.headers.get('referer') || '',
+      new URL(request.url).origin
+    );
 
     const db = locals.runtime?.env?.DB;
     if (db) {

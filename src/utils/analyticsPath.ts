@@ -17,13 +17,15 @@ export function redactAnalyticsPath(input: string): string {
  * 参照元URLに自サイトの共有プランIDが含まれる場合だけ、パスを `/p` に置き換える。
  * 外部サイトの参照元はそのまま残す。
  */
-export function redactAnalyticsReferer(input: string): string {
+export function redactAnalyticsReferer(input: string, siteOrigin = ''): string {
   const trimmed = input.trim();
   if (!trimmed) return '';
 
   try {
     const url = new URL(trimmed);
-    if (url.pathname === '/p' || url.pathname.startsWith('/p/')) {
+    const site = siteOrigin ? new URL(siteOrigin) : null;
+    const sameSite = site !== null && url.origin === site.origin;
+    if (sameSite && (url.pathname === '/p' || url.pathname.startsWith('/p/'))) {
       url.pathname = '/p';
       url.search = '';
       url.hash = '';
