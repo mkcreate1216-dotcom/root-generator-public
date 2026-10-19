@@ -89,6 +89,20 @@ const checks = [
       }
       return errors;
     }
+  },
+  {
+    name: 'ブロック単体検索ボタン・ルート横スポット追加ボタンの実装チェック (app.ts)',
+    file: 'src/scripts/app.ts',
+    validate: (content) => {
+      const errors = [];
+      if (!content.includes('data-spot-search-btn')) {
+        errors.push('ブロック単体で目的地検索するボタン (data-spot-search-btn) が含まれていません。');
+      }
+      if (!content.includes('data-insert-spot-btn')) {
+        errors.push('ルート検索ボタン横のスポット追加ボタン (data-insert-spot-btn) が含まれていません。');
+      }
+      return errors;
+    }
   }
 ];
 

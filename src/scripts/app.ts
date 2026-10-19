@@ -29,7 +29,7 @@ import {
   formatTripDate,
   sortTripsByCreatedAt,
 } from './storage';
-import { getDayRouteUrl, openRoute } from './maps';
+import { getDayRouteUrl, openRoute, openSpotSearch } from './maps';
 import {
   copyShareItinerary,
   downloadItineraryText,
@@ -652,6 +652,13 @@ function updateMapTypeUI(): void {
     btn.removeAttribute('title');
   });
 
+  document.querySelectorAll<HTMLElement>('[data-spot-search-btn]').forEach((btn) => {
+    btn.setAttribute('data-tooltip', `${currentMapName}で場所を検索`);
+    btn.setAttribute('data-tooltip-pos', 'top');
+    btn.setAttribute('aria-label', `${currentMapName}で場所を検索`);
+    btn.removeAttribute('title');
+  });
+
   state.days.forEach((day, index) => {
     const section = document.getElementById(`day-section-${index}`);
     if (section) {
@@ -1197,9 +1204,10 @@ function parseMemo(memo: string): {
 function createMemoComponent(options: {
   memo: string;
   onSave: (newMemo: string) => void;
+  inlineTriggerSlot?: HTMLElement;
 }): HTMLElement {
   const wrap = document.createElement('div');
-  wrap.className = 'mt-1.5 w-full min-w-0';
+  wrap.className = 'mt-1 w-full min-w-0';
 
   let currentMemo = options.memo || '';
   let isEditing = false;
@@ -1207,8 +1215,13 @@ function createMemoComponent(options: {
 
   const renderContent = () => {
     wrap.innerHTML = '';
+    if (options.inlineTriggerSlot) {
+      options.inlineTriggerSlot.innerHTML = '';
+      options.inlineTriggerSlot.className = 'hidden';
+    }
 
     if (isEditing) {
+      wrap.className = 'mt-1.5 w-full min-w-0';
       const editBox = document.createElement('div');
       editBox.className =
         'min-w-0 rounded-lg border border-slate-300 bg-white p-2 shadow-xs transition-all focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200';
@@ -1216,12 +1229,12 @@ function createMemoComponent(options: {
       const textarea = document.createElement('textarea');
       textarea.value = currentMemo;
       textarea.placeholder = '1行目: 時間や短い見出し（例: 10:00〜）\n2行目以降: 住所、持ち物、詳細メモなど';
-      textarea.rows = Math.max(3, currentMemo.split('\n').length);
+      textarea.rows = Math.max(2, currentMemo.split('\n').length);
       textarea.className =
         'w-full min-w-0 resize-y bg-transparent text-xs text-slate-800 outline-none leading-relaxed placeholder:text-slate-400';
 
       const actionRow = document.createElement('div');
-      actionRow.className = 'mt-1.5 flex items-center justify-between gap-2 border-t border-slate-100 pt-1.5';
+      actionRow.className = 'mt-1 flex items-center justify-between gap-2 border-t border-slate-100 pt-1';
 
       const hintText = document.createElement('span');
       hintText.className = 'text-[10px] text-slate-400 select-none';
@@ -1230,7 +1243,7 @@ function createMemoComponent(options: {
       const finishBtn = document.createElement('button');
       finishBtn.type = 'button';
       finishBtn.className =
-        'rounded bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white transition-colors duration-75 hover:bg-slate-800 cursor-pointer select-none';
+        'rounded bg-slate-900 px-2.5 py-0.5 text-[11px] font-medium text-white transition-colors duration-75 hover:bg-slate-800 cursor-pointer select-none';
       finishBtn.textContent = '完了';
 
       let isFinished = false;
@@ -1276,26 +1289,36 @@ function createMemoComponent(options: {
     const parsed = parseMemo(currentMemo);
 
     if (!parsed.firstLine.trim() && !parsed.hasRest) {
-      // メモが未設定の場合（控えめなテキストボタン）
+      // メモが未設定の場合（下部コントロール行のインラインスロット、またはラッパー内に控えめなボタンとして配置）
       const addBtn = document.createElement('button');
       addBtn.type = 'button';
       addBtn.className =
-        'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium text-slate-400 transition-colors duration-75 hover:bg-slate-100 hover:text-slate-700 cursor-pointer select-none';
+        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-slate-400 transition-colors duration-75 hover:bg-slate-100 hover:text-slate-700 cursor-pointer select-none';
       addBtn.innerHTML = '<i data-lucide="file-text" class="h-3 w-3"></i><span>+ メモを追加</span>';
       addBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         isEditing = true;
         renderContent();
       });
-      wrap.appendChild(addBtn);
-      refreshIcons(wrap);
+      if (options.inlineTriggerSlot) {
+        wrap.className = 'hidden';
+        options.inlineTriggerSlot.className = 'inline-flex items-center';
+        options.inlineTriggerSlot.appendChild(addBtn);
+        refreshIcons(options.inlineTriggerSlot);
+      } else {
+        wrap.className = 'mt-1 w-full min-w-0';
+        wrap.appendChild(addBtn);
+        refreshIcons(wrap);
+      }
       return;
     }
+
+    wrap.className = 'mt-1 w-full min-w-0';
 
     // メモが存在する場合（控えめな枠線と背景のシンプルUI）
     const previewBox = document.createElement('div');
     previewBox.className =
-      'group min-w-0 overflow-hidden rounded-lg border border-slate-200/80 bg-slate-50/80 p-2 text-xs transition-colors duration-75 hover:border-slate-300 hover:bg-slate-50';
+      'group min-w-0 overflow-hidden rounded-lg border border-slate-200/80 bg-slate-50/80 px-2 py-1 text-xs transition-colors duration-75 hover:border-slate-300 hover:bg-slate-50';
 
     // 1行目表示行
     const headerRow = document.createElement('div');
@@ -1313,7 +1336,7 @@ function createMemoComponent(options: {
 
     const clockIcon = document.createElement('i');
     clockIcon.setAttribute('data-lucide', 'clock');
-    clockIcon.className = 'h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors';
+    clockIcon.className = 'h-3 w-3 shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors';
 
     const firstLineSpan = document.createElement('span');
     firstLineSpan.className = 'truncate font-normal text-slate-700';
@@ -1329,7 +1352,7 @@ function createMemoComponent(options: {
       const toggleBtn = document.createElement('button');
       toggleBtn.type = 'button';
       toggleBtn.className =
-        'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 transition-colors duration-75 hover:bg-slate-200/70 hover:text-slate-800 cursor-pointer select-none';
+        'inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium text-slate-500 transition-colors duration-75 hover:bg-slate-200/70 hover:text-slate-800 cursor-pointer select-none';
       toggleBtn.innerHTML = isExpanded
         ? '<span>閉じる</span><i data-lucide="chevron-up" class="h-3 w-3"></i>'
         : '<span>詳細</span><i data-lucide="chevron-down" class="h-3 w-3"></i>';
@@ -1348,7 +1371,7 @@ function createMemoComponent(options: {
     const editBtn = document.createElement('button');
     editBtn.type = 'button';
     editBtn.className =
-      'rounded p-1 text-slate-400 opacity-60 transition-all duration-75 hover:bg-slate-200/70 hover:text-slate-700 hover:opacity-100 group-hover:opacity-100 cursor-pointer';
+      'rounded p-0.5 text-slate-400 opacity-60 transition-all duration-75 hover:bg-slate-200/70 hover:text-slate-700 hover:opacity-100 group-hover:opacity-100 cursor-pointer';
     editBtn.title = 'メモを編集';
     editBtn.innerHTML = '<i data-lucide="pencil" class="h-3 w-3"></i>';
     editBtn.addEventListener('click', (e) => {
@@ -1365,7 +1388,7 @@ function createMemoComponent(options: {
     if (parsed.hasRest && isExpanded) {
       const restBox = document.createElement('div');
       restBox.className =
-        'mt-2 border-t border-slate-200/80 pt-1.5 whitespace-pre-wrap leading-relaxed text-slate-600 text-[11px] cursor-pointer selection:bg-slate-200';
+        'mt-1.5 border-t border-slate-200/80 pt-1 whitespace-pre-wrap leading-relaxed text-slate-600 text-[11px] cursor-pointer selection:bg-slate-200';
       restBox.title = 'クリックしてメモを編集';
       restBox.textContent = parsed.restLines.join('\n');
       restBox.addEventListener('click', (e) => {
@@ -1384,6 +1407,53 @@ function createMemoComponent(options: {
   return wrap;
 }
 
+function createSpotSearchButton(getValue: () => string): HTMLButtonElement {
+  const mapLabel = state.mapType === 'apple' ? 'Apple' : 'Google';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.setAttribute('data-spot-search-btn', 'true');
+  btn.className =
+    'inline-flex h-7 shrink-0 items-center gap-1 rounded-lg clay-btn px-2 text-[11px] font-semibold text-slate-700 hover:text-slate-900 cursor-pointer select-none transition-all duration-75';
+  btn.innerHTML =
+    '<i data-lucide="map-pin" class="h-3.5 w-3.5 shrink-0 text-slate-600"></i><span class="hidden sm:inline">検索</span>';
+  btn.setAttribute('aria-label', `${mapLabel}で場所を検索`);
+  btn.setAttribute('data-tooltip', `${mapLabel}で場所を検索`);
+  btn.setAttribute('data-tooltip-pos', 'top');
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const targetLocation = (getValue() || '').trim();
+    if (!targetLocation) {
+      showToast('地点名を入力してください。');
+      return;
+    }
+    openSpotSearch(targetLocation, state.mapType || 'google');
+  });
+  return btn;
+}
+
+function insertSpotAt(dayIndex: number, insertSpotIndex: number): void {
+  const day = state.days[dayIndex];
+  if (!day) return;
+  const clampedIndex = Math.max(0, Math.min(insertSpotIndex, day.spots.length));
+  day.spots.splice(clampedIndex, 0, { name: '', memo: '' });
+  if (dayIndex > 0 && clampedIndex === 0) {
+    day.autoStart = false;
+    day.autoStartSlot = false;
+    day.autoStartValue = '';
+  }
+  state.activeDayIndex = dayIndex;
+  state.openRouteMenuIndex = null;
+  saveState();
+  render();
+
+  const daySection = document.getElementById(`day-section-${dayIndex}`);
+  const spotInputs = daySection?.querySelectorAll<HTMLInputElement>('[data-spot-name-input="true"]');
+  const targetInput = spotInputs?.[clampedIndex];
+  if (targetInput) {
+    targetInput.focus();
+  }
+}
+
 function createSpotCard(
   spotValue: string,
   index: number,
@@ -1393,7 +1463,7 @@ function createSpotCard(
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
-    'relative rounded-2xl clay-item p-3.5 sm:p-4';
+    'relative rounded-xl clay-item px-2.5 py-2 sm:px-3 sm:py-2.5';
   card.dataset.spotCard = 'true';
   card.dataset.spotValue = spotValue;
   card.draggable = true;
@@ -1430,11 +1500,11 @@ function createSpotCard(
   });
 
   const row = document.createElement('div');
-  row.className = 'flex items-start gap-3';
+  row.className = 'flex items-start gap-2';
 
   const handle = document.createElement('div');
   handle.className =
-    'mt-2 flex h-6 w-5 shrink-0 cursor-grab select-none items-center justify-center text-slate-400 active:cursor-grabbing';
+    'mt-1 flex h-5 w-4 shrink-0 cursor-grab select-none items-center justify-center text-xs text-slate-400 active:cursor-grabbing';
   handle.textContent = '⠿';
   handle.setAttribute('aria-hidden', 'true');
   handle.setAttribute('data-tooltip', 'ドラッグして並び替え');
@@ -1442,18 +1512,22 @@ function createSpotCard(
 
   const marker = document.createElement('div');
   marker.className =
-    'mt-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full clay-pill-dark text-xs font-bold text-white';
+    'mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full clay-pill-dark text-[11px] font-bold text-white';
   marker.textContent = String(markerIndex + 1);
 
   const content = document.createElement('div');
   content.className = 'min-w-0 flex-1';
 
+  const inputRow = document.createElement('div');
+  inputRow.className = 'flex items-center gap-1.5';
+
   const input = document.createElement('input');
   input.type = 'text';
   input.value = spotValue;
   input.placeholder = 'スポット名';
+  input.setAttribute('data-spot-name-input', 'true');
   input.className =
-    'w-full min-w-0 rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
+    'w-full min-w-0 flex-1 rounded-lg clay-input px-2.5 py-1 text-xs sm:text-sm outline-none';
   input.addEventListener('input', (e) => {
     const day = state.days[dayIndex];
     if (day && day.spots[index]) {
@@ -1474,8 +1548,13 @@ function createSpotCard(
     render();
   });
 
+  const searchBtn = createSpotSearchButton(() => input.value);
+  inputRow.append(input, searchBtn);
+
+  const memoTriggerSlot = document.createElement('div');
   const memoComponent = createMemoComponent({
     memo: spotMemo,
+    inlineTriggerSlot: memoTriggerSlot,
     onSave: (newMemo) => {
       const day = state.days[dayIndex];
       if (day && day.spots[index]) {
@@ -1486,7 +1565,10 @@ function createSpotCard(
   });
 
   const controls = document.createElement('div');
-  controls.className = 'mt-2 flex items-center justify-between gap-2';
+  controls.className = 'mt-1 flex items-center justify-between gap-1.5';
+
+  const leftControls = document.createElement('div');
+  leftControls.className = 'flex min-w-0 flex-1 items-center gap-1 flex-wrap';
 
   const moveGroup = document.createElement('div');
   moveGroup.className = 'flex items-center gap-0.5';
@@ -1502,8 +1584,8 @@ function createSpotCard(
   const upBtn = document.createElement('button');
   upBtn.type = 'button';
   upBtn.className =
-    'rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
-  upBtn.innerHTML = '<i data-lucide="arrow-up" class="h-3.5 w-3.5"></i>';
+    'rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
+  upBtn.innerHTML = '<i data-lucide="arrow-up" class="h-3 w-3"></i>';
   upBtn.setAttribute('aria-label', upTooltip);
   upBtn.setAttribute('data-tooltip', upTooltip);
   upBtn.setAttribute('data-tooltip-pos', 'top');
@@ -1513,8 +1595,8 @@ function createSpotCard(
   const downBtn = document.createElement('button');
   downBtn.type = 'button';
   downBtn.className =
-    'rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
-  downBtn.innerHTML = '<i data-lucide="arrow-down" class="h-3.5 w-3.5"></i>';
+    'rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
+  downBtn.innerHTML = '<i data-lucide="arrow-down" class="h-3 w-3"></i>';
   downBtn.setAttribute('aria-label', downTooltip);
   downBtn.setAttribute('data-tooltip', downTooltip);
   downBtn.setAttribute('data-tooltip-pos', 'top');
@@ -1524,14 +1606,16 @@ function createSpotCard(
   moveGroup.append(upBtn, downBtn);
 
   const hint = document.createElement('span');
-  hint.className = 'flex-1 text-xs text-slate-400';
+  hint.className = 'text-[11px] text-slate-400 truncate';
   hint.textContent =
     dayIndex > 0 && index === 0 && state.days[dayIndex].autoStart ? '前日の宿泊地を反映中' : '';
+
+  leftControls.append(moveGroup, memoTriggerSlot, hint);
 
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
   removeBtn.className =
-    'rounded-lg px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer';
+    'rounded-md px-1.5 py-0.5 text-[11px] font-medium text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer shrink-0';
   removeBtn.textContent = '削除';
   removeBtn.setAttribute('aria-label', 'スポットを削除');
   removeBtn.setAttribute('data-tooltip', 'スポットを削除');
@@ -1549,8 +1633,8 @@ function createSpotCard(
     render();
   });
 
-  controls.append(moveGroup, hint, removeBtn);
-  content.append(input, memoComponent, controls);
+  controls.append(leftControls, removeBtn);
+  content.append(inputRow, memoComponent, controls);
   row.append(handle, marker, content);
   card.appendChild(row);
   return card;
@@ -1564,7 +1648,7 @@ function createAccommodationCard(
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
-    'relative rounded-2xl clay-item p-3.5 sm:p-4';
+    'relative rounded-xl clay-item px-2.5 py-2 sm:px-3 sm:py-2.5';
   card.dataset.spotCard = 'true';
 
   card.addEventListener('dragover', (e) => {
@@ -1587,27 +1671,30 @@ function createAccommodationCard(
   });
 
   const row = document.createElement('div');
-  row.className = 'flex items-start gap-3';
+  row.className = 'flex items-start gap-2';
 
   const spacer = document.createElement('div');
   spacer.className =
-    'mt-2 flex h-6 w-5 shrink-0 items-center justify-center text-slate-300 select-none text-xs';
+    'mt-1 flex h-5 w-4 shrink-0 items-center justify-center text-slate-300 select-none text-xs';
   spacer.setAttribute('aria-hidden', 'true');
 
   const marker = document.createElement('div');
   marker.className =
-    'mt-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full clay-pill-dark text-xs font-bold text-white';
+    'mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full clay-pill-dark text-[11px] font-bold text-white';
   marker.textContent = String(index + 1);
 
   const content = document.createElement('div');
   content.className = 'min-w-0 flex-1';
+
+  const inputRow = document.createElement('div');
+  inputRow.className = 'flex items-center gap-1.5';
 
   const input = document.createElement('input');
   input.type = 'text';
   input.value = accommodation;
   input.placeholder = '宿泊地を入力';
   input.className =
-    'w-full min-w-0 rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
+    'w-full min-w-0 flex-1 rounded-lg clay-input px-2.5 py-1 text-xs sm:text-sm outline-none';
   input.addEventListener('input', (e) => {
     const day = state.days[dayIndex];
     if (day) {
@@ -1621,8 +1708,13 @@ function createAccommodationCard(
     render();
   });
 
+  const searchBtn = createSpotSearchButton(() => input.value);
+  inputRow.append(input, searchBtn);
+
+  const memoTriggerSlot = document.createElement('div');
   const memoComponent = createMemoComponent({
     memo: accommodationMemo,
+    inlineTriggerSlot: memoTriggerSlot,
     onSave: (newMemo) => {
       const day = state.days[dayIndex];
       if (day) {
@@ -1633,19 +1725,21 @@ function createAccommodationCard(
   });
 
   const controls = document.createElement('div');
-  controls.className = 'mt-2 flex items-center justify-between gap-2';
+  controls.className = 'mt-1 flex items-center justify-between gap-1.5';
+
+  const leftControls = document.createElement('div');
+  leftControls.className = 'flex min-w-0 flex-1 items-center gap-1.5 flex-wrap';
 
   const badge = document.createElement('span');
-  badge.className = 'rounded-lg clay-pill px-2.5 py-1 text-xs font-semibold text-slate-700';
+  badge.className = 'rounded-md clay-pill px-2 py-0.5 text-[11px] font-semibold text-slate-700';
   badge.textContent = '宿泊地';
 
-  const hint = document.createElement('span');
-  hint.className = 'flex-1 text-xs text-slate-500';
+  leftControls.append(badge, memoTriggerSlot);
 
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
   removeBtn.className =
-    'rounded-lg px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer';
+    'rounded-md px-1.5 py-0.5 text-[11px] font-medium text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer shrink-0';
   removeBtn.textContent = '削除';
   removeBtn.setAttribute('aria-label', '宿泊地を削除');
   removeBtn.setAttribute('data-tooltip', '宿泊地を削除');
@@ -1663,8 +1757,8 @@ function createAccommodationCard(
     render();
   });
 
-  controls.append(badge, hint, removeBtn);
-  content.append(input, memoComponent, controls);
+  controls.append(leftControls, removeBtn);
+  content.append(inputRow, memoComponent, controls);
   row.append(spacer, marker, content);
   card.appendChild(row);
   return card;
@@ -1679,7 +1773,7 @@ function createEndpointCard(
 ): HTMLElement {
   const card = document.createElement('div');
   card.className =
-    'relative rounded-2xl clay-item p-3.5 sm:p-4';
+    'relative rounded-xl clay-item px-2.5 py-2 sm:px-3 sm:py-2.5';
   card.dataset.spotCard = 'true';
 
   card.addEventListener('dragover', (e) => {
@@ -1703,27 +1797,30 @@ function createEndpointCard(
   });
 
   const row = document.createElement('div');
-  row.className = 'flex items-start gap-3';
+  row.className = 'flex items-start gap-2';
 
   const spacer = document.createElement('div');
   spacer.className =
-    'mt-2 flex h-6 w-5 shrink-0 items-center justify-center text-slate-300 select-none text-xs';
+    'mt-1 flex h-5 w-4 shrink-0 items-center justify-center text-slate-300 select-none text-xs';
   spacer.setAttribute('aria-hidden', 'true');
 
   const marker = document.createElement('div');
   marker.className =
-    'mt-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full clay-pill-dark text-xs font-bold text-white';
+    'mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full clay-pill-dark text-[11px] font-bold text-white';
   marker.textContent = String(index + 1);
 
   const content = document.createElement('div');
   content.className = 'min-w-0 flex-1';
+
+  const inputRow = document.createElement('div');
+  inputRow.className = 'flex items-center gap-1.5';
 
   const input = document.createElement('input');
   input.type = 'text';
   input.value = location;
   input.placeholder = `${label}を入力`;
   input.className =
-    'w-full min-w-0 rounded-xl clay-input px-3.5 py-2 text-sm outline-none';
+    'w-full min-w-0 flex-1 rounded-lg clay-input px-2.5 py-1 text-xs sm:text-sm outline-none';
   input.addEventListener('input', (e) => {
     if (label === '出発地点') {
       state.departure = (e.target as HTMLInputElement).value;
@@ -1738,8 +1835,13 @@ function createEndpointCard(
     render();
   });
 
+  const searchBtn = createSpotSearchButton(() => input.value);
+  inputRow.append(input, searchBtn);
+
+  const memoTriggerSlot = document.createElement('div');
   const memoComponent = createMemoComponent({
     memo: endpointMemo,
+    inlineTriggerSlot: memoTriggerSlot,
     onSave: (newMemo) => {
       if (label === '出発地点') {
         state.departureMemo = newMemo;
@@ -1751,19 +1853,21 @@ function createEndpointCard(
   });
 
   const controls = document.createElement('div');
-  controls.className = 'mt-2 flex items-center justify-between gap-2';
+  controls.className = 'mt-1 flex items-center justify-between gap-1.5';
+
+  const leftControls = document.createElement('div');
+  leftControls.className = 'flex min-w-0 flex-1 items-center gap-1.5 flex-wrap';
 
   const badge = document.createElement('span');
-  badge.className = 'rounded-lg clay-pill px-2.5 py-1 text-xs font-semibold text-slate-700';
+  badge.className = 'rounded-md clay-pill px-2 py-0.5 text-[11px] font-semibold text-slate-700';
   badge.textContent = label;
 
-  const hint = document.createElement('span');
-  hint.className = 'flex-1 text-xs text-slate-500';
+  leftControls.append(badge, memoTriggerSlot);
 
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
   removeBtn.className =
-    'rounded-lg px-2 py-1 text-xs font-medium text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer';
+    'rounded-md px-1.5 py-0.5 text-[11px] font-medium text-slate-400 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer shrink-0';
   removeBtn.textContent = '削除';
   removeBtn.setAttribute('aria-label', `${label}を削除`);
   removeBtn.setAttribute('data-tooltip', `${label}を削除`);
@@ -1788,8 +1892,8 @@ function createEndpointCard(
     render();
   });
 
-  controls.append(badge, hint, removeBtn);
-  content.append(input, memoComponent, controls);
+  controls.append(leftControls, removeBtn);
+  content.append(inputRow, memoComponent, controls);
   row.append(spacer, marker, content);
   card.appendChild(row);
   return card;
@@ -1799,21 +1903,25 @@ function createRouteConnector(
   from: string,
   to: string,
   _routeIndex: number,
-  _dayIndex = state.activeDayIndex
+  dayIndex = state.activeDayIndex,
+  insertSpotIndex = 0
 ): HTMLElement {
   const wrap = document.createElement('div');
-  wrap.className = 'relative z-0 flex flex-col items-center py-2.5';
+  wrap.className = 'relative z-0 flex flex-col items-center py-1.5';
 
   const line = document.createElement('div');
   line.className =
     'pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 border-l-2 border-dashed border-slate-300';
+
+  const actionsRow = document.createElement('div');
+  actionsRow.className = 'relative z-10 inline-flex items-center gap-1.5';
 
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.setAttribute('data-route-btn', 'true');
   const mapLabel = state.mapType === 'apple' ? 'Apple' : 'Google';
   btn.className =
-    'relative z-10 inline-flex items-center gap-1.5 rounded-full clay-btn-dark px-4 py-1.5 text-xs font-bold text-white shadow-md hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
+    'inline-flex items-center gap-1 rounded-full clay-btn-dark px-3.5 py-1 text-xs font-bold text-white shadow-md hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
   btn.innerHTML = '<i data-lucide="route" class="h-3.5 w-3.5 text-slate-200"></i><span>ルート検索</span>';
   btn.setAttribute('data-tooltip', `${mapLabel}でルートを開く`);
   btn.setAttribute('data-tooltip-pos', 'bottom');
@@ -1826,7 +1934,22 @@ function createRouteConnector(
     openRoute(from, to, state.mapType || 'google');
   });
 
-  wrap.append(line, btn);
+  const addSpotBtn = document.createElement('button');
+  addSpotBtn.type = 'button';
+  addSpotBtn.setAttribute('data-insert-spot-btn', 'true');
+  addSpotBtn.className =
+    'inline-flex items-center gap-1 rounded-full clay-btn px-2.5 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
+  addSpotBtn.innerHTML = '<i data-lucide="plus" class="h-3.5 w-3.5"></i><span>スポット追加</span>';
+  addSpotBtn.setAttribute('aria-label', 'この間にスポットを追加');
+  addSpotBtn.setAttribute('data-tooltip', 'この間にスポットを追加');
+  addSpotBtn.setAttribute('data-tooltip-pos', 'bottom');
+  addSpotBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    insertSpotAt(dayIndex, insertSpotIndex);
+  });
+
+  actionsRow.append(btn, addSpotBtn);
+  wrap.append(line, actionsRow);
   return wrap;
 }
 
@@ -1841,12 +1964,12 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
 
   const summary = document.createElement('summary');
   summary.className =
-    'sticky z-20 flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 clay-item transition-all duration-75 hover:bg-slate-50';
+    'sticky z-20 flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-white px-3.5 py-2 sm:px-4 sm:py-2.5 clay-item transition-all duration-75 hover:bg-slate-50';
   summary.style.top = 'calc(var(--total-sticky-height, 150px) + 8px)';
   summary.style.listStyle = 'none';
 
   const chevronWrap = document.createElement('div');
-  chevronWrap.className = 'flex shrink-0 items-center gap-1.5 text-slate-400 py-1';
+  chevronWrap.className = 'flex shrink-0 items-center gap-1.5 text-slate-400 py-0.5';
 
   const chevron = document.createElement('i');
   chevron.setAttribute('data-lucide', 'chevron-down');
@@ -1870,8 +1993,8 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
   const heading = document.createElement(items.length < 2 ? 'h2' : 'a');
   heading.className =
     items.length < 2
-      ? 'shrink-0 text-lg font-bold text-slate-800'
-      : 'shrink-0 text-lg font-bold text-slate-900 transition-colors duration-75 hover:text-slate-600 hover:underline inline-flex items-center gap-1.5 cursor-pointer';
+      ? 'shrink-0 text-base sm:text-lg font-bold text-slate-800'
+      : 'shrink-0 text-base sm:text-lg font-bold text-slate-900 transition-colors duration-75 hover:text-slate-600 hover:underline inline-flex items-center gap-1.5 cursor-pointer';
   heading.textContent = day.name;
 
   if (items.length >= 2) {
@@ -1954,7 +2077,7 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
   details.appendChild(summary);
 
   const body = document.createElement('div');
-  body.className = 'pt-2';
+  body.className = 'pt-1.5';
 
   if (items.length === 0) {
     const empty = document.createElement('div');
@@ -1994,7 +2117,15 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
       body.appendChild(createEndpointCard(item.value, index, item.label, dayIndex, item.memo));
     }
     if (index < items.length - 1) {
-      body.appendChild(createRouteConnector(item.value, items[index + 1].value, index, dayIndex));
+      const insertSpotIndex =
+        item.type === 'spot'
+          ? item.spotIndex + 1
+          : item.type === 'endpoint' && item.label === '出発地点'
+            ? 0
+            : day.spots.length;
+      body.appendChild(
+        createRouteConnector(item.value, items[index + 1].value, index, dayIndex, insertSpotIndex)
+      );
     }
   });
 

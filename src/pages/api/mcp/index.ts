@@ -7,7 +7,7 @@ import {
   MCP_CONSTANTS,
 } from '../../../utils/mcpAuth';
 import type { Trip, Day, MapType } from '../../../scripts/types';
-import { getDayRouteUrl } from '../../../scripts/maps';
+import { getDayRouteUrl, getSpotSearchUrl } from '../../../scripts/maps';
 import { cleanupExpiredPlans, isPlanExpired, PLAN_RETENTION_DAYS } from '../../../utils/planCleanup';
 
 export const prerender = false;
@@ -65,15 +65,12 @@ function applyAccommodation(days: Day[], dayIndex: number, name: string, memo: s
   nextDay.autoStartValue = name;
 }
 
-// Google / Apple Maps のルート案内URLを生成（Web UI の getDayRouteUrl と同仕様）
+// Google / Apple Maps のルート案内URLを生成（Web UI の getDayRouteUrl / getSpotSearchUrl と同仕様）
 function buildRouteUrl(points: string[], mapType: MapType = 'google'): string {
   const validPoints = points.map((p) => (p || '').trim()).filter(Boolean);
   if (validPoints.length === 0) return '';
   if (validPoints.length === 1) {
-    const q = encodeURIComponent(validPoints[0]);
-    return mapType === 'apple'
-      ? `https://maps.apple.com/?q=${q}`
-      : `https://www.google.com/maps/search/?api=1&query=${q}`;
+    return getSpotSearchUrl(validPoints[0], mapType);
   }
   return getDayRouteUrl(validPoints, mapType);
 }
