@@ -649,6 +649,7 @@ function updateMapTypeUI(): void {
   document.querySelectorAll<HTMLElement>('[data-route-btn]').forEach((btn) => {
     btn.setAttribute('data-tooltip', `${currentMapName}でルートを開く`);
     btn.setAttribute('data-tooltip-pos', 'bottom');
+    btn.setAttribute('aria-label', `${currentMapName}でルートを開く`);
     btn.removeAttribute('title');
   });
 
@@ -1407,15 +1408,14 @@ function createMemoComponent(options: {
   return wrap;
 }
 
-function createSpotSearchButton(getValue: () => string): HTMLButtonElement {
+function createSpotMarkerButton(markerNumber: number, getValue: () => string): HTMLButtonElement {
   const mapLabel = state.mapType === 'apple' ? 'Apple' : 'Google';
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.setAttribute('data-spot-search-btn', 'true');
   btn.className =
-    'inline-flex h-7 shrink-0 items-center gap-1 rounded-lg clay-btn px-2 text-[11px] font-semibold text-slate-700 hover:text-slate-900 cursor-pointer select-none transition-all duration-75';
-  btn.innerHTML =
-    '<i data-lucide="map-pin" class="h-3.5 w-3.5 shrink-0 text-slate-600"></i><span class="hidden sm:inline">検索</span>';
+    'mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full clay-btn-dark text-sm sm:text-base font-bold text-white hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
+  btn.textContent = String(markerNumber);
   btn.setAttribute('aria-label', `${mapLabel}で場所を検索`);
   btn.setAttribute('data-tooltip', `${mapLabel}で場所を検索`);
   btn.setAttribute('data-tooltip-pos', 'top');
@@ -1500,26 +1500,18 @@ function createSpotCard(
   });
 
   const row = document.createElement('div');
-  row.className = 'flex items-start gap-2';
+  row.className = 'flex items-start gap-2 sm:gap-2.5';
 
   const handle = document.createElement('div');
   handle.className =
-    'mt-1 flex h-5 w-4 shrink-0 cursor-grab select-none items-center justify-center text-xs text-slate-400 active:cursor-grabbing';
+    'mt-1.5 flex h-6 w-4 shrink-0 cursor-grab select-none items-center justify-center text-xs text-slate-400 active:cursor-grabbing';
   handle.textContent = '⠿';
   handle.setAttribute('aria-hidden', 'true');
   handle.setAttribute('data-tooltip', 'ドラッグして並び替え');
   handle.setAttribute('data-tooltip-pos', 'top');
 
-  const marker = document.createElement('div');
-  marker.className =
-    'mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full clay-pill-dark text-[11px] font-bold text-white';
-  marker.textContent = String(markerIndex + 1);
-
   const content = document.createElement('div');
   content.className = 'min-w-0 flex-1';
-
-  const inputRow = document.createElement('div');
-  inputRow.className = 'flex items-center gap-1.5';
 
   const input = document.createElement('input');
   input.type = 'text';
@@ -1527,7 +1519,7 @@ function createSpotCard(
   input.placeholder = 'スポット名';
   input.setAttribute('data-spot-name-input', 'true');
   input.className =
-    'w-full min-w-0 flex-1 rounded-lg clay-input px-2.5 py-1 text-xs sm:text-sm outline-none';
+    'w-full min-w-0 rounded-lg clay-input px-2.5 py-1.5 text-xs sm:text-sm outline-none';
   input.addEventListener('input', (e) => {
     const day = state.days[dayIndex];
     if (day && day.spots[index]) {
@@ -1548,8 +1540,7 @@ function createSpotCard(
     render();
   });
 
-  const searchBtn = createSpotSearchButton(() => input.value);
-  inputRow.append(input, searchBtn);
+  const marker = createSpotMarkerButton(markerIndex + 1, () => input.value);
 
   const memoTriggerSlot = document.createElement('div');
   const memoComponent = createMemoComponent({
@@ -1634,7 +1625,7 @@ function createSpotCard(
   });
 
   controls.append(leftControls, removeBtn);
-  content.append(inputRow, memoComponent, controls);
+  content.append(input, memoComponent, controls);
   row.append(handle, marker, content);
   card.appendChild(row);
   return card;
@@ -1671,30 +1662,22 @@ function createAccommodationCard(
   });
 
   const row = document.createElement('div');
-  row.className = 'flex items-start gap-2';
+  row.className = 'flex items-start gap-2 sm:gap-2.5';
 
   const spacer = document.createElement('div');
   spacer.className =
-    'mt-1 flex h-5 w-4 shrink-0 items-center justify-center text-slate-300 select-none text-xs';
+    'mt-1.5 flex h-6 w-4 shrink-0 items-center justify-center text-slate-300 select-none text-xs';
   spacer.setAttribute('aria-hidden', 'true');
-
-  const marker = document.createElement('div');
-  marker.className =
-    'mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full clay-pill-dark text-[11px] font-bold text-white';
-  marker.textContent = String(index + 1);
 
   const content = document.createElement('div');
   content.className = 'min-w-0 flex-1';
-
-  const inputRow = document.createElement('div');
-  inputRow.className = 'flex items-center gap-1.5';
 
   const input = document.createElement('input');
   input.type = 'text';
   input.value = accommodation;
   input.placeholder = '宿泊地を入力';
   input.className =
-    'w-full min-w-0 flex-1 rounded-lg clay-input px-2.5 py-1 text-xs sm:text-sm outline-none';
+    'w-full min-w-0 rounded-lg clay-input px-2.5 py-1.5 text-xs sm:text-sm outline-none';
   input.addEventListener('input', (e) => {
     const day = state.days[dayIndex];
     if (day) {
@@ -1708,8 +1691,7 @@ function createAccommodationCard(
     render();
   });
 
-  const searchBtn = createSpotSearchButton(() => input.value);
-  inputRow.append(input, searchBtn);
+  const marker = createSpotMarkerButton(index + 1, () => input.value);
 
   const memoTriggerSlot = document.createElement('div');
   const memoComponent = createMemoComponent({
@@ -1758,7 +1740,7 @@ function createAccommodationCard(
   });
 
   controls.append(leftControls, removeBtn);
-  content.append(inputRow, memoComponent, controls);
+  content.append(input, memoComponent, controls);
   row.append(spacer, marker, content);
   card.appendChild(row);
   return card;
@@ -1797,30 +1779,22 @@ function createEndpointCard(
   });
 
   const row = document.createElement('div');
-  row.className = 'flex items-start gap-2';
+  row.className = 'flex items-start gap-2 sm:gap-2.5';
 
   const spacer = document.createElement('div');
   spacer.className =
-    'mt-1 flex h-5 w-4 shrink-0 items-center justify-center text-slate-300 select-none text-xs';
+    'mt-1.5 flex h-6 w-4 shrink-0 items-center justify-center text-slate-300 select-none text-xs';
   spacer.setAttribute('aria-hidden', 'true');
-
-  const marker = document.createElement('div');
-  marker.className =
-    'mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full clay-pill-dark text-[11px] font-bold text-white';
-  marker.textContent = String(index + 1);
 
   const content = document.createElement('div');
   content.className = 'min-w-0 flex-1';
-
-  const inputRow = document.createElement('div');
-  inputRow.className = 'flex items-center gap-1.5';
 
   const input = document.createElement('input');
   input.type = 'text';
   input.value = location;
   input.placeholder = `${label}を入力`;
   input.className =
-    'w-full min-w-0 flex-1 rounded-lg clay-input px-2.5 py-1 text-xs sm:text-sm outline-none';
+    'w-full min-w-0 rounded-lg clay-input px-2.5 py-1.5 text-xs sm:text-sm outline-none';
   input.addEventListener('input', (e) => {
     if (label === '出発地点') {
       state.departure = (e.target as HTMLInputElement).value;
@@ -1835,8 +1809,7 @@ function createEndpointCard(
     render();
   });
 
-  const searchBtn = createSpotSearchButton(() => input.value);
-  inputRow.append(input, searchBtn);
+  const marker = createSpotMarkerButton(index + 1, () => input.value);
 
   const memoTriggerSlot = document.createElement('div');
   const memoComponent = createMemoComponent({
@@ -1893,7 +1866,7 @@ function createEndpointCard(
   });
 
   controls.append(leftControls, removeBtn);
-  content.append(inputRow, memoComponent, controls);
+  content.append(input, memoComponent, controls);
   row.append(spacer, marker, content);
   card.appendChild(row);
   return card;
@@ -1914,15 +1887,16 @@ function createRouteConnector(
     'pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 border-l-2 border-dashed border-slate-300';
 
   const actionsRow = document.createElement('div');
-  actionsRow.className = 'relative z-10 inline-flex items-center gap-1.5';
+  actionsRow.className = 'relative z-10 inline-flex items-center gap-2';
 
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.setAttribute('data-route-btn', 'true');
   const mapLabel = state.mapType === 'apple' ? 'Apple' : 'Google';
   btn.className =
-    'inline-flex items-center gap-1 rounded-full clay-btn-dark px-3.5 py-1 text-xs font-bold text-white shadow-md hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
-  btn.innerHTML = '<i data-lucide="route" class="h-3.5 w-3.5 text-slate-200"></i><span>ルート検索</span>';
+    'inline-flex h-8 w-8 items-center justify-center rounded-full clay-btn-dark p-0 text-white shadow-md hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
+  btn.innerHTML = '<i data-lucide="route" class="h-4 w-4 text-slate-100"></i>';
+  btn.setAttribute('aria-label', `${mapLabel}でルートを開く`);
   btn.setAttribute('data-tooltip', `${mapLabel}でルートを開く`);
   btn.setAttribute('data-tooltip-pos', 'bottom');
   btn.addEventListener('click', (e) => {
@@ -1938,8 +1912,8 @@ function createRouteConnector(
   addSpotBtn.type = 'button';
   addSpotBtn.setAttribute('data-insert-spot-btn', 'true');
   addSpotBtn.className =
-    'inline-flex items-center gap-1 rounded-full clay-btn px-2.5 py-1 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
-  addSpotBtn.innerHTML = '<i data-lucide="plus" class="h-3.5 w-3.5"></i><span>スポット追加</span>';
+    'inline-flex h-8 w-8 items-center justify-center rounded-full clay-btn p-0 text-slate-700 hover:text-slate-900 hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
+  addSpotBtn.innerHTML = '<i data-lucide="plus" class="h-4 w-4"></i>';
   addSpotBtn.setAttribute('aria-label', 'この間にスポットを追加');
   addSpotBtn.setAttribute('data-tooltip', 'この間にスポットを追加');
   addSpotBtn.setAttribute('data-tooltip-pos', 'bottom');
