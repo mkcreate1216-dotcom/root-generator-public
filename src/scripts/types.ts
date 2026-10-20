@@ -14,6 +14,7 @@ export interface Day {
   spots: Spot[];
   accommodation: string;
   accommodationMemo?: string;
+  hasAccommodation?: boolean;
   autoAccommodation: boolean;
   autoStart: boolean;
   autoStartSlot: boolean;
@@ -31,8 +32,10 @@ export interface Trip {
   activeDayIndex: number;
   departure: string;
   departureMemo?: string;
+  hasDeparture?: boolean;
   arrival: string;
   arrivalMemo?: string;
+  hasArrival?: boolean;
   autoArrival: boolean;
   mapType: MapType;
 }
@@ -46,8 +49,10 @@ export interface AppState {
   accommodationUpdateScope: AccommodationScope;
   departure: string;
   departureMemo?: string;
+  hasDeparture?: boolean;
   arrival: string;
   arrivalMemo?: string;
+  hasArrival?: boolean;
   autoArrival: boolean;
   tripName: string;
   addLocationType: LocationType;

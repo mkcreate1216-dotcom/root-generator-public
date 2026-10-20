@@ -18,6 +18,7 @@ import {
   CloudUpload,
   RefreshCw,
   Save,
+  Download,
 } from 'lucide';
 import type { AppState, Day, MapType } from './types';
 import {
@@ -63,6 +64,7 @@ function refreshIcons(_root?: HTMLElement): void {
       CloudUpload,
       RefreshCw,
       Save,
+      Download,
     },
   });
 }
@@ -133,6 +135,7 @@ const mainCardEl = document.getElementById('main-card') as HTMLDivElement | null
 const appHeaderContainerEl = document.getElementById('app-header-container') as HTMLDivElement | null;
 const lpHeroSectionEl = document.getElementById('lp-hero-section') as HTMLDivElement | null;
 const lpFeaturesSectionEl = document.getElementById('lp-features-section') as HTMLDivElement | null;
+const lpMcpSectionEl = document.getElementById('lp-mcp-section') as HTMLDivElement | null;
 const lpSamplesSectionEl = document.getElementById('lp-samples-section') as HTMLDivElement | null;
 const lpSlotWrapperEl = document.getElementById('lp-slot-wrapper') as HTMLDivElement | null;
 const endpointSectionEl = document.getElementById('endpoint-section') as HTMLDivElement;
@@ -146,6 +149,8 @@ const exportImageBtnEl = document.getElementById('export-image-btn') as HTMLButt
 const exportTextBtnEl = document.getElementById('export-text-btn') as HTMLButtonElement | null;
 const copyItineraryTextBtnEl = document.getElementById('copy-itinerary-text-btn') as HTMLButtonElement | null;
 const openDeleteTripBtnEl = document.getElementById('open-delete-trip-btn') as HTMLButtonElement | null;
+const itineraryActionsModalEl = document.getElementById('itinerary-actions-modal') as HTMLDivElement | null;
+const itineraryActionsCloseBtnEl = document.getElementById('itinerary-actions-close-btn') as HTMLButtonElement | null;
 const deleteTripModalEl = document.getElementById('delete-trip-modal') as HTMLDivElement | null;
 const deleteTripModalNameEl = document.getElementById('delete-trip-modal-name') as HTMLSpanElement | null;
 const deleteTripCloudOptionEl = document.getElementById('delete-trip-cloud-option') as HTMLDivElement | null;
@@ -165,6 +170,21 @@ function ensureValidState(): void {
   ) {
     state.activeDayIndex = 0;
   }
+  // 初回作成時など全体が完全に空の場合はDay 1に最初のブロックを1つ表示する
+  const day0 = state.days[0];
+  if (
+    state.days.length === 1 &&
+    day0 &&
+    day0.spots.length === 0 &&
+    !day0.accommodation?.trim() &&
+    !day0.hasAccommodation &&
+    !state.departure?.trim() &&
+    !state.hasDeparture &&
+    !state.arrival?.trim() &&
+    !state.hasArrival
+  ) {
+    day0.spots.push({ name: '', memo: '' });
+  }
 }
 
 function saveState(markAsUnsaved = true): void {
@@ -180,6 +200,7 @@ function syncAutoStarts(): void {
     const day = state.days[i];
     if (day.autoAccommodation) {
       day.accommodation = previousAccommodation;
+      day.hasAccommodation = Boolean(previousAccommodation);
     }
     if (day.autoStart) {
       if (previousAccommodation) {
@@ -399,6 +420,18 @@ function createNewTrip(): void {
     tripNameInputEl.focus();
     tripNameInputEl.select();
   }
+}
+
+function openItineraryActionsModal(): void {
+  if (!itineraryActionsModalEl) return;
+  itineraryActionsModalEl.classList.remove('hidden');
+  itineraryActionsModalEl.classList.add('flex');
+}
+
+function closeItineraryActionsModal(): void {
+  if (!itineraryActionsModalEl) return;
+  itineraryActionsModalEl.classList.add('hidden');
+  itineraryActionsModalEl.classList.remove('flex');
 }
 
 function closeDeleteTripModal(): void {
@@ -1163,6 +1196,22 @@ function renderTabs(): void {
     dayTabsEl.appendChild(shareButton);
   }
 
+  // 出力・削除メニュー起動ボタン
+  const actionsButton = document.createElement('button');
+  actionsButton.type = 'button';
+  actionsButton.id = 'itinerary-actions-btn';
+  actionsButton.className =
+    'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center self-center rounded-full clay-btn p-0 text-slate-700 transition-all duration-75 cursor-pointer';
+  const actionsTooltip = '保存・出力・削除';
+  actionsButton.setAttribute('aria-label', actionsTooltip);
+  actionsButton.setAttribute('data-tooltip', actionsTooltip);
+  actionsButton.setAttribute('data-tooltip-pos', 'left');
+  actionsButton.innerHTML = '<i data-lucide="download" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
+  actionsButton.addEventListener('click', () => {
+    openItineraryActionsModal();
+  });
+  dayTabsEl.appendChild(actionsButton);
+
   refreshIcons(dayTabsEl);
 }
 
@@ -1454,6 +1503,49 @@ function insertSpotAt(dayIndex: number, insertSpotIndex: number): void {
   }
 }
 
+function createBlockTypeCheckboxes(options: {
+  isEndpoint: boolean;
+  isAccommodation: boolean;
+  onToggleEndpoint: (checked: boolean) => void;
+  onToggleAccommodation: (checked: boolean) => void;
+}): HTMLElement {
+  const group = document.createElement('div');
+  group.className = 'inline-flex items-center gap-2 sm:gap-2.5 shrink-0';
+
+  const endpointLabel = document.createElement('label');
+  endpointLabel.className =
+    'inline-flex items-center gap-1 cursor-pointer text-[11px] font-medium text-slate-600 hover:text-slate-900 select-none shrink-0';
+  const endpointCheckbox = document.createElement('input');
+  endpointCheckbox.type = 'checkbox';
+  endpointCheckbox.checked = options.isEndpoint;
+  endpointCheckbox.className = 'h-3.5 w-3.5 rounded border-slate-300 text-slate-900 cursor-pointer accent-slate-900';
+  endpointCheckbox.addEventListener('change', (e) => {
+    e.stopPropagation();
+    options.onToggleEndpoint((e.target as HTMLInputElement).checked);
+  });
+  const endpointText = document.createElement('span');
+  endpointText.textContent = '発着地点';
+  endpointLabel.append(endpointCheckbox, endpointText);
+
+  const accLabel = document.createElement('label');
+  accLabel.className =
+    'inline-flex items-center gap-1 cursor-pointer text-[11px] font-medium text-slate-600 hover:text-slate-900 select-none shrink-0';
+  const accCheckbox = document.createElement('input');
+  accCheckbox.type = 'checkbox';
+  accCheckbox.checked = options.isAccommodation;
+  accCheckbox.className = 'h-3.5 w-3.5 rounded border-slate-300 text-slate-900 cursor-pointer accent-slate-900';
+  accCheckbox.addEventListener('change', (e) => {
+    e.stopPropagation();
+    options.onToggleAccommodation((e.target as HTMLInputElement).checked);
+  });
+  const accText = document.createElement('span');
+  accText.textContent = '宿泊地';
+  accLabel.append(accCheckbox, accText);
+
+  group.append(endpointLabel, accLabel);
+  return group;
+}
+
 function createSpotCard(
   spotValue: string,
   index: number,
@@ -1502,13 +1594,48 @@ function createSpotCard(
   const row = document.createElement('div');
   row.className = 'flex items-start gap-2 sm:gap-2.5';
 
+  const leftColumn = document.createElement('div');
+  leftColumn.className = 'mt-0.5 flex flex-col items-center gap-0.5 shrink-0';
+
   const handle = document.createElement('div');
   handle.className =
-    'mt-1.5 flex h-6 w-4 shrink-0 cursor-grab select-none items-center justify-center text-xs text-slate-400 active:cursor-grabbing';
+    'flex h-4 w-4 shrink-0 cursor-grab select-none items-center justify-center text-xs text-slate-400 active:cursor-grabbing';
   handle.textContent = '⠿';
   handle.setAttribute('aria-hidden', 'true');
   handle.setAttribute('data-tooltip', 'ドラッグして並び替え');
   handle.setAttribute('data-tooltip-pos', 'top');
+
+  const isFirstSpotOverall = dayIndex === 0 && index === 0;
+  const isLastSpotOverall = dayIndex === state.days.length - 1 && index === state.days[dayIndex].spots.length - 1;
+  const isFirstInDay = index === 0;
+  const isLastInDay = index === state.days[dayIndex].spots.length - 1;
+
+  const upTooltip = isFirstInDay && dayIndex > 0 ? '前の日へ移動' : '上に移動';
+  const downTooltip = isLastInDay && dayIndex < state.days.length - 1 ? '次の日へ移動' : '下に移動';
+
+  const upBtn = document.createElement('button');
+  upBtn.type = 'button';
+  upBtn.className =
+    'rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
+  upBtn.innerHTML = '<i data-lucide="arrow-up" class="h-3 w-3"></i>';
+  upBtn.setAttribute('aria-label', upTooltip);
+  upBtn.setAttribute('data-tooltip', upTooltip);
+  upBtn.setAttribute('data-tooltip-pos', 'top');
+  upBtn.disabled = isFirstSpotOverall;
+  upBtn.addEventListener('click', () => moveSpot(dayIndex, index, -1));
+
+  const downBtn = document.createElement('button');
+  downBtn.type = 'button';
+  downBtn.className =
+    'rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
+  downBtn.innerHTML = '<i data-lucide="arrow-down" class="h-3 w-3"></i>';
+  downBtn.setAttribute('aria-label', downTooltip);
+  downBtn.setAttribute('data-tooltip', downTooltip);
+  downBtn.setAttribute('data-tooltip-pos', 'top');
+  downBtn.disabled = isLastSpotOverall;
+  downBtn.addEventListener('click', () => moveSpot(dayIndex, index, 1));
+
+  leftColumn.append(handle, upBtn, downBtn);
 
   const content = document.createElement('div');
   content.className = 'min-w-0 flex-1';
@@ -1559,49 +1686,68 @@ function createSpotCard(
   controls.className = 'mt-1 flex items-center justify-between gap-1.5';
 
   const leftControls = document.createElement('div');
-  leftControls.className = 'flex min-w-0 flex-1 items-center gap-1 flex-wrap';
+  leftControls.className = 'flex min-w-0 flex-1 items-center gap-1.5 flex-wrap';
 
-  const moveGroup = document.createElement('div');
-  moveGroup.className = 'flex items-center gap-0.5';
-
-  const isFirstSpotOverall = dayIndex === 0 && index === 0;
-  const isLastSpotOverall = dayIndex === state.days.length - 1 && index === state.days[dayIndex].spots.length - 1;
-  const isFirstInDay = index === 0;
-  const isLastInDay = index === state.days[dayIndex].spots.length - 1;
-
-  const upTooltip = isFirstInDay && dayIndex > 0 ? '前の日へ移動' : '上に移動';
-  const downTooltip = isLastInDay && dayIndex < state.days.length - 1 ? '次の日へ移動' : '下に移動';
-
-  const upBtn = document.createElement('button');
-  upBtn.type = 'button';
-  upBtn.className =
-    'rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
-  upBtn.innerHTML = '<i data-lucide="arrow-up" class="h-3 w-3"></i>';
-  upBtn.setAttribute('aria-label', upTooltip);
-  upBtn.setAttribute('data-tooltip', upTooltip);
-  upBtn.setAttribute('data-tooltip-pos', 'top');
-  upBtn.disabled = isFirstSpotOverall;
-  upBtn.addEventListener('click', () => moveSpot(dayIndex, index, -1));
-
-  const downBtn = document.createElement('button');
-  downBtn.type = 'button';
-  downBtn.className =
-    'rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
-  downBtn.innerHTML = '<i data-lucide="arrow-down" class="h-3 w-3"></i>';
-  downBtn.setAttribute('aria-label', downTooltip);
-  downBtn.setAttribute('data-tooltip', downTooltip);
-  downBtn.setAttribute('data-tooltip-pos', 'top');
-  downBtn.disabled = isLastSpotOverall;
-  downBtn.addEventListener('click', () => moveSpot(dayIndex, index, 1));
-
-  moveGroup.append(upBtn, downBtn);
+  const typeCheckboxes = createBlockTypeCheckboxes({
+    isEndpoint: false,
+    isAccommodation: false,
+    onToggleEndpoint: (checked) => {
+      if (!checked) return;
+      const day = state.days[dayIndex];
+      if (!day) return;
+      const currentVal = input.value;
+      const currentMemo = day.spots[index]?.memo || '';
+      day.spots.splice(index, 1);
+      if (index === 0 && dayIndex > 0) {
+        day.autoStart = false;
+        day.autoStartSlot = false;
+        day.autoStartValue = '';
+      }
+      state.departure = currentVal;
+      state.departureMemo = currentMemo;
+      state.hasDeparture = true;
+      state.arrival = currentVal;
+      state.arrivalMemo = currentMemo;
+      state.hasArrival = true;
+      state.autoArrival = true;
+      state.openRouteMenuIndex = null;
+      saveState();
+      render();
+    },
+    onToggleAccommodation: (checked) => {
+      if (!checked) return;
+      const day = state.days[dayIndex];
+      if (!day) return;
+      const currentVal = input.value;
+      const currentMemo = day.spots[index]?.memo || '';
+      const existingAcc = (day.accommodation || '').trim();
+      const existingAccMemo = day.accommodationMemo || '';
+      day.spots.splice(index, 1);
+      if (existingAcc) {
+        day.spots.splice(index, 0, { name: existingAcc, memo: existingAccMemo });
+      }
+      if (index === 0 && dayIndex > 0) {
+        day.autoStart = false;
+        day.autoStartSlot = false;
+        day.autoStartValue = '';
+      }
+      day.accommodation = currentVal;
+      day.accommodationMemo = currentMemo;
+      day.hasAccommodation = true;
+      day.autoAccommodation = false;
+      syncAutoStarts();
+      state.openRouteMenuIndex = null;
+      saveState();
+      render();
+    },
+  });
 
   const hint = document.createElement('span');
   hint.className = 'text-[11px] text-slate-400 truncate';
   hint.textContent =
     dayIndex > 0 && index === 0 && state.days[dayIndex].autoStart ? '前日の宿泊地を反映中' : '';
 
-  leftControls.append(moveGroup, memoTriggerSlot, hint);
+  leftControls.append(typeCheckboxes, memoTriggerSlot, hint);
 
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
@@ -1626,7 +1772,7 @@ function createSpotCard(
 
   controls.append(leftControls, removeBtn);
   content.append(input, memoComponent, controls);
-  row.append(handle, marker, content);
+  row.append(leftColumn, marker, content);
   card.appendChild(row);
   return card;
 }
@@ -1682,6 +1828,7 @@ function createAccommodationCard(
     const day = state.days[dayIndex];
     if (day) {
       day.accommodation = (e.target as HTMLInputElement).value;
+      day.hasAccommodation = true;
       day.autoAccommodation = false;
       syncAutoStarts();
       saveState();
@@ -1716,7 +1863,50 @@ function createAccommodationCard(
   badge.className = 'rounded-md clay-pill px-2 py-0.5 text-[11px] font-semibold text-slate-700';
   badge.textContent = '宿泊地';
 
-  leftControls.append(badge, memoTriggerSlot);
+  const typeCheckboxes = createBlockTypeCheckboxes({
+    isEndpoint: false,
+    isAccommodation: true,
+    onToggleEndpoint: (checked) => {
+      if (!checked) return;
+      const day = state.days[dayIndex];
+      if (!day) return;
+      const currentVal = input.value;
+      const currentMemo = day.accommodationMemo || '';
+      day.accommodation = '';
+      day.accommodationMemo = '';
+      day.hasAccommodation = false;
+      day.autoAccommodation = false;
+      state.departure = currentVal;
+      state.departureMemo = currentMemo;
+      state.hasDeparture = true;
+      state.arrival = currentVal;
+      state.arrivalMemo = currentMemo;
+      state.hasArrival = true;
+      state.autoArrival = true;
+      syncAutoStarts();
+      state.openRouteMenuIndex = null;
+      saveState();
+      render();
+    },
+    onToggleAccommodation: (checked) => {
+      if (checked) return;
+      const day = state.days[dayIndex];
+      if (!day) return;
+      const currentVal = input.value;
+      const currentMemo = day.accommodationMemo || '';
+      day.accommodation = '';
+      day.accommodationMemo = '';
+      day.hasAccommodation = false;
+      day.autoAccommodation = false;
+      day.spots.push({ name: currentVal, memo: currentMemo });
+      syncAutoStarts();
+      state.openRouteMenuIndex = null;
+      saveState();
+      render();
+    },
+  });
+
+  leftControls.append(typeCheckboxes, badge, memoTriggerSlot);
 
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
@@ -1731,6 +1921,7 @@ function createAccommodationCard(
     if (day) {
       day.accommodation = '';
       day.accommodationMemo = '';
+      day.hasAccommodation = false;
       day.autoAccommodation = false;
       syncAutoStarts();
     }
@@ -1798,9 +1989,15 @@ function createEndpointCard(
   input.addEventListener('input', (e) => {
     if (label === '出発地点') {
       state.departure = (e.target as HTMLInputElement).value;
+      state.hasDeparture = true;
+      if (state.autoArrival) {
+        state.arrival = state.departure;
+        state.hasArrival = true;
+      }
       if (departureInputEl) departureInputEl.value = state.departure;
     } else if (label === '到着地点') {
       state.arrival = (e.target as HTMLInputElement).value;
+      state.hasArrival = true;
       state.autoArrival = false;
     }
     saveState();
@@ -1835,7 +2032,73 @@ function createEndpointCard(
   badge.className = 'rounded-md clay-pill px-2 py-0.5 text-[11px] font-semibold text-slate-700';
   badge.textContent = label;
 
-  leftControls.append(badge, memoTriggerSlot);
+  const typeCheckboxes = createBlockTypeCheckboxes({
+    isEndpoint: true,
+    isAccommodation: false,
+    onToggleEndpoint: (checked) => {
+      if (checked) return;
+      const day = state.days[dayIndex];
+      if (!day) return;
+      const currentVal = input.value;
+      const currentMemo = label === '出発地点' ? state.departureMemo || '' : state.arrivalMemo || '';
+      if (label === '出発地点') {
+        if (state.autoArrival) {
+          state.arrival = '';
+          state.arrivalMemo = '';
+          state.hasArrival = false;
+          state.autoArrival = false;
+        }
+        state.departure = '';
+        state.departureMemo = '';
+        state.hasDeparture = false;
+        if (departureInputEl) departureInputEl.value = '';
+        day.spots.unshift({ name: currentVal, memo: currentMemo });
+      } else {
+        state.arrival = '';
+        state.arrivalMemo = '';
+        state.hasArrival = false;
+        state.autoArrival = false;
+        day.spots.push({ name: currentVal, memo: currentMemo });
+      }
+      state.openRouteMenuIndex = null;
+      saveState();
+      render();
+    },
+    onToggleAccommodation: (checked) => {
+      if (!checked) return;
+      const day = state.days[dayIndex];
+      if (!day) return;
+      const currentVal = input.value;
+      const currentMemo = label === '出発地点' ? state.departureMemo || '' : state.arrivalMemo || '';
+      if (label === '出発地点') {
+        if (state.autoArrival) {
+          state.arrival = '';
+          state.arrivalMemo = '';
+          state.hasArrival = false;
+          state.autoArrival = false;
+        }
+        state.departure = '';
+        state.departureMemo = '';
+        state.hasDeparture = false;
+        if (departureInputEl) departureInputEl.value = '';
+      } else {
+        state.arrival = '';
+        state.arrivalMemo = '';
+        state.hasArrival = false;
+        state.autoArrival = false;
+      }
+      day.accommodation = currentVal;
+      day.accommodationMemo = currentMemo;
+      day.hasAccommodation = true;
+      day.autoAccommodation = false;
+      syncAutoStarts();
+      state.openRouteMenuIndex = null;
+      saveState();
+      render();
+    },
+  });
+
+  leftControls.append(typeCheckboxes, badge, memoTriggerSlot);
 
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
@@ -1850,14 +2113,17 @@ function createEndpointCard(
       if (state.autoArrival) {
         state.arrival = state.departure;
         state.arrivalMemo = state.departureMemo || '';
+        state.hasArrival = Boolean(state.arrival.trim() || state.hasDeparture);
         state.autoArrival = false;
       }
       state.departure = '';
       state.departureMemo = '';
+      state.hasDeparture = false;
       if (departureInputEl) departureInputEl.value = '';
     } else if (label === '到着地点') {
       state.arrival = '';
       state.arrivalMemo = '';
+      state.hasArrival = false;
       state.autoArrival = false;
     }
     state.openRouteMenuIndex = null;
@@ -2056,9 +2322,24 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
   if (items.length === 0) {
     const empty = document.createElement('div');
     empty.className =
-      'rounded-2xl clay-sunken p-6 text-center text-sm text-slate-500 transition-colors duration-75';
-    empty.textContent =
-      'まだスポットがありません。上の入力から追加するか、スポットをここにドラッグ＆ドロップしてください。';
+      'rounded-2xl clay-sunken p-5 text-center text-sm text-slate-500 transition-colors duration-75 flex flex-col items-center gap-3';
+    const emptyText = document.createElement('span');
+    emptyText.textContent =
+      'まだスポットがありません。下の＋ボタンから追加するか、スポットをここにドラッグ＆ドロップしてください。';
+    const emptyAddBtn = document.createElement('button');
+    emptyAddBtn.type = 'button';
+    emptyAddBtn.setAttribute('data-insert-spot-btn', 'true');
+    emptyAddBtn.className =
+      'inline-flex h-8 w-8 items-center justify-center rounded-full clay-btn p-0 text-slate-700 hover:text-slate-900 hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
+    emptyAddBtn.innerHTML = '<i data-lucide="plus" class="h-4 w-4"></i>';
+    emptyAddBtn.setAttribute('aria-label', 'スポットを追加');
+    emptyAddBtn.setAttribute('data-tooltip', 'スポットを追加');
+    emptyAddBtn.setAttribute('data-tooltip-pos', 'bottom');
+    emptyAddBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      insertSpotAt(dayIndex, 0);
+    });
+    empty.append(emptyText, emptyAddBtn);
     empty.addEventListener('dragover', (e) => {
       if (!draggedSpot) return;
       e.preventDefault();
@@ -2102,6 +2383,28 @@ function createDayTimeline(day: Day, dayIndex: number): HTMLElement {
       );
     }
   });
+
+  // 日の末尾にもスポット追加ボタンを配置
+  const appendWrap = document.createElement('div');
+  appendWrap.className = 'relative z-0 flex flex-col items-center pt-1.5 pb-0.5';
+  const appendLine = document.createElement('div');
+  appendLine.className =
+    'pointer-events-none absolute top-0 h-2 left-1/2 -translate-x-1/2 border-l-2 border-dashed border-slate-300';
+  const appendSpotBtn = document.createElement('button');
+  appendSpotBtn.type = 'button';
+  appendSpotBtn.setAttribute('data-insert-spot-btn', 'true');
+  appendSpotBtn.className =
+    'relative z-10 inline-flex h-8 w-8 items-center justify-center rounded-full clay-btn p-0 text-slate-700 hover:text-slate-900 hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
+  appendSpotBtn.innerHTML = '<i data-lucide="plus" class="h-4 w-4"></i>';
+  appendSpotBtn.setAttribute('aria-label', 'スポットを追加');
+  appendSpotBtn.setAttribute('data-tooltip', 'スポットを追加');
+  appendSpotBtn.setAttribute('data-tooltip-pos', 'bottom');
+  appendSpotBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    insertSpotAt(dayIndex, day.spots.length);
+  });
+  appendWrap.append(appendLine, appendSpotBtn);
+  body.appendChild(appendWrap);
 
   const dropZone = document.createElement('div');
   dropZone.className =
@@ -2274,10 +2577,17 @@ function updateItineraryVisibility(): void {
     }
   }
 
-  // 一体型スマートパネルのスタイル調整（アプリ時はstickyかつ左寄せ）
+  // MCPボタン＆マップ切替の上部バー（LP時は中央寄せ、アプリ時は左端MCP・右端マップ切替）
+  if (lpMcpSectionEl) {
+    lpMcpSectionEl.className = showItinerary
+      ? 'w-full flex items-center justify-between gap-2 mb-2.5 px-1 transition-all duration-200'
+      : 'w-full flex items-center justify-center mb-6 sm:mb-7 transition-all duration-200';
+  }
+
+  // 一体型スマートパネルのスタイル調整（アプリ時はstickyかつ左寄せ、スリム表示）
   if (lpSlotWrapperEl) {
     if (showItinerary) {
-      lpSlotWrapperEl.className = 'w-full p-3.5 sm:px-6 sm:py-4 is-sticky transition-all duration-300';
+      lpSlotWrapperEl.className = 'w-full px-3.5 py-2 sm:px-5 sm:py-2.5 is-sticky transition-all duration-300';
     } else {
       lpSlotWrapperEl.className = 'w-full max-w-xl mx-auto my-1 transition-all duration-300';
       lpSlotWrapperEl.classList.remove('scrolled');
@@ -2295,19 +2605,9 @@ function updateItineraryVisibility(): void {
     tripNameLineEl.classList.toggle('clay-input', !showItinerary);
   }
 
-  // 一体型パネル内のスポット追加フォームの表示・非表示
+  // 上部ホバー内のスポット追加フォームは常時非表示（各ブロック内で直接入力・追加）
   if (addSpotFormEl) {
-    addSpotFormEl.classList.toggle('hidden', !showItinerary);
-  }
-  if (addSpotFormBodyEl) {
-    addSpotFormBodyEl.classList.toggle('hidden', isSpotFormCollapsed);
-  }
-  if (toggleSpotFormBtnEl) {
-    toggleSpotFormBtnEl.setAttribute('aria-expanded', String(!isSpotFormCollapsed));
-    toggleSpotFormBtnEl.setAttribute('data-tooltip', isSpotFormCollapsed ? '入力欄を開く' : '入力欄を折りたたむ');
-  }
-  if (toggleSpotFormIconEl) {
-    toggleSpotFormIconEl.style.transform = isSpotFormCollapsed ? 'rotate(180deg)' : '';
+    addSpotFormEl.classList.add('hidden');
   }
 
   // 日程セクションと固定日程タブ・マップセレクター（アプリ時は独立クレイカード app-card を付与）
@@ -2885,19 +3185,30 @@ function setupEventListeners(): void {
   });
 
   exportImageBtnEl?.addEventListener('click', () => {
+    closeItineraryActionsModal();
     void downloadItineraryImage(state);
   });
 
   exportTextBtnEl?.addEventListener('click', () => {
+    closeItineraryActionsModal();
     downloadItineraryText(state);
   });
 
   copyItineraryTextBtnEl?.addEventListener('click', () => {
+    closeItineraryActionsModal();
     void copyShareItinerary(copyItineraryTextBtnEl, state);
   });
 
   openDeleteTripBtnEl?.addEventListener('click', () => {
+    closeItineraryActionsModal();
     deleteTrip(tripStore.activeTripId);
+  });
+
+  itineraryActionsCloseBtnEl?.addEventListener('click', closeItineraryActionsModal);
+  itineraryActionsModalEl?.addEventListener('click', (e) => {
+    if (e.target === itineraryActionsModalEl) {
+      closeItineraryActionsModal();
+    }
   });
 
   deleteTripCancelBtnEl?.addEventListener('click', closeDeleteTripModal);
