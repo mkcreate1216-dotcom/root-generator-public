@@ -1270,14 +1270,14 @@ function createMemoComponent(options: {
 
     if (options.inlineTriggerSlot) {
       options.inlineTriggerSlot.innerHTML = '';
-      options.inlineTriggerSlot.className = 'flex h-6 w-8 sm:w-9 items-center justify-center shrink-0';
+      options.inlineTriggerSlot.className = 'relative z-10 flex h-6 w-8 sm:w-9 items-center justify-center shrink-0';
       const triggerBtn = document.createElement('button');
       triggerBtn.type = 'button';
       const triggerLabel = hasMemoContent ? 'メモを編集' : 'メモを追加';
-      triggerBtn.className = `inline-flex h-6 w-6 items-center justify-center rounded-md transition-colors duration-75 cursor-pointer select-none shrink-0 ${
+      triggerBtn.className = `relative z-10 inline-flex h-6 w-7 items-center justify-center rounded-lg clay-btn transition-all duration-75 cursor-pointer select-none shrink-0 ${
         hasMemoContent || isEditing
-          ? 'bg-slate-200/70 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
-          : 'text-slate-400 hover:bg-slate-100 hover:text-slate-700'
+          ? 'text-slate-900 ring-1 ring-slate-300'
+          : 'text-slate-500 hover:text-slate-800'
       }`;
       triggerBtn.innerHTML = '<i data-lucide="file-text" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
       triggerBtn.setAttribute('aria-label', triggerLabel);
@@ -1482,7 +1482,7 @@ function createSpotMarkerButton(markerNumber: number, getValue: () => string): H
   btn.type = 'button';
   btn.setAttribute('data-spot-search-btn', 'true');
   btn.className =
-    'flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full clay-btn-dark text-sm sm:text-base font-bold text-white hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
+    'relative z-0 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full clay-btn-dark text-sm sm:text-base font-bold text-white hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
   btn.textContent = String(markerNumber);
   btn.setAttribute('aria-label', `${mapLabel}で場所を検索`);
   btn.setAttribute('data-tooltip', `${mapLabel}で場所を検索`);
@@ -1622,7 +1622,7 @@ function createSpotCard(
 
   const handle = document.createElement('div');
   handle.className =
-    'flex h-[60px] sm:h-[64px] w-5 sm:w-6 shrink-0 cursor-grab select-none items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing transition-colors';
+    'flex h-[62px] sm:h-[66px] w-5 sm:w-6 shrink-0 cursor-grab select-none items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing transition-colors';
   handle.innerHTML = `
     <svg class="h-7 w-3.5 sm:h-8 sm:w-4" viewBox="0 0 12 24" fill="currentColor" aria-hidden="true">
       <circle cx="3.5" cy="3" r="1.3" />
@@ -1642,7 +1642,7 @@ function createSpotCard(
   handle.setAttribute('data-tooltip-pos', 'top');
 
   const markerColumn = document.createElement('div');
-  markerColumn.className = 'flex flex-col items-center gap-1 shrink-0';
+  markerColumn.className = 'flex flex-col items-center gap-1.5 shrink-0';
 
   const marker = createSpotMarkerButton(markerIndex + 1, () => input.value);
   const memoTriggerSlot = document.createElement('div');
@@ -1657,7 +1657,7 @@ function createSpotCard(
   const downTooltip = isLastInDay && dayIndex < state.days.length - 1 ? '次の日へ移動' : '下に移動';
 
   const rightColumn = document.createElement('div');
-  rightColumn.className = 'flex flex-col items-center gap-1 shrink-0';
+  rightColumn.className = 'flex flex-col items-center gap-1.5 shrink-0';
 
   const upBtn = document.createElement('button');
   upBtn.type = 'button';
@@ -1684,7 +1684,7 @@ function createSpotCard(
   rightColumn.append(upBtn, downBtn);
 
   const content = document.createElement('div');
-  content.className = 'min-w-0 flex-1 flex flex-col gap-1';
+  content.className = 'min-w-0 flex-1 flex flex-col gap-1.5';
 
   const input = document.createElement('input');
   input.type = 'text';
@@ -1857,14 +1857,14 @@ function createAccommodationCard(
   row.className = 'flex items-start gap-1.5 sm:gap-2.5';
 
   const spacer = document.createElement('div');
-  spacer.className = 'h-[60px] sm:h-[64px] w-5 sm:w-6 shrink-0 select-none';
+  spacer.className = 'h-[62px] sm:h-[66px] w-5 sm:w-6 shrink-0 select-none';
   spacer.setAttribute('aria-hidden', 'true');
 
   const markerColumn = document.createElement('div');
-  markerColumn.className = 'flex flex-col items-center gap-1 shrink-0';
+  markerColumn.className = 'flex flex-col items-center gap-1.5 shrink-0';
 
   const content = document.createElement('div');
-  content.className = 'min-w-0 flex-1 flex flex-col gap-1';
+  content.className = 'min-w-0 flex-1 flex flex-col gap-1.5';
 
   const input = document.createElement('input');
   input.type = 'text';
@@ -1975,9 +1975,13 @@ function createAccommodationCard(
     render();
   });
 
+  const rightSpacer = document.createElement('div');
+  rightSpacer.className = 'h-[62px] w-7 shrink-0 select-none';
+  rightSpacer.setAttribute('aria-hidden', 'true');
+
   controls.append(leftControls, removeBtn);
   content.append(input, controls, memoComponent);
-  row.append(spacer, markerColumn, content);
+  row.append(spacer, markerColumn, content, rightSpacer);
   card.appendChild(row);
   return card;
 }
@@ -2018,14 +2022,14 @@ function createEndpointCard(
   row.className = 'flex items-start gap-1.5 sm:gap-2.5';
 
   const spacer = document.createElement('div');
-  spacer.className = 'h-[60px] sm:h-[64px] w-5 sm:w-6 shrink-0 select-none';
+  spacer.className = 'h-[62px] sm:h-[66px] w-5 sm:w-6 shrink-0 select-none';
   spacer.setAttribute('aria-hidden', 'true');
 
   const markerColumn = document.createElement('div');
-  markerColumn.className = 'flex flex-col items-center gap-1 shrink-0';
+  markerColumn.className = 'flex flex-col items-center gap-1.5 shrink-0';
 
   const content = document.createElement('div');
-  content.className = 'min-w-0 flex-1 flex flex-col gap-1';
+  content.className = 'min-w-0 flex-1 flex flex-col gap-1.5';
 
   const input = document.createElement('input');
   input.type = 'text';
@@ -2176,9 +2180,13 @@ function createEndpointCard(
     render();
   });
 
+  const rightSpacer = document.createElement('div');
+  rightSpacer.className = 'h-[62px] w-7 shrink-0 select-none';
+  rightSpacer.setAttribute('aria-hidden', 'true');
+
   controls.append(leftControls, removeBtn);
   content.append(input, controls, memoComponent);
-  row.append(spacer, markerColumn, content);
+  row.append(spacer, markerColumn, content, rightSpacer);
   card.appendChild(row);
   return card;
 }
