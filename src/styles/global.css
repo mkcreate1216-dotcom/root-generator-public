@@ -13,6 +13,12 @@
   --clay-card-secondary: #f8fafc;
   --clay-dark-bg: #0f172a;
 
+  /* アクセントカラー（旅の気配） */
+  --clay-accent: #38bdf8;
+  --clay-accent-hover: #0ea5e9;
+  --clay-accent-soft: #e0f2fe;
+  --clay-accent-dark: #0284c7;
+
   /* 大カード（メインカード・外枠）用シャドウ */
   --clay-shadow-card:
     0 20px 40px -10px rgba(15, 23, 42, 0.08),
@@ -77,7 +83,7 @@
 
   --clay-shadow-input-focus:
     inset 0 2.5px 5px rgba(15, 23, 42, 0.12),
-    inset 0 0 0 2px #0f172a,
+    inset 0 0 0 2px var(--clay-accent),
     0 1px 2px rgba(255, 255, 255, 0.9);
 
   /* バッジ・マーカー・ピル用シャドウ */
@@ -90,6 +96,11 @@
     0 4px 10px -2px rgba(15, 23, 42, 0.25),
     inset 0 1.5px 2.5px rgba(255, 255, 255, 0.3),
     inset 0 -2px 4px rgba(0, 0, 0, 0.45);
+}
+
+body {
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", system-ui, -apple-system, sans-serif;
+  font-feature-settings: "palt";
 }
 
 /* クレイモーフィズム共通ユーティリティクラス */
@@ -153,6 +164,28 @@
   transform: translateY(1px);
 }
 
+/* アクセントカラーボタン */
+.clay-btn-accent {
+  background-color: var(--clay-accent);
+  color: #ffffff;
+  box-shadow: var(--clay-shadow-dark-btn);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1rem;
+  transition: all 120ms cubic-bezier(0.2, 0, 0, 1);
+  user-select: none;
+}
+
+.clay-btn-accent:hover {
+  background-color: var(--clay-accent-hover);
+  box-shadow: var(--clay-shadow-dark-btn-hover);
+  transform: translateY(-1px);
+}
+
+.clay-btn-accent:active {
+  box-shadow: var(--clay-shadow-dark-btn-active);
+  transform: translateY(1px);
+}
+
 .clay-input {
   background-color: #f8fafc;
   box-shadow: var(--clay-shadow-input);
@@ -165,7 +198,7 @@
 .clay-input:focus {
   background-color: #ffffff;
   box-shadow: var(--clay-shadow-input-focus);
-  border-color: #0f172a;
+  border-color: var(--clay-accent);
 }
 
 .clay-pill {
@@ -196,6 +229,18 @@ summary {
 }
 summary::-webkit-details-marker {
   display: none;
+}
+
+/* モバイルでシャドウを少し軽く */
+@media (max-width: 639px) {
+  .clay-card {
+    box-shadow:
+      0 12px 24px -8px rgba(15, 23, 42, 0.06),
+      0 4px 8px -2px rgba(15, 23, 42, 0.03),
+      inset 0 2px 4px rgba(255, 255, 255, 1),
+      inset 0 -2px 4px rgba(15, 23, 42, 0.04);
+    border-radius: 1.5rem;
+  }
 }
 
 /* LPからアプリへの遷移アニメーション */
@@ -378,7 +423,7 @@ summary::-webkit-details-marker {
 .is-sticky #trip-name-line:focus-within {
   background-color: transparent !important;
   border: none !important;
-  border-bottom: 2px solid #0f172a !important;
+  border-bottom: 2px solid var(--clay-accent) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
 }
@@ -563,8 +608,3 @@ details[open] summary .day-chevron {
     font-size: 16px !important;
   }
 }
-
-
-
-
-
