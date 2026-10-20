@@ -1257,7 +1257,7 @@ function createMemoComponent(options: {
   inlineTriggerSlot?: HTMLElement;
 }): HTMLElement {
   const wrap = document.createElement('div');
-  wrap.className = 'mt-1 w-full min-w-0';
+  wrap.className = 'w-full min-w-0';
 
   let currentMemo = options.memo || '';
   let isEditing = false;
@@ -1265,13 +1265,35 @@ function createMemoComponent(options: {
 
   const renderContent = () => {
     wrap.innerHTML = '';
+    const parsed = parseMemo(currentMemo);
+    const hasMemoContent = Boolean(parsed.firstLine.trim() || parsed.hasRest);
+
     if (options.inlineTriggerSlot) {
       options.inlineTriggerSlot.innerHTML = '';
-      options.inlineTriggerSlot.className = 'hidden';
+      options.inlineTriggerSlot.className = 'relative z-10 flex h-6 w-8 sm:w-9 items-center justify-center shrink-0';
+      const triggerBtn = document.createElement('button');
+      triggerBtn.type = 'button';
+      const triggerLabel = hasMemoContent ? 'メモを編集' : 'メモを追加';
+      triggerBtn.className = `relative z-10 inline-flex h-6 w-7 items-center justify-center rounded-lg clay-btn transition-all duration-75 cursor-pointer select-none shrink-0 ${
+        hasMemoContent || isEditing
+          ? 'text-slate-900 ring-1 ring-slate-300'
+          : 'text-slate-500 hover:text-slate-800'
+      }`;
+      triggerBtn.innerHTML = '<i data-lucide="file-text" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
+      triggerBtn.setAttribute('aria-label', triggerLabel);
+      triggerBtn.setAttribute('data-tooltip', triggerLabel);
+      triggerBtn.setAttribute('data-tooltip-pos', 'bottom');
+      triggerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isEditing = !isEditing;
+        renderContent();
+      });
+      options.inlineTriggerSlot.appendChild(triggerBtn);
+      refreshIcons(options.inlineTriggerSlot);
     }
 
     if (isEditing) {
-      wrap.className = 'mt-1.5 w-full min-w-0';
+      wrap.className = 'w-full min-w-0';
       const editBox = document.createElement('div');
       editBox.className =
         'min-w-0 rounded-lg border border-slate-300 bg-white p-2 shadow-xs transition-all focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200';
@@ -1336,34 +1358,31 @@ function createMemoComponent(options: {
     }
 
     // プレビューモード（表示モード）
-    const parsed = parseMemo(currentMemo);
-
-    if (!parsed.firstLine.trim() && !parsed.hasRest) {
-      // メモが未設定の場合（下部コントロール行のインラインスロット、またはラッパー内に控えめなボタンとして配置）
-      const addBtn = document.createElement('button');
-      addBtn.type = 'button';
-      addBtn.className =
-        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium text-slate-400 transition-colors duration-75 hover:bg-slate-100 hover:text-slate-700 cursor-pointer select-none';
-      addBtn.innerHTML = '<i data-lucide="file-text" class="h-3 w-3"></i><span>+ メモを追加</span>';
-      addBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        isEditing = true;
-        renderContent();
-      });
+    if (!hasMemoContent) {
       if (options.inlineTriggerSlot) {
         wrap.className = 'hidden';
-        options.inlineTriggerSlot.className = 'inline-flex items-center';
-        options.inlineTriggerSlot.appendChild(addBtn);
-        refreshIcons(options.inlineTriggerSlot);
       } else {
-        wrap.className = 'mt-1 w-full min-w-0';
+        wrap.className = 'w-full min-w-0';
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className =
+          'inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-400 transition-colors duration-75 hover:bg-slate-100 hover:text-slate-700 cursor-pointer select-none shrink-0';
+        addBtn.innerHTML = '<i data-lucide="file-text" class="h-3.5 w-3.5"></i>';
+        addBtn.setAttribute('aria-label', 'メモを追加');
+        addBtn.setAttribute('data-tooltip', 'メモを追加');
+        addBtn.setAttribute('data-tooltip-pos', 'top');
+        addBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          isEditing = true;
+          renderContent();
+        });
         wrap.appendChild(addBtn);
         refreshIcons(wrap);
       }
       return;
     }
 
-    wrap.className = 'mt-1 w-full min-w-0';
+    wrap.className = 'w-full min-w-0';
 
     // メモが存在する場合（控えめな枠線と背景のシンプルUI）
     const previewBox = document.createElement('div');
@@ -1463,7 +1482,7 @@ function createSpotMarkerButton(markerNumber: number, getValue: () => string): H
   btn.type = 'button';
   btn.setAttribute('data-spot-search-btn', 'true');
   btn.className =
-    'mt-0.5 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full clay-btn-dark text-sm sm:text-base font-bold text-white hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
+    'relative z-0 flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full clay-btn-dark text-sm sm:text-base font-bold text-white hover:scale-105 active:scale-95 cursor-pointer select-none transition-all duration-75';
   btn.textContent = String(markerNumber);
   btn.setAttribute('aria-label', `${mapLabel}で場所を検索`);
   btn.setAttribute('data-tooltip', `${mapLabel}で場所を検索`);
@@ -1506,15 +1525,19 @@ function insertSpotAt(dayIndex: number, insertSpotIndex: number): void {
 function createBlockTypeCheckboxes(options: {
   isEndpoint: boolean;
   isAccommodation: boolean;
+  endpointLabel?: '出発地点' | '到着地点';
   onToggleEndpoint: (checked: boolean) => void;
   onToggleAccommodation: (checked: boolean) => void;
 }): HTMLElement {
   const group = document.createElement('div');
-  group.className = 'inline-flex items-center gap-2 sm:gap-2.5 shrink-0';
+  group.className = 'inline-flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0';
 
   const endpointLabel = document.createElement('label');
-  endpointLabel.className =
-    'inline-flex items-center gap-1 cursor-pointer text-[11px] font-medium text-slate-600 hover:text-slate-900 select-none shrink-0';
+  endpointLabel.className = `inline-flex items-center gap-1 cursor-pointer text-[11px] select-none shrink-0 transition-colors ${
+    options.isEndpoint
+      ? 'font-semibold text-slate-900'
+      : 'font-medium text-slate-600 hover:text-slate-900'
+  }`;
   const endpointCheckbox = document.createElement('input');
   endpointCheckbox.type = 'checkbox';
   endpointCheckbox.checked = options.isEndpoint;
@@ -1524,12 +1547,15 @@ function createBlockTypeCheckboxes(options: {
     options.onToggleEndpoint((e.target as HTMLInputElement).checked);
   });
   const endpointText = document.createElement('span');
-  endpointText.textContent = '発着地点';
+  endpointText.textContent = options.isEndpoint && options.endpointLabel ? options.endpointLabel : '発着地点';
   endpointLabel.append(endpointCheckbox, endpointText);
 
   const accLabel = document.createElement('label');
-  accLabel.className =
-    'inline-flex items-center gap-1 cursor-pointer text-[11px] font-medium text-slate-600 hover:text-slate-900 select-none shrink-0';
+  accLabel.className = `inline-flex items-center gap-1 cursor-pointer text-[11px] select-none shrink-0 transition-colors ${
+    options.isAccommodation
+      ? 'font-semibold text-slate-900'
+      : 'font-medium text-slate-600 hover:text-slate-900'
+  }`;
   const accCheckbox = document.createElement('input');
   accCheckbox.type = 'checkbox';
   accCheckbox.checked = options.isAccommodation;
@@ -1592,18 +1618,35 @@ function createSpotCard(
   });
 
   const row = document.createElement('div');
-  row.className = 'flex items-start gap-2 sm:gap-2.5';
-
-  const leftColumn = document.createElement('div');
-  leftColumn.className = 'mt-0.5 flex flex-col items-center gap-0.5 shrink-0';
+  row.className = 'flex items-start gap-1.5 sm:gap-2.5';
 
   const handle = document.createElement('div');
   handle.className =
-    'flex h-4 w-4 shrink-0 cursor-grab select-none items-center justify-center text-xs text-slate-400 active:cursor-grabbing';
-  handle.textContent = '⠿';
+    'flex h-[62px] sm:h-[66px] w-5 sm:w-6 shrink-0 cursor-grab select-none items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing transition-colors';
+  handle.innerHTML = `
+    <svg class="h-7 w-3.5 sm:h-8 sm:w-4" viewBox="0 0 12 24" fill="currentColor" aria-hidden="true">
+      <circle cx="3.5" cy="3" r="1.3" />
+      <circle cx="8.5" cy="3" r="1.3" />
+      <circle cx="3.5" cy="7.5" r="1.3" />
+      <circle cx="8.5" cy="7.5" r="1.3" />
+      <circle cx="3.5" cy="12" r="1.3" />
+      <circle cx="8.5" cy="12" r="1.3" />
+      <circle cx="3.5" cy="16.5" r="1.3" />
+      <circle cx="8.5" cy="16.5" r="1.3" />
+      <circle cx="3.5" cy="21" r="1.3" />
+      <circle cx="8.5" cy="21" r="1.3" />
+    </svg>
+  `;
   handle.setAttribute('aria-hidden', 'true');
   handle.setAttribute('data-tooltip', 'ドラッグして並び替え');
   handle.setAttribute('data-tooltip-pos', 'top');
+
+  const markerColumn = document.createElement('div');
+  markerColumn.className = 'flex flex-col items-center gap-1.5 shrink-0';
+
+  const marker = createSpotMarkerButton(markerIndex + 1, () => input.value);
+  const memoTriggerSlot = document.createElement('div');
+  markerColumn.append(marker, memoTriggerSlot);
 
   const isFirstSpotOverall = dayIndex === 0 && index === 0;
   const isLastSpotOverall = dayIndex === state.days.length - 1 && index === state.days[dayIndex].spots.length - 1;
@@ -1613,11 +1656,14 @@ function createSpotCard(
   const upTooltip = isFirstInDay && dayIndex > 0 ? '前の日へ移動' : '上に移動';
   const downTooltip = isLastInDay && dayIndex < state.days.length - 1 ? '次の日へ移動' : '下に移動';
 
+  const rightColumn = document.createElement('div');
+  rightColumn.className = 'flex flex-col items-center gap-1.5 shrink-0';
+
   const upBtn = document.createElement('button');
   upBtn.type = 'button';
   upBtn.className =
-    'rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
-  upBtn.innerHTML = '<i data-lucide="arrow-up" class="h-3 w-3"></i>';
+    'flex h-7 w-7 sm:h-7 sm:w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200/70 hover:text-slate-800 active:scale-95 transition-all disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
+  upBtn.innerHTML = '<i data-lucide="arrow-up" class="h-4 w-4 sm:h-[18px] sm:w-[18px]"></i>';
   upBtn.setAttribute('aria-label', upTooltip);
   upBtn.setAttribute('data-tooltip', upTooltip);
   upBtn.setAttribute('data-tooltip-pos', 'top');
@@ -1627,18 +1673,18 @@ function createSpotCard(
   const downBtn = document.createElement('button');
   downBtn.type = 'button';
   downBtn.className =
-    'rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
-  downBtn.innerHTML = '<i data-lucide="arrow-down" class="h-3 w-3"></i>';
+    'flex h-7 w-7 sm:h-7 sm:w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200/70 hover:text-slate-800 active:scale-95 transition-all disabled:cursor-not-allowed disabled:opacity-30 cursor-pointer';
+  downBtn.innerHTML = '<i data-lucide="arrow-down" class="h-4 w-4 sm:h-[18px] sm:w-[18px]"></i>';
   downBtn.setAttribute('aria-label', downTooltip);
   downBtn.setAttribute('data-tooltip', downTooltip);
   downBtn.setAttribute('data-tooltip-pos', 'top');
   downBtn.disabled = isLastSpotOverall;
   downBtn.addEventListener('click', () => moveSpot(dayIndex, index, 1));
 
-  leftColumn.append(handle, upBtn, downBtn);
+  rightColumn.append(upBtn, downBtn);
 
   const content = document.createElement('div');
-  content.className = 'min-w-0 flex-1';
+  content.className = 'min-w-0 flex-1 flex flex-col gap-1.5';
 
   const input = document.createElement('input');
   input.type = 'text';
@@ -1667,9 +1713,6 @@ function createSpotCard(
     render();
   });
 
-  const marker = createSpotMarkerButton(markerIndex + 1, () => input.value);
-
-  const memoTriggerSlot = document.createElement('div');
   const memoComponent = createMemoComponent({
     memo: spotMemo,
     inlineTriggerSlot: memoTriggerSlot,
@@ -1683,10 +1726,10 @@ function createSpotCard(
   });
 
   const controls = document.createElement('div');
-  controls.className = 'mt-1 flex items-center justify-between gap-1.5';
+  controls.className = 'flex min-h-6 items-center justify-between gap-1 min-w-0 flex-nowrap';
 
   const leftControls = document.createElement('div');
-  leftControls.className = 'flex min-w-0 flex-1 items-center gap-1.5 flex-wrap';
+  leftControls.className = 'flex min-w-0 flex-1 items-center gap-1.5 flex-nowrap';
 
   const typeCheckboxes = createBlockTypeCheckboxes({
     isEndpoint: false,
@@ -1743,11 +1786,14 @@ function createSpotCard(
   });
 
   const hint = document.createElement('span');
-  hint.className = 'text-[11px] text-slate-400 truncate';
+  hint.className = 'text-[10px] sm:text-[11px] text-slate-400 truncate select-none';
   hint.textContent =
     dayIndex > 0 && index === 0 && state.days[dayIndex].autoStart ? '前日の宿泊地を反映中' : '';
 
-  leftControls.append(typeCheckboxes, memoTriggerSlot, hint);
+  leftControls.appendChild(typeCheckboxes);
+  if (hint.textContent) {
+    leftControls.appendChild(hint);
+  }
 
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
@@ -1771,8 +1817,8 @@ function createSpotCard(
   });
 
   controls.append(leftControls, removeBtn);
-  content.append(input, memoComponent, controls);
-  row.append(leftColumn, marker, content);
+  content.append(input, controls, memoComponent);
+  row.append(handle, markerColumn, content, rightColumn);
   card.appendChild(row);
   return card;
 }
@@ -1808,15 +1854,17 @@ function createAccommodationCard(
   });
 
   const row = document.createElement('div');
-  row.className = 'flex items-start gap-2 sm:gap-2.5';
+  row.className = 'flex items-start gap-1.5 sm:gap-2.5';
 
   const spacer = document.createElement('div');
-  spacer.className =
-    'mt-1.5 flex h-6 w-4 shrink-0 items-center justify-center text-slate-300 select-none text-xs';
+  spacer.className = 'h-[62px] sm:h-[66px] w-5 sm:w-6 shrink-0 select-none';
   spacer.setAttribute('aria-hidden', 'true');
 
+  const markerColumn = document.createElement('div');
+  markerColumn.className = 'flex flex-col items-center gap-1.5 shrink-0';
+
   const content = document.createElement('div');
-  content.className = 'min-w-0 flex-1';
+  content.className = 'min-w-0 flex-1 flex flex-col gap-1.5';
 
   const input = document.createElement('input');
   input.type = 'text';
@@ -1839,8 +1887,9 @@ function createAccommodationCard(
   });
 
   const marker = createSpotMarkerButton(index + 1, () => input.value);
-
   const memoTriggerSlot = document.createElement('div');
+  markerColumn.append(marker, memoTriggerSlot);
+
   const memoComponent = createMemoComponent({
     memo: accommodationMemo,
     inlineTriggerSlot: memoTriggerSlot,
@@ -1854,14 +1903,10 @@ function createAccommodationCard(
   });
 
   const controls = document.createElement('div');
-  controls.className = 'mt-1 flex items-center justify-between gap-1.5';
+  controls.className = 'flex min-h-6 items-center justify-between gap-1 min-w-0 flex-nowrap';
 
   const leftControls = document.createElement('div');
-  leftControls.className = 'flex min-w-0 flex-1 items-center gap-1.5 flex-wrap';
-
-  const badge = document.createElement('span');
-  badge.className = 'rounded-md clay-pill px-2 py-0.5 text-[11px] font-semibold text-slate-700';
-  badge.textContent = '宿泊地';
+  leftControls.className = 'flex min-w-0 flex-1 items-center gap-1.5 flex-nowrap';
 
   const typeCheckboxes = createBlockTypeCheckboxes({
     isEndpoint: false,
@@ -1906,7 +1951,7 @@ function createAccommodationCard(
     },
   });
 
-  leftControls.append(typeCheckboxes, badge, memoTriggerSlot);
+  leftControls.appendChild(typeCheckboxes);
 
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
@@ -1930,9 +1975,13 @@ function createAccommodationCard(
     render();
   });
 
+  const rightSpacer = document.createElement('div');
+  rightSpacer.className = 'h-[62px] w-7 shrink-0 select-none';
+  rightSpacer.setAttribute('aria-hidden', 'true');
+
   controls.append(leftControls, removeBtn);
-  content.append(input, memoComponent, controls);
-  row.append(spacer, marker, content);
+  content.append(input, controls, memoComponent);
+  row.append(spacer, markerColumn, content, rightSpacer);
   card.appendChild(row);
   return card;
 }
@@ -1970,15 +2019,17 @@ function createEndpointCard(
   });
 
   const row = document.createElement('div');
-  row.className = 'flex items-start gap-2 sm:gap-2.5';
+  row.className = 'flex items-start gap-1.5 sm:gap-2.5';
 
   const spacer = document.createElement('div');
-  spacer.className =
-    'mt-1.5 flex h-6 w-4 shrink-0 items-center justify-center text-slate-300 select-none text-xs';
+  spacer.className = 'h-[62px] sm:h-[66px] w-5 sm:w-6 shrink-0 select-none';
   spacer.setAttribute('aria-hidden', 'true');
 
+  const markerColumn = document.createElement('div');
+  markerColumn.className = 'flex flex-col items-center gap-1.5 shrink-0';
+
   const content = document.createElement('div');
-  content.className = 'min-w-0 flex-1';
+  content.className = 'min-w-0 flex-1 flex flex-col gap-1.5';
 
   const input = document.createElement('input');
   input.type = 'text';
@@ -2007,8 +2058,9 @@ function createEndpointCard(
   });
 
   const marker = createSpotMarkerButton(index + 1, () => input.value);
-
   const memoTriggerSlot = document.createElement('div');
+  markerColumn.append(marker, memoTriggerSlot);
+
   const memoComponent = createMemoComponent({
     memo: endpointMemo,
     inlineTriggerSlot: memoTriggerSlot,
@@ -2023,18 +2075,15 @@ function createEndpointCard(
   });
 
   const controls = document.createElement('div');
-  controls.className = 'mt-1 flex items-center justify-between gap-1.5';
+  controls.className = 'flex min-h-6 items-center justify-between gap-1 min-w-0 flex-nowrap';
 
   const leftControls = document.createElement('div');
-  leftControls.className = 'flex min-w-0 flex-1 items-center gap-1.5 flex-wrap';
-
-  const badge = document.createElement('span');
-  badge.className = 'rounded-md clay-pill px-2 py-0.5 text-[11px] font-semibold text-slate-700';
-  badge.textContent = label;
+  leftControls.className = 'flex min-w-0 flex-1 items-center gap-1.5 flex-nowrap';
 
   const typeCheckboxes = createBlockTypeCheckboxes({
     isEndpoint: true,
     isAccommodation: false,
+    endpointLabel: label,
     onToggleEndpoint: (checked) => {
       if (checked) return;
       const day = state.days[dayIndex];
@@ -2098,7 +2147,7 @@ function createEndpointCard(
     },
   });
 
-  leftControls.append(typeCheckboxes, badge, memoTriggerSlot);
+  leftControls.appendChild(typeCheckboxes);
 
   const removeBtn = document.createElement('button');
   removeBtn.type = 'button';
@@ -2131,9 +2180,13 @@ function createEndpointCard(
     render();
   });
 
+  const rightSpacer = document.createElement('div');
+  rightSpacer.className = 'h-[62px] w-7 shrink-0 select-none';
+  rightSpacer.setAttribute('aria-hidden', 'true');
+
   controls.append(leftControls, removeBtn);
-  content.append(input, memoComponent, controls);
-  row.append(spacer, marker, content);
+  content.append(input, controls, memoComponent);
+  row.append(spacer, markerColumn, content, rightSpacer);
   card.appendChild(row);
   return card;
 }
