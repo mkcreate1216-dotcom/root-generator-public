@@ -48,8 +48,11 @@ jobs:
         run: npm run build
 
       - name: Deploy to Cloudflare Pages
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler pages deploy dist --project-name=tabi-ori --commit-dirty=true
+        run: |
+          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+          echo "Deploying branch: $BRANCH_NAME"
+          npx wrangler pages deploy dist --project-name=tabi-ori --branch="$BRANCH_NAME" --commit-dirty=true
