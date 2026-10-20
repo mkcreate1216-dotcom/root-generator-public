@@ -1270,26 +1270,26 @@ function createMemoComponent(options: {
 
     if (options.inlineTriggerSlot) {
       options.inlineTriggerSlot.innerHTML = '';
-      options.inlineTriggerSlot.className = 'relative z-10 flex h-6 w-8 sm:w-9 items-center justify-center shrink-0';
-      const triggerBtn = document.createElement('button');
-      triggerBtn.type = 'button';
-      const triggerLabel = hasMemoContent ? 'メモを編集' : 'メモを追加';
-      triggerBtn.className = `relative z-10 inline-flex h-6 w-7 items-center justify-center rounded-lg clay-btn transition-all duration-75 cursor-pointer select-none shrink-0 ${
-        hasMemoContent || isEditing
-          ? 'text-slate-900 ring-1 ring-slate-300'
-          : 'text-slate-500 hover:text-slate-800'
-      }`;
-      triggerBtn.innerHTML = '<i data-lucide="file-text" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
-      triggerBtn.setAttribute('aria-label', triggerLabel);
-      triggerBtn.setAttribute('data-tooltip', triggerLabel);
-      triggerBtn.setAttribute('data-tooltip-pos', 'bottom');
-      triggerBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        isEditing = !isEditing;
-        renderContent();
-      });
-      options.inlineTriggerSlot.appendChild(triggerBtn);
-      refreshIcons(options.inlineTriggerSlot);
+      if (!hasMemoContent && !isEditing) {
+        options.inlineTriggerSlot.className = 'relative z-10 flex h-6 w-8 sm:w-9 items-center justify-center shrink-0';
+        const triggerBtn = document.createElement('button');
+        triggerBtn.type = 'button';
+        triggerBtn.className =
+          'relative z-10 inline-flex h-6 w-7 items-center justify-center rounded-lg clay-btn text-slate-500 hover:text-slate-800 transition-all duration-75 cursor-pointer select-none shrink-0';
+        triggerBtn.innerHTML = '<i data-lucide="file-text" class="h-3.5 w-3.5 sm:h-4 sm:w-4"></i>';
+        triggerBtn.setAttribute('aria-label', 'メモを追加');
+        triggerBtn.setAttribute('data-tooltip', 'メモを追加');
+        triggerBtn.setAttribute('data-tooltip-pos', 'bottom');
+        triggerBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          isEditing = true;
+          renderContent();
+        });
+        options.inlineTriggerSlot.appendChild(triggerBtn);
+        refreshIcons(options.inlineTriggerSlot);
+      } else {
+        options.inlineTriggerSlot.className = 'hidden';
+      }
     }
 
     if (isEditing) {
@@ -1403,15 +1403,15 @@ function createMemoComponent(options: {
       renderContent();
     });
 
-    const clockIcon = document.createElement('i');
-    clockIcon.setAttribute('data-lucide', 'clock');
-    clockIcon.className = 'h-3 w-3 shrink-0 text-slate-400 group-hover:text-slate-600 transition-colors';
+    const memoIcon = document.createElement('i');
+    memoIcon.setAttribute('data-lucide', 'file-text');
+    memoIcon.className = 'h-3.5 w-3.5 shrink-0 text-slate-500 group-hover:text-slate-700 transition-colors';
 
     const firstLineSpan = document.createElement('span');
     firstLineSpan.className = 'truncate font-normal text-slate-700';
     firstLineSpan.textContent = parsed.firstLine || '(メモ)';
 
-    firstLineContent.append(clockIcon, firstLineSpan);
+    firstLineContent.append(memoIcon, firstLineSpan);
 
     const btnGroup = document.createElement('div');
     btnGroup.className = 'flex shrink-0 items-center gap-1';
