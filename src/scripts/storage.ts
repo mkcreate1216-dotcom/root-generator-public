@@ -38,9 +38,15 @@ export function getStoredMapType(): MapType {
 export function createDay(dayNumber: number, prevAccommodation = ''): Day {
   return {
     name: `Day ${dayNumber}`,
-    spots: dayNumber === 1 ? [] : prevAccommodation ? [{ name: prevAccommodation, memo: '' }] : [],
+    spots:
+      dayNumber === 1
+        ? [{ name: '', memo: '' }]
+        : prevAccommodation
+          ? [{ name: prevAccommodation, memo: '' }]
+          : [{ name: '', memo: '' }],
     accommodation: dayNumber === 1 ? '' : prevAccommodation,
     accommodationMemo: '',
+    hasAccommodation: dayNumber !== 1 && !!prevAccommodation,
     autoAccommodation: dayNumber !== 1,
     autoStart: dayNumber !== 1,
     autoStartSlot: dayNumber !== 1 && !!prevAccommodation,
@@ -99,6 +105,8 @@ export function sanitizeTrip(trip: any): Trip {
       : [];
     day.accommodation = typeof day.accommodation === 'string' ? day.accommodation : '';
     day.accommodationMemo = typeof day.accommodationMemo === 'string' ? day.accommodationMemo : '';
+    day.hasAccommodation =
+      typeof day.hasAccommodation === 'boolean' ? day.hasAccommodation : Boolean(day.accommodation.trim());
     day.autoAccommodation = typeof day.autoAccommodation === 'boolean' ? day.autoAccommodation : i !== 0;
     day.autoStart = typeof day.autoStart === 'boolean' ? day.autoStart : i !== 0;
     day.autoStartSlot =
@@ -119,8 +127,12 @@ export function sanitizeTrip(trip: any): Trip {
       : 0;
   sanitized.departure = typeof sanitized.departure === 'string' ? sanitized.departure : '';
   sanitized.departureMemo = typeof sanitized.departureMemo === 'string' ? sanitized.departureMemo : '';
+  sanitized.hasDeparture =
+    typeof sanitized.hasDeparture === 'boolean' ? sanitized.hasDeparture : Boolean(sanitized.departure.trim());
   sanitized.arrival = typeof sanitized.arrival === 'string' ? sanitized.arrival : '';
   sanitized.arrivalMemo = typeof sanitized.arrivalMemo === 'string' ? sanitized.arrivalMemo : '';
+  sanitized.hasArrival =
+    typeof sanitized.hasArrival === 'boolean' ? sanitized.hasArrival : Boolean(sanitized.arrival.trim());
   sanitized.autoArrival =
     typeof sanitized.autoArrival === 'boolean'
       ? sanitized.autoArrival
@@ -199,8 +211,10 @@ export class TripStore {
     state.tripName = trip.tripName;
     state.departure = trip.departure;
     state.departureMemo = trip.departureMemo || '';
+    state.hasDeparture = Boolean(trip.hasDeparture || trip.departure.trim());
     state.arrival = trip.arrival;
     state.arrivalMemo = trip.arrivalMemo || '';
+    state.hasArrival = Boolean(trip.hasArrival || trip.arrival.trim());
     state.autoArrival = trip.autoArrival;
     state.mapType = trip.mapType || getStoredMapType();
     state.openRouteMenuIndex = null;
@@ -218,8 +232,10 @@ export class TripStore {
     trip.tripName = state.tripName;
     trip.departure = state.departure;
     trip.departureMemo = state.departureMemo || '';
+    trip.hasDeparture = Boolean(state.hasDeparture || state.departure.trim());
     trip.arrival = state.arrival;
     trip.arrivalMemo = state.arrivalMemo || '';
+    trip.hasArrival = Boolean(state.hasArrival || state.arrival.trim());
     trip.autoArrival = state.autoArrival;
     trip.mapType = state.mapType;
     trip.updatedAt = new Date().toISOString();

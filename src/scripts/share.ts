@@ -50,13 +50,16 @@ export function getDayItems(day: Day, dayIndex: number, state: AppState): DayIte
   const isLastDay = dayIndex === state.days.length - 1;
   const departure = isFirstDay ? state.departure.trim() : '';
   const departureMemo = isFirstDay ? (state.departureMemo || '').trim() : '';
+  const showDeparture = isFirstDay && Boolean(departure || state.hasDeparture);
   const arrival = isLastDay ? state.arrival.trim() : '';
   const arrivalMemo = isLastDay ? (state.arrivalMemo || '').trim() : '';
+  const showArrival = isLastDay && Boolean(arrival || state.hasArrival);
   const accommodation = day.accommodation.trim();
   const accommodationMemo = (day.accommodationMemo || '').trim();
+  const showAccommodation = Boolean(accommodation || day.hasAccommodation);
   const items: DayItem[] = [];
 
-  if (departure) {
+  if (showDeparture) {
     items.push({ type: 'endpoint', value: departure, memo: departureMemo, label: '出発地点' });
   }
   day.spots.forEach((spot, index) => {
@@ -64,10 +67,10 @@ export function getDayItems(day: Day, dayIndex: number, state: AppState): DayIte
     const spotMemo = typeof spot === 'string' ? '' : spot.memo || '';
     items.push({ type: 'spot', value: spotName, memo: spotMemo, spotIndex: index });
   });
-  if (accommodation) {
+  if (showAccommodation) {
     items.push({ type: 'accommodation', value: accommodation, memo: accommodationMemo });
   }
-  if (arrival) {
+  if (showArrival) {
     items.push({ type: 'endpoint', value: arrival, memo: arrivalMemo, label: '到着地点' });
   }
   return items;
