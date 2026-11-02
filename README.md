@@ -8,7 +8,7 @@
 ## 概要
 
 「たびろーむ」は、旅行の計画・整理から当日の移動経路確認、道草や寄り道、同行者への共有までをシンプルに行える旅程作成アプリです。  
-**Astro** と **Tailwind CSS**、**TypeScript** によるモダンな静的サイトアーキテクチャを採用しており、高速・軽量な動作と保守性を両立しています。データはブラウザのLocalStorageを活用して手軽に永続化されます。
+**Astro** と **Tailwind CSS**、**TypeScript** によるモダンな静的サイトアーキテクチャを採用しており、高速・軽量な動作と保守性を両立しています。データはブラウザの LocalStorage を活用して手軽に永続化されます。共有プランや MCP トークン、アクセス解析は Cloudflare D1 に保存されます。
 
 ---
 
@@ -31,11 +31,20 @@
   - 誤操作を防ぐ日程削除のアンドゥ（元に戻す、Ctrl+Z / ⌘+Z ショートカット対応）。
 
 - **複数旅行の保存と切り替え**
-  - ブラウザのLocalStorageに最大3つの旅行プランを保存。
+  - ブラウザの LocalStorage に旅行プランを保存（保存数に上限はありません）。
   - コンボボックスから素早く新規作成・切り替え・削除が可能。
 
-- **LINE共有テキスト生成**
+- **共有プラン（Cloudflare D1）**
+  - 旅程をサーバーに保存し、共有URL（`/p/[planId]`）を生成。
+  - 同行者との共有・閲覧に対応。
+
+- **AI連携（MCP）**
+  - MCPプロトコル対応により、AIツールから旅程の取得・更新が可能。
+  - トークン管理とレートリミットを実装。
+
+- **LINE共有テキスト生成・エクスポート**
   - 旅行名、各日の旅程、選択中マップ（Google Maps または Apple Maps）のルートURLを整形したテキストとしてワンクリックでクリップボードへコピー。
+  - 画像・テキストでのバックアップ出力に対応。
 
 - **レスポンシブデザイン**
   - スマートフォンおよびデスクトップの両方で快適に操作できるミニマルなモノトーンUI。
@@ -51,6 +60,7 @@
 | 言語 | TypeScript | 型安全なアプリケーションロジック |
 | アイコン | [Lucide Icons](https://lucide.dev/) | 軽量ベクターアイコン |
 | データ永続化 | LocalStorage API | ブラウザ内でのデータ保持 |
+| サーバーサイドDB | [Cloudflare D1](https://developers.cloudflare.com/d1/) | 共有プラン・MCP APIトークン・アクセス解析の保存 |
 | 地図連携 | Google Maps / Apple Maps URL Scheme | 経路案内・経由地指定ルート生成 |
 | デプロイ基盤 | [Cloudflare Pages](https://pages.cloudflare.com/) / GitHub Actions | 超高速なエッジネットワーク配信 |
 
@@ -63,31 +73,47 @@ root-generator-public/
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml            # GitHub Actions (ビルド & Cloudflare Pagesデプロイ)
+├── db/
+│   ├── schema.sql                # D1 スキーマ（plans, api_tokens, page_views）
+│   └── migration-*.sql
+├── docs/
+│   ├── ads-management.md         # 広告管理マニュアル
+│   └── Todo.md
 ├── public/
 │   └── favicon.svg               # アプリケーションファビコン
 ├── src/
 │   ├── components/               # Astro UIコンポーネント
-│   │   ├── Header.astro          # ヘッダー・地図セレクター
-│   │   ├── SpotAddForm.astro     # スポット追加・旅行名コンボボックス
-│   │   ├── DayTabs.astro         # 右側フローティング日程タブ
-│   │   └── Tooltip.astro         # グローバルツールチップ
+│   │   ├── Header.astro
+│   │   ├── LpHero.astro           # LPヒーロー
+│   │   ├── SpotAddForm.astro
+│   │   ├── TripCombobox.astro
+│   │   ├── DayTabs.astro
+│   │   ├── TravelBookingAd.astro  # プロモーション枠
+│   │   ├── McpConnectModal.astro  # MCP連携モーダル
+│   │   ├── ItineraryFooterActions.astro
+│   │   └── Tooltip.astro
+│   ├── config/
+│   │   └── ads.ts                 # 広告設定
 │   ├── layouts/
-│   │   └── Layout.astro          # 共通HTMLレイアウト・メタデータ
+│   │   └── Layout.astro
 │   ├── pages/
-│   │   └── index.astro           # メインページ
-│   ├── scripts/                  # TypeScript アプリケーションロジック
-│   │   ├── types.ts              # 型定義 (Trip, Day, MapType 等)
-│   │   ├── storage.ts            # LocalStorage 永続化・旅行データ管理
-│   │   ├── maps.ts               # Google / Apple Maps ルートURL生成
-│   │   ├── share.ts              # LINE共有テキスト生成・トースト通知
-│   │   ├── flip.ts               # FLIP並び替えアニメーション
-│   │   └── app.ts                # メインコントローラー・イベント制御
+│   │   ├── index.astro            # メインページ
+│   │   ├── p/[planId].astro       # 共有プランページ
+│   │   ├── admin/                 # 管理画面
+│   │   └── api/                   # APIルート（plans, mcp, analytics）
+│   ├── scripts/                  # TypeScript ロジック
+│   │   ├── app.ts
+│   │   ├── storage.ts
+│   │   ├── maps.ts
+│   │   ├── share.ts
+│   │   ├── flip.ts
+│   │   └── types.ts
 │   └── styles/
-│       └── global.css            # グローバルCSS & カスタムユーティリティ
-├── astro.config.mjs              # Astro 設定ファイル
-├── tailwind.config.mjs           # Tailwind CSS 設定ファイル
-├── tsconfig.json                 # TypeScript 設定ファイル
-├── wrangler.toml                 # Cloudflare Pages 設定ファイル
+│       └── global.css
+├── astro.config.mjs
+├── tailwind.config.mjs
+├── tsconfig.json
+├── wrangler.toml
 └── package.json
 ```
 
